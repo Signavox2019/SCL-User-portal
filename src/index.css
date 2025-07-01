@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Spoof+Trial:wght@300;400;500;600;700&display=swap');
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #311188 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #311188;
+  border-radius: 20px;
+  border: transparent;
+}
+
+/* Custom font class for Spoof Trial */
+.font-spoof {
+  font-family: 'Spoof Trial', sans-serif;
+}
+
+@import "tailwindcss";
