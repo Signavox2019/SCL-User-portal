@@ -87,11 +87,7 @@ const Landing = () => {
     { placeholder: 'Years of Experience', type: 'number', icon: <Schedule /> },
   ];
 
-  const copyrightLinks = [
-    { text: 'Privacy Policy', action: () => console.log('Privacy clicked') },
-    { text: 'Terms of Use', action: () => console.log('Terms clicked') },
-    { text: 'Cookies Policy', action: () => console.log('Cookies clicked') }
-  ];
+
 
   // Update formData on input change
   const handleInputChange = (e) => {
@@ -161,19 +157,19 @@ const Landing = () => {
       <div className="min-h-screen h-screen w-screen flex flex-col md:flex-row overflow-hidden">
         {/* Left Section with Content */}
         <div className="hidden md:flex w-full md:w-[65%] flex-col h-full relative pt-2 px-2 xs:px-3 sm:px-6 lg:px-12 bg-gradient-to-br from-[#311188]/10 to-[#0A081E]/30 min-w-0 overflow-visible max-h-full transition-all duration-500">
-          <div className="w-full flex flex-col flex-grow min-w-0 h-full justify-start">
+          <div className="w-full flex flex-col flex-grow min-w-0 h-full justify-between">
             {/* Title at the very top, minimal space above */}
-            <div className="flex flex-col items-start mt-4 mb-2">
+            <div className="flex flex-col items-start mt-4 mb-8">
               <div className="flex items-center gap-0 mb-1">
                 <span className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 font-spoof leading-none">Sign</span>
-                <img src={SignavoxLogo} alt="Signavox Logo" className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-10 lg:h-10 xl:w-11 xl:h-11 align-middle inline-block mt-2 xs:mt-3" />
-                <span className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 font-spoof leading-none ">vox</span>
+                <img src={SignavoxLogo} alt="Signavox Logo" className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-10 lg:h-10 xl:w-10 xl:h-10 align-middle inline-block mt-2 xs:mt-3" />
+                <span className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 font-spoof leading-none">vox</span>
               </div>
               <p className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl text-purple-200 mt-1 font-spoof tracking-wide max-w-2xl mb-2">Empowering Future Tech Leaders</p>
             </div>
 
             {/* Section Divider */}
-            <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mb-4" />
+            {/* <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mb-4" /> */}
 
             {/* Features Section */}
             <motion.div
@@ -218,36 +214,19 @@ const Landing = () => {
               </div>
             </motion.div>
 
-            {/* Footer Section always at the bottom */}
-            <div className="w-full mt-auto pt-4 pb-2 md:pb-4 px-1 md:px-4 text-xs md:text-sm text-purple-200/60 text-center md:text-left z-10">
+            {/* Footer Section always at the bottom, but visually connected */}
+            <div className="w-full mt-auto pt-2 pb-2 md:pb-4 px-1 md:px-4 text-xs md:text-sm text-purple-200/60 text-center md:text-left z-10">
               <div className="flex flex-col md:flex-row items-center justify-between space-y-1 md:space-y-0">
                 <Typography variant="body2" className="text-[#fff] text-xs font-spoof">
                   © 2025 Signavox. All rights Reserved
                 </Typography>
                 <div className="flex items-center space-x-1 xs:space-x-2">
-                  {copyrightLinks.map((link, index) => (
-                    <React.Fragment key={index}>
-                      {index !== 0 && (
-                        <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                      )}
-                      <Tooltip title={link.text} arrow>
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={link.action}
-                          className="text-purple-300/60 hover:text-purple-200 font-spoof text-xs md:text-sm transition-all duration-300 hover:scale-105"
-                          sx={{
-                            color: '#fff !important',
-                            '&:hover': {
-                              background: 'rgba(49, 17, 136, 0.1)',
-                            }
-                          }}
-                        >
-                          {link.text}
-                        </Button>
-                      </Tooltip>
-                    </React.Fragment>
-                  ))}
+                  <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                  <span className="underline cursor-pointer">Privacy Policy</span>
+                  <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                  <span className="underline cursor-pointer">Terms of Use</span>
+                  <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                  <span className="underline cursor-pointer">Cookies Policy</span>
                 </div>
               </div>
             </div>

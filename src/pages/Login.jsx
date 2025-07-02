@@ -73,7 +73,7 @@ const Login = () => {
             <p className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl text-purple-200 mt-1 font-spoof tracking-wide max-w-2xl mb-2">Empowering Future Tech Leaders</p>
           </div>
           {/* Section Divider */}
-          <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mb-4" />
+          {/* <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mb-4" /> */}
           {/* Features Section - Signavox Career Ladder */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -125,7 +125,7 @@ const Login = () => {
             </div>
           </motion.div>
           {/* Section Divider */}
-          <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mt-2 mb-2" />
+          {/* <div className="w-full h-[2px] bg-gradient-to-r from-purple-300/30 via-pink-200/20 to-purple-400/30 rounded-full mt-2 mb-2" /> */}
           {/* Footer Section always at the bottom, but visually connected */}
           <div className="w-full pt-2 pb-2 md:pb-4 px-1 md:px-4 text-xs md:text-sm text-purple-200/60 text-center md:text-left z-10">
             <div className="flex flex-col md:flex-row items-center justify-between space-y-1 md:space-y-0">
@@ -308,7 +308,7 @@ const Login = () => {
               {/* Sign Up Link */}
               <div className="w-full text-center mt-4">
                 <RouterLink
-                  to="/register"
+                  to="/"
                   style={{
                     color: '#7c3aed',
                     fontWeight: 600,
