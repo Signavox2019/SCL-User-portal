@@ -23,7 +23,7 @@ import {
   CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
-import SignavoxLogo from '../assets/snignavox icon.png';
+import SignavoxLogo from '../assets/snignavox_icon.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 

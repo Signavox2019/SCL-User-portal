@@ -1,8 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import Layout from './components/Layout';
-import Landing from './pages/RegistrationPage.jsx';
+import RegistrationPage from './pages/RegistrationPage.jsx';
 import Login from './pages/Login.jsx';
+import DashboardLayout from './components/DashboardLayout';
+import ForgotPassword from './pages/ForgotPassword';
+import DashboardPage from './pages/DashboardPage';
+// import CoursesPage from './pages/CoursesPage';
 
 const theme = createTheme({
   palette: {
@@ -18,10 +22,21 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" exact element={<Landing />} />
+            <Route path="/" exact element={<RegistrationPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgotpassword" element={<ForgotPassword />} />
           </Routes>
         </Layout>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            }
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   );

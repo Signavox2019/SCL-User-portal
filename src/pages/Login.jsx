@@ -4,7 +4,7 @@ import { TextField, Button, InputAdornment, IconButton, Typography, Card, CardCo
 import { Email, Lock, Person, ArrowForward, Visibility, VisibilityOff, Security, FlashOn, Public, MenuBook, Work, TrendingUp } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import BaseUrl from '../Api.jsx';
-import SignavoxLogo from '../assets/snignavox icon.png';
+import SignavoxLogo from '../assets/snignavox_icon.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
