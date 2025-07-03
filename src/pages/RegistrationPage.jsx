@@ -422,7 +422,8 @@ const Landing = () => {
                           fullWidth
                           required={field.required}
                           variant="outlined"
-                          placeholder={field.placeholder}
+                          label={field.placeholder}
+                          // placeholder={field.placeholder}
                           type={field.type}
                           size="medium"
                           name={field.placeholder}
@@ -454,12 +455,12 @@ const Landing = () => {
                               '&:hover': {
                                 backgroundColor: 'rgba(255,255,255,1)',
                                 transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                border: '2px solid rgba(49, 17, 136, 0.3)'
+                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                // border: '2px solid rgba(49, 17, 136, 0.3)'
                               },
                               '&.Mui-focused': {
-                                border: '2px solid rgba(49, 17, 136, 0.6)',
-                                boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                               }
                             },
                             '& .MuiInputLabel-root': {
@@ -516,12 +517,12 @@ const Landing = () => {
                               minHeight: '40px',
                               '&:hover': {
                                 backgroundColor: 'rgba(255,255,255,1)',
-                                boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                border: '2px solid rgba(49, 17, 136, 0.3)'
+                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                // border: '2px solid rgba(49, 17, 136, 0.3)'
                               },
                               '&.Mui-focused': {
-                                border: '2px solid rgba(49, 17, 136, 0.6)',
-                                boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                               }
                             }}
                             renderValue={(selected) => selected || field.placeholder}
@@ -537,7 +538,8 @@ const Landing = () => {
                           fullWidth
                           required={field.required}
                           variant="outlined"
-                          placeholder={field.placeholder}
+                          label={field.placeholder}
+                          // placeholder={field.placeholder}
                           type="number"
                           size="medium"
                           name={field.placeholder}
@@ -574,12 +576,12 @@ const Landing = () => {
                               '&:hover': {
                                 backgroundColor: 'rgba(255,255,255,1)',
                                 transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                border: '2px solid rgba(49, 17, 136, 0.3)'
+                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                // border: '2px solid rgba(49, 17, 136, 0.3)'
                               },
                               '&.Mui-focused': {
-                                border: '2px solid rgba(49, 17, 136, 0.6)',
-                                boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                               }
                             },
                             '& .MuiInputLabel-root': {
@@ -599,7 +601,8 @@ const Landing = () => {
                           fullWidth
                           required={field.required}
                           variant="outlined"
-                          placeholder={field.placeholder}
+                          label={field.placeholder}
+                          // placeholder={field.placeholder}
                           type={field.type}
                           size="medium"
                           name={field.placeholder}
@@ -631,12 +634,12 @@ const Landing = () => {
                               '&:hover': {
                                 backgroundColor: 'rgba(255,255,255,1)',
                                 transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                border: '2px solid rgba(49, 17, 136, 0.3)'
+                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                // border: '2px solid rgba(49, 17, 136, 0.3)'
                               },
                               '&.Mui-focused': {
-                                border: '2px solid rgba(49, 17, 136, 0.6)',
-                                boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                               }
                             },
                             '& .MuiInputLabel-root': {
@@ -666,7 +669,8 @@ const Landing = () => {
                   <TextField
                     fullWidth
                     variant="outlined"
-                    placeholder="Resume (URL)"
+                    label="Resume (URL)"
+                    // placeholder="Resume (URL)"
                     type="url"
                     size="medium"
                     name="Resume"
@@ -695,12 +699,12 @@ const Landing = () => {
                         '&:hover': {
                           backgroundColor: 'rgba(255,255,255,1)',
                           transform: 'translateY(-2px)',
-                          boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                          border: '2px solid rgba(49, 17, 136, 0.3)'
+                          // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                          // border: '2px solid rgba(49, 17, 136, 0.3)'
                         },
                         '&.Mui-focused': {
-                          border: '2px solid rgba(49, 17, 136, 0.6)',
-                          boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                          // border: '2px solid rgba(49, 17, 136, 0.6)',
+                          // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                         }
                       },
                       '& .MuiInputLabel-root': {
@@ -775,7 +779,8 @@ const Landing = () => {
                             <TextField
                               fullWidth
                               variant="outlined"
-                              placeholder={field.placeholder}
+                              // placeholder={field.placeholder}
+                              label={field.placeholder}
                               type={field.type}
                               size="medium"
                               InputProps={{
@@ -804,12 +809,12 @@ const Landing = () => {
                                   '&:hover': {
                                     backgroundColor: 'rgba(255,255,255,1)',
                                     transform: 'translateY(-2px)',
-                                    boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                    border: '2px solid rgba(49, 17, 136, 0.3)'
+                                    // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                    // border: '2px solid rgba(49, 17, 136, 0.3)'
                                   },
                                   '&.Mui-focused': {
-                                    border: '2px solid rgba(49, 17, 136, 0.6)',
-                                    boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                    // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                    // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
                                   }
                                 },
                                 '& .MuiInputBase-input': {
