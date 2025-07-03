@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Spoof+Trial:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
 
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -22,6 +23,13 @@
 /* Custom font class for Spoof Trial */
 .font-spoof {
   font-family: 'Spoof Trial', sans-serif;
+}
+
+/* Custom font class for Gothic Round Bold (using Montserrat Black as fallback) */
+.font-gothic-round-bold {
+  font-family: 'Montserrat', 'Arial Rounded MT Bold', 'Arial', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
 @import "tailwindcss";

@@ -12,6 +12,7 @@ import {
   AccountCircle as AccountCircleIcon
 } from '@mui/icons-material';
 import Layout from './Layout'; // adjust path as needed
+import './DashboardLayout.css';
 
 const navItems = [
   { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
@@ -22,11 +23,11 @@ const navItems = [
 ];
 
 const companyName = (
-  <span className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-clip-text text-white font-spoof leading-none text-transparent select-none">
+  <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-clip-text text-white font-spoof leading-none text-transparent select-none">
     Sign
     <img src={SignavoxLogo} alt="Signavox Logo" className="inline w-7 h-7 align-middle " />
     vox
-  </span>
+  </h1>
 );
 
 const DashboardLayout = ({ children }) => {

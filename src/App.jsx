@@ -6,7 +6,8 @@ import Login from './pages/Login.jsx';
 import DashboardLayout from './components/DashboardLayout';
 import ForgotPassword from './pages/ForgotPassword';
 import DashboardPage from './pages/DashboardPage';
-// import CoursesPage from './pages/CoursesPage';
+import Courses from './pages/Courses';
+
 
 const theme = createTheme({
   palette: {
@@ -34,6 +35,14 @@ function App() {
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <DashboardLayout>
+                <Courses />
+              </DashboardLayout> 
             }
           />
         </Routes>
