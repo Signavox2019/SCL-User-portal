@@ -81,7 +81,7 @@ const Login = () => {
             transition={{ duration: 0.8 }}
             className="mt-1 mb-4 flex-0"
           >
-            <motion.h2 
+            <motion.h2
               className="text-xs xs:text-sm sm:text-lg md:text-2xl lg:text-3xl mb-4 text-purple-200 font-light tracking-wide font-spoof mt-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -89,7 +89,7 @@ const Login = () => {
             >
               Signavox Career Ladder
             </motion.h2>
-            <motion.p 
+            <motion.p
               className="text-xs xs:text-sm sm:text-base md:text-lg text-purple-100 mb-4 leading-relaxed  max-w-3xl font-spoof"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -281,7 +281,12 @@ const Login = () => {
                 }}
               />
               <div className="flex flex-col gap-1 w-full">
-                <span className="text-right text-purple-400 text-sm mt-1 cursor-pointer hover:underline transition-all duration-200 font-spoof">Forgot password?</span>
+                <span
+                  className="text-right text-purple-400 text-sm mt-1 cursor-pointer hover:underline transition-all duration-200 font-spoof"
+                  onClick={() => { navigate('/forgotpassword'); }}
+                >
+                  Forgot password?
+                </span>
               </div>
               <Button
                 variant="contained"

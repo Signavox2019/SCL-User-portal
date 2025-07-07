@@ -5,6 +5,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, 
 
 const pieColors = ['#a3e635', '#f472b6', '#818cf8'];
 
+// Define a constant for the title color
+const TITLE_COLOR = '#7c3aed'; // Tailwind purple-600
+
 const DashboardPage = () => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -102,8 +105,8 @@ const DashboardPage = () => {
               className={`relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br ${m.card} backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden`}
             >
               {/* Animated icon circle */}
-              <div className={`absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-gradient-to-br ${m.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 animate-pulse mt-5`}> 
-                <Icon className={`text-4xl ${m.iconColor} drop-shadow-lg`} />
+              <div className={`absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br ${m.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3`}> 
+                <Icon sx={{ fontSize: '2rem' }} className={`${m.iconColor} drop-shadow-lg`} />
               </div>
               <div className="z-10 flex flex-col items-center mt-10">
                 <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider animate-gradient-x bg-gradient-to-r from-white via-purple-300 to-purple-700 bg-clip-text text-transparent">{m.value}</div>
@@ -122,11 +125,11 @@ const DashboardPage = () => {
         <div className="col-span-2 bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10">
           {/* Fancy Header for Progress Over Time */}
           <div className="mb-8 flex items-center gap-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-lg animate-pulse">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-lg">
               <TrendingUp className="text-white text-3xl drop-shadow-lg" />
             </div>
             <div>
-              <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-300 to-blue-400 tracking-wide drop-shadow-lg">Progress Over Time</div>
+              <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Progress Over Time</div>
               <div className="text-sm text-pink-100/80 mt-1">Visualize your learning journey month by month</div>
             </div>
           </div>
@@ -149,11 +152,11 @@ const DashboardPage = () => {
         <div className="bg-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10">
           {/* Fancy Header for Course Completion */}
           <div className="mb-8 flex items-center gap-4 w-full">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-purple-400 shadow-lg animate-pulse">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-purple-400 shadow-lg">
               <CheckCircle className="text-white text-3xl drop-shadow-lg" />
             </div>
             <div>
-              <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-300 via-pink-300 to-purple-400 tracking-wide drop-shadow-lg">Course</div>
+              <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Course</div>
               <div className="text-sm text-green-100/80 mt-1">See your course completion breakdown</div>
             </div>
           </div>
@@ -197,11 +200,11 @@ const DashboardPage = () => {
       <div className="bg-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10">
         {/* Fancy Header for Courses */}
         <div className="mb-8 flex items-center gap-4">
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-400 to-blue-400 shadow-lg animate-pulse">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-400 to-blue-400 shadow-lg">
             <School className="text-white text-3xl drop-shadow-lg" />
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-blue-400 tracking-wide drop-shadow-lg">Your Courses</div>
+            <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Your Courses</div>
             <div className="text-sm text-purple-100/80 mt-1">Track your learning journey and progress</div>
           </div>
         </div>
@@ -241,11 +244,11 @@ const DashboardPage = () => {
         <div className="bg-gradient-to-br from-green-400/10 to-purple-400/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10 mt-10">
           {/* Fancy Header for Certificates */}
           <div className="mb-8 flex items-center gap-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 via-green-400 to-purple-400 shadow-lg animate-pulse">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 via-green-400 to-purple-400 shadow-lg">
               <EmojiEvents className="text-white text-3xl drop-shadow-lg" />
             </div>
             <div>
-              <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-green-200 to-purple-200 tracking-wide drop-shadow-lg">Certificates</div>
+              <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Certificates</div>
               <div className="text-sm text-green-100/80 mt-1">Celebrate your achievements and download your certificates</div>
             </div>
           </div>
@@ -270,11 +273,11 @@ const DashboardPage = () => {
         <div className="bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10 mt-10">
           {/* Fancy Header for Events */}
           <div className="mb-8 flex items-center gap-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 shadow-lg animate-pulse">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 shadow-lg">
               <Event className="text-white text-3xl drop-shadow-lg" />
             </div>
             <div>
-              <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 tracking-wide drop-shadow-lg">Registered Events</div>
+              <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Registered Events</div>
               <div className="text-sm text-blue-100/80 mt-1">See your upcoming and past event registrations</div>
             </div>
           </div>

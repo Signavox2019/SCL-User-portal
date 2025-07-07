@@ -4,6 +4,8 @@ import BaseUrl from '../Api.jsx';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Link as RouterLink } from 'react-router-dom';
+import universityOptions from '../assets/University_list.js';
+import { Autocomplete, createFilterOptions } from '@mui/material';
 
 import {
   School, Computer, Work, Badge, ArrowForward,
@@ -27,6 +29,9 @@ import SignavoxLogo from '../assets/snignavox_icon.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 
+// Read and parse the university list
+// const universityOptions = universityList.split('\n').filter(Boolean);
+
 const Landing = () => {
   const [hasExperience, setHasExperience] = useState('no');
   const [formData, setFormData] = useState({});
@@ -35,6 +40,9 @@ const Landing = () => {
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [customUniversity, setCustomUniversity] = useState('');
+  const [customDepartment, setCustomDepartment] = useState('');
+  const [cgpaType, setCgpaType] = useState('CGPA');
 
   const features = [
     { icon: <School className="text-4xl text-purple-300" />, title: 'Globally Recognized Certification' },
@@ -51,7 +59,7 @@ const Landing = () => {
 
   // College Details fields
   const collegeFields = [
-    { placeholder: 'University Name', type: 'text', icon: <School />, required: true },
+    { placeholder: 'University Name', type: 'select', icon: <School />, required: true, options: universityOptions },
     { placeholder: 'College/University', type: 'text', icon: <SchoolOutline />, required: true },
     { placeholder: 'Degree Type', type: 'select', icon: <Business />, required: true, options: [
       { value: 'Bachelors', label: 'Bachelors' },
@@ -65,7 +73,6 @@ const Landing = () => {
       { value: 'EEE', label: 'Electrical & Electronics' },
       { value: 'ME', label: 'Mechanical Engineering' },
       { value: 'CE', label: 'Civil Engineering' },
-      { value: 'Other', label: 'Other' },
     ] },
     { placeholder: 'Specialization', type: 'text', icon: <MenuBook />, required: true },
     { placeholder: 'CGPA Score', type: 'number', icon: <Grade />, required: true, min: 0, max: 10, step: 0.1 },
@@ -87,7 +94,7 @@ const Landing = () => {
     { placeholder: 'Years of Experience', type: 'number', icon: <Schedule /> },
   ];
 
-
+  const filter = createFilterOptions();
 
   // Update formData on input change
   const handleInputChange = (e) => {
@@ -112,11 +119,12 @@ const Landing = () => {
         role: 'intern', // Set as intern by default
         phone: formData['Phone Number'] || '',
         collegeName: formData['College/University'] || '',
-        department: formData['Department'] || '',
-        university: formData['University Name'] || '',
+        department: formData['Department'] === 'Others' ? customDepartment : (formData['Department'] || ''),
+        university: formData['University Name'] === 'Others' ? customUniversity : (formData['University Name'] || ''),
         degree: formData['Degree Type'] || '',
         specialization: formData['Specialization'] || '',
         cgpa: formData['CGPA Score'] || '',
+        cgpaType,
         currentYear: formData['Current Year'] || '',
         isGraduated: formData['isGraduated'] || false,
         yearOfPassing: formData['Year of Passing'] || '',
@@ -331,7 +339,13 @@ const Landing = () => {
                 </Button>
               </DialogActions>
             </Dialog>
-            <form className="flex-1 p-2 xs:p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar" onSubmit={handleRegister}>
+            <form className="flex-1 p-2 xs:p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar" onSubmit={handleRegister}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
+            >
               {/* Header that scrolls with form */}
               <motion.div
                 initial={{ opacity: 0, y: -30 }}
@@ -492,7 +506,264 @@ const Landing = () => {
                   </Typography>
                   {collegeFields.map((field, index) => (
                     <div className="space-y-2 xs:space-y-4" key={index}>
-                      {field.type === 'select' ? (
+                      {field.placeholder === 'University Name' ? (
+                        <>
+                          <Autocomplete
+                            options={[...universityOptions.filter(u => u !== 'Others'), 'Others']}
+                            value={formData['University Name'] || ''}
+                            onChange={(_, newValue) => {
+                              if (newValue === 'Others') {
+                                setCustomUniversity('');
+                                handleInputChange({ target: { name: 'University Name', value: 'Others' } });
+                              } else {
+                                setCustomUniversity('');
+                                handleInputChange({ target: { name: 'University Name', value: newValue } });
+                              }
+                            }}
+                            filterOptions={(options, params) => {
+                              const filtered = filter(options, params);
+                              const filteredNoDup = filtered.filter((v, i, arr) => v !== 'Others' || arr.indexOf('Others') === i);
+                              if (
+                                params.inputValue !== '' &&
+                                !options.some(option => option.toLowerCase() === params.inputValue.toLowerCase())
+                                && !filteredNoDup.includes('Others')
+                              ) {
+                                filteredNoDup.push('Others');
+                              }
+                              return filteredNoDup;
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="University Name"
+                                variant="outlined"
+                                required={field.required && formData['University Name'] !== 'Others'}
+                                InputProps={{
+                                  ...params.InputProps,
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <span className="text-[#311188] ml-2">{field.icon}</span>
+                                    </InputAdornment>
+                                  ),
+                                }}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    backgroundColor: 'rgba(255,255,255,0.95)',
+                                    backdropFilter: 'blur(10px)',
+                                    borderRadius: '12px',
+                                    border: '2px solid transparent',
+                                    transition: 'all 0.4s ease',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 0',
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    minHeight: '40px',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255,255,255,1)',
+                                      transform: 'translateY(-2px)',
+                                    },
+                                    '&.Mui-focused': {}
+                                  },
+                                  '& .MuiInputLabel-root': {
+                                    color: '#6b7280',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'Spoof Trial, sans-serif'
+                                  },
+                                  '& .MuiInputBase-input': {
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 12px'
+                                  }
+                                }}
+                              />
+                            )}
+                          />
+                          {formData['University Name'] === 'Others' && (
+                            <div className="w-full mt-2">
+                              <TextField
+                                fullWidth
+                                required
+                                label="Enter your University Name"
+                                value={customUniversity}
+                                onChange={e => setCustomUniversity(e.target.value)}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    backgroundColor: 'rgba(255,255,255,0.95)',
+                                    backdropFilter: 'blur(10px)',
+                                    borderRadius: '12px',
+                                    border: '2px solid transparent',
+                                    transition: 'all 0.4s ease',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 0',
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    minHeight: '40px',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255,255,255,1)',
+                                      transform: 'translateY(-2px)',
+                                    },
+                                    '&.Mui-focused': {}
+                                  },
+                                  '& .MuiInputLabel-root': {
+                                    color: '#6b7280',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'Spoof Trial, sans-serif'
+                                  },
+                                  '& .MuiInputBase-input': {
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 12px'
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+                        </>
+                      ) : field.placeholder === 'Department' ? (
+                        <>
+                          <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
+                            <Select
+                              displayEmpty
+                              name={field.placeholder}
+                              value={formData[field.placeholder] || ''}
+                              onChange={handleInputChange}
+                              startAdornment={
+                                <InputAdornment position="start">
+                                  <span className="text-[#311188] ml-2">{field.icon}</span>
+                                </InputAdornment>
+                              }
+                              sx={{
+                                backgroundColor: 'rgba(255,255,255,0.95)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: '12px',
+                                border: '2px solid transparent',
+                                transition: 'all 0.4s ease',
+                                fontSize: '0.95rem',
+                                fontFamily: 'Spoof Trial, sans-serif',
+                                minHeight: '40px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255,255,255,1)',
+                                  // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
+                                  // border: '2px solid rgba(49, 17, 136, 0.3)'
+                                },
+                                '&.Mui-focused': {
+                                  // border: '2px solid rgba(49, 17, 136, 0.6)',
+                                  // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
+                                }
+                              }}
+                              renderValue={(selected) => selected || field.placeholder}
+                            >
+                              <MenuItem value="" disabled>{field.placeholder}</MenuItem>
+                              {field.options && field.options.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                              ))}
+                              <MenuItem value="Others">Others</MenuItem>
+                            </Select>
+                          </FormControl>
+                          {formData['Department'] === 'Others' && (
+                            <div className="w-full mt-2">
+                              <TextField
+                                fullWidth
+                                required
+                                label="Enter your Department"
+                                value={customDepartment}
+                                onChange={e => setCustomDepartment(e.target.value)}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    backgroundColor: 'rgba(255,255,255,0.95)',
+                                    backdropFilter: 'blur(10px)',
+                                    borderRadius: '12px',
+                                    border: '2px solid transparent',
+                                    transition: 'all 0.4s ease',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 0',
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    minHeight: '40px',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255,255,255,1)',
+                                      transform: 'translateY(-2px)',
+                                    },
+                                    '&.Mui-focused': {}
+                                  },
+                                  '& .MuiInputLabel-root': {
+                                    color: '#6b7280',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'Spoof Trial, sans-serif'
+                                  },
+                                  '& .MuiInputBase-input': {
+                                    fontFamily: 'Spoof Trial, sans-serif',
+                                    fontSize: '0.95rem',
+                                    padding: '6px 12px'
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+                        </>
+                      ) : field.placeholder === 'CGPA Score' ? (
+                        <div className="flex flex-col gap-2 w-full">
+                          <div className="flex items-center gap-4">
+                            <span className="font-medium text-[#311188]">Score Type:</span>
+                            <select
+                              value={cgpaType}
+                              onChange={e => setCgpaType(e.target.value)}
+                              className="rounded-lg border border-purple-200 px-3 py-1 text-[#311188] bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-spoof"
+                            >
+                              <option value="CGPA">CGPA</option>
+                              <option value="Percentage">Percentage</option>
+                            </select>
+                          </div>
+                          <TextField
+                            fullWidth
+                            required={field.required}
+                            variant="outlined"
+                            label={cgpaType === 'CGPA' ? 'CGPA Score' : 'Percentage'}
+                            type="number"
+                            size="medium"
+                            name="CGPA Score"
+                            value={formData['CGPA Score'] || ''}
+                            onChange={handleInputChange}
+                            inputProps={{
+                              min: cgpaType === 'CGPA' ? 0 : 0,
+                              max: cgpaType === 'CGPA' ? 10 : 100,
+                              step: cgpaType === 'CGPA' ? 0.1 : 0.1,
+                            }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <span className="text-[#311188] ml-2">{field.icon}</span>
+                                </InputAdornment>
+                              ),
+                            }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                backgroundColor: 'rgba(255,255,255,0.95)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: '12px',
+                                border: '2px solid transparent',
+                                transition: 'all 0.4s ease',
+                                fontSize: '0.95rem',
+                                padding: '6px 0',
+                                fontFamily: 'Spoof Trial, sans-serif',
+                                minHeight: '40px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255,255,255,1)',
+                                  transform: 'translateY(-2px)',
+                                },
+                                '&.Mui-focused': {}
+                              },
+                              '& .MuiInputLabel-root': {
+                                color: '#6b7280',
+                                fontSize: '0.85rem',
+                                fontFamily: 'Spoof Trial, sans-serif'
+                              },
+                              '& .MuiInputBase-input': {
+                                fontFamily: 'Spoof Trial, sans-serif',
+                                fontSize: '0.95rem',
+                                padding: '6px 12px'
+                              }
+                            }}
+                          />
+                        </div>
+                      ) : field.type === 'select' ? (
                         <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
                           <Select
                             displayEmpty
@@ -783,6 +1054,7 @@ const Landing = () => {
                               label={field.placeholder}
                               type={field.type}
                               size="medium"
+                              name={field.placeholder}
                               InputProps={{
                                 startAdornment: (
                                   <InputAdornment position="start">
@@ -823,6 +1095,8 @@ const Landing = () => {
                                   padding: '6px 12px'
                                 }
                               }}
+                              value={formData[field.placeholder] || ''}
+                              onChange={handleInputChange}
                             />
                           </div>
                         ))}

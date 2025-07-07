@@ -7,6 +7,9 @@ import DashboardLayout from './components/DashboardLayout';
 import ForgotPassword from './pages/ForgotPassword';
 import DashboardPage from './pages/DashboardPage';
 import Courses from './pages/Courses';
+import Progress from './pages/Progress';
+import ProtectedRoute from './components/ProtectedRoute';
+import CourseDetails from './pages/CourseDetails';
 
 
 const theme = createTheme({
@@ -19,35 +22,54 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" exact element={<RegistrationPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgotpassword" element={<ForgotPassword />} />
-          </Routes>
-        </Layout>
+    <Router>
+      <ThemeProvider theme={theme}>
         <Routes>
+          <Route path="/" element={<Layout><RegistrationPage /></Layout>} />
+          <Route path="/login" element={<Layout><Login /></Layout>} />
+          <Route path="/forgotpassword" element={<Layout><ForgotPassword /></Layout>} />
           <Route
             path="/dashboard"
             element={
-              <DashboardLayout>
-                <DashboardPage />
-              </DashboardLayout>
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <DashboardPage />
+                </DashboardLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/courses"
             element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Courses />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:id"
+            element={
               <DashboardLayout>
-                <Courses />
-              </DashboardLayout> 
+                <CourseDetails />
+              </DashboardLayout>
+            }
+          />
+
+          <Route
+            path="/progress"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Progress />
+                </DashboardLayout>
+              </ProtectedRoute>
             }
           />
         </Routes>
-      </Router>
-    </ThemeProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 

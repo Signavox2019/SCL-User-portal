@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SignavoxLogo from '../assets/snignavox_icon.png';
 import {
   Dashboard as DashboardIcon,
@@ -13,6 +13,8 @@ import {
 } from '@mui/icons-material';
 import Layout from './Layout'; // adjust path as needed
 import './DashboardLayout.css';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 const navItems = [
   { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
@@ -35,6 +37,21 @@ const DashboardLayout = ({ children }) => {
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const location = useLocation();
   const SIDEBAR_WIDTH = sidebarOpen ? 220 : 72;
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleProfileMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  const handleLogout = () => {
+    localStorage.clear();
+    handleClose();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <Layout>
@@ -133,9 +150,30 @@ const DashboardLayout = ({ children }) => {
                 <NotificationsIcon className="text-pink-300" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />
               </button>
-              <button className="p-2 rounded-full bg-gradient-to-br from-purple-400/20 to-purple-900/10 hover:bg-purple-400/30 transition-all shadow-lg">
+              {/* Profile Dropdown */}
+              <button
+                className="p-2 rounded-full bg-gradient-to-br from-purple-400/20 to-purple-900/10 hover:bg-purple-400/30 transition-all shadow-lg focus:outline-none"
+                onClick={handleProfileMenu}
+                aria-controls={open ? 'profile-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? 'true' : undefined}
+              >
                 <AccountCircleIcon className="text-cyan-200" />
               </button>
+              <Menu
+                id="profile-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                MenuListProps={{
+                  'aria-labelledby': 'profile-button',
+                }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <MenuItem onClick={() => { handleClose(); navigate('/profile'); }}>Profile</MenuItem>
+                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              </Menu>
             </div>
           </header>
           {/* Main Content (scrollable) */}
