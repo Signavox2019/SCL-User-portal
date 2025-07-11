@@ -1,467 +1,276 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BaseUrl from '../Api';
-import {
-  Box, Typography, Button, Chip, Rating, Avatar, Card, CardContent, 
-  Divider, List, ListItem, ListItemIcon, ListItemText, Paper, 
-  Grid, IconButton, CircularProgress, Alert, Accordion, AccordionSummary, 
-  AccordionDetails, Badge, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar
-} from '@mui/material';
-import {
-  ArrowBack, Star, AccessTime, MonetizationOn, CurrencyRupee, Person, 
-  Category, Language, TrendingUp, School, VideoLibrary,
-  Book, Assignment, Quiz, PlayCircle, CheckCircle, 
-  ExpandMore, CalendarToday, Description, Tag, 
-  Visibility, ThumbUp, Share, Bookmark, BookmarkBorder, LocalOffer
-} from '@mui/icons-material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CourseDetails = () => {
-  const { id } = useParams();
+  const { courseId } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [enrollOpen, setEnrollOpen] = useState(false);
-  const [enrollLoading, setEnrollLoading] = useState(false);
-  const [enrollError, setEnrollError] = useState('');
-  const [enrollSuccess, setEnrollSuccess] = useState('');
-  const [amountPaid, setAmountPaid] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Razorpay');
-  const [transactionId, setTransactionId] = useState('');
-  const [receiptUrl, setReceiptUrl] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [quizLesson, setQuizLesson] = useState(null);
-  const [openQuizLessonIndex, setOpenQuizLessonIndex] = useState(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [enrollForm, setEnrollForm] = useState({
+    amountPaid: course?.price?.amount || '',
+    paymentMethod: 'Razorpay',
+    transactionId: '',
+    paymentStatus: 'Success',
+    receiptUrl: ''
+  });
+
+  const paymentMethods = ['Razorpay', 'Stripe', 'PayPal', 'Other'];
+  const paymentStatuses = ['Success', 'Pending', 'Failed'];
 
   useEffect(() => {
-    const fetchCourseDetails = async () => {
+    const fetchCourse = async () => {
       setLoading(true);
-      setError(null);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${BaseUrl}/courses/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${BaseUrl}/courses/${courseId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
-        if (!res.ok) throw new Error('Failed to fetch course details');
+        if (!res.ok) throw new Error('Failed to fetch course');
         const data = await res.json();
-        setCourse(data.course || data);
+        setCourse(data);
       } catch (err) {
-        setError(err.message);
+        toast.error(err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchCourseDetails();
-  }, [id]);
+    fetchCourse();
+  }, [courseId]);
 
-  const handleBookmark = () => {
-    setBookmarked(!bookmarked);
+  useEffect(() => {
+    setEnrollForm(f => ({ ...f, amountPaid: course?.price?.amount || '' }));
+  }, [course]);
+
+  const handleEnrollFieldChange = (e) => {
+    const { name, value } = e.target;
+    setEnrollForm(f => ({ ...f, [name]: value }));
   };
 
-  const handleShare = () => {
-    navigator.share({
-      title: course?.title,
-      text: course?.description,
-      url: window.location.href
-    }).catch(() => {
-      // Fallback for browsers that don't support Web Share API
-      navigator.clipboard.writeText(window.location.href);
-    });
-  };
-
-  const handleEnroll = () => {
-    setEnrollOpen(true);
-    setEnrollError('');
-    setEnrollSuccess('');
-    setAmountPaid(course?.price?.amount || '');
-    setPaymentMethod('Razorpay');
-    setTransactionId('');
-    setReceiptUrl('');
-  };
-
-  const handleEnrollSubmit = async () => {
-    setEnrollLoading(true);
-    setEnrollError('');
-    setEnrollSuccess('');
+  const handleEnrollSubmit = async (e) => {
+    e.preventDefault();
+    setEnrolling(true);
     try {
-      const userId = localStorage.getItem('userId');
-      if (!userId) throw new Error('User not logged in');
+      const user = JSON.parse(localStorage.getItem('user'));
       const payload = {
-        userId,
+        userId: user?._id,
         courseId: course._id,
-        amountPaid: Number(amountPaid),
-        paymentMethod,
-        transactionId,
-        paymentStatus: 'Success',
-        receiptUrl
+        amountPaid: Number(enrollForm.amountPaid),
+        paymentMethod: enrollForm.paymentMethod,
+        transactionId: enrollForm.transactionId,
+        paymentStatus: enrollForm.paymentStatus,
+        receiptUrl: enrollForm.receiptUrl
       };
       const token = localStorage.getItem('token');
       const res = await fetch(`${BaseUrl}/enrollments`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to enroll');
-      setEnrollSuccess(data.message || 'Enrolled successfully!');
-      setSnackbar({ open: true, message: data.message || 'Enrolled successfully!', severity: 'success' });
-      setEnrollOpen(false);
+      toast.success('Enrolled successfully!');
+      setEnrollModalOpen(false);
     } catch (err) {
-      setEnrollError(err.message || 'Failed to enroll');
-      setSnackbar({ open: true, message: err.message || 'Failed to enroll', severity: 'error' });
+      toast.error(err.message);
     } finally {
-      setEnrollLoading(false);
+      setEnrolling(false);
     }
   };
 
-  const handleOpenQuiz = (lesson) => {
-    setQuizLesson(lesson);
-  };
-
-  const handleCloseQuiz = () => {
-    setQuizLesson(null);
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', width: '100vw', maxWidth: '100vw', background: '#f5f6fa', overflowX: 'hidden' }}>
-        <CircularProgress size={60} sx={{ color: '#6366f1' }} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', width: '100vw', background: '#f5f6fa' }}>
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        <Button variant="contained" onClick={() => navigate('/courses')} startIcon={<ArrowBack />}>
-          Back to Courses
-        </Button>
-      </Box>
-    );
-  }
-
-  if (!course) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', width: '100vw', background: '#f5f6fa' }}>
-        <Typography variant="h5" sx={{ mb: 2 }}>Course not found</Typography>
-        <Button variant="contained" onClick={() => navigate('/courses')} startIcon={<ArrowBack />}>
-          Back to Courses
-        </Button>
-      </Box>
-    );
-  }
+  if (loading) return <div className="flex justify-center items-center h-96"><CircularProgress /></div>;
+  if (!course) return <div className="text-center text-red-400 font-bold py-10 w-full">Course not found.</div>;
 
   return (
-    <Box sx={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', background: '#f5f6fa', pb: 6, px: { xs: 0, md: 0 }, overflowX: 'hidden' }}>
-      {/* Top Bar with Back Icon */}
-      <Box sx={{ display: 'flex', alignItems: 'center', px: { xs: 2, md: 4 }, pt: 3, pb: 2 }}>
-        <IconButton onClick={() => navigate('/courses')} sx={{ color: '#6366f1', mr: 2 }}>
-          <ArrowBack sx={{ fontSize: 32 }} />
-        </IconButton>
-        <Typography variant="h3" sx={{ fontWeight: 900, color: '#232046', letterSpacing: 0.5, fontSize: { xs: 28, md: 38 } }}>
-          {course.title}
-        </Typography>
-      </Box>
-
-      {/* Hero Image and Description */}
-      <Box sx={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', gap: 4, px: { xs: 2, md: 4 }, mt: 1, background: 'transparent', boxShadow: 'none', overflowX: 'hidden' }}>
-        {/* Hero Image */}
-        {course.coverImage && (
-          <Box sx={{ flex: '0 0 420px', width: { xs: '100%', md: 420 }, maxWidth: '100%', height: { xs: 220, md: 320 }, borderRadius: 4, overflowX: 'hidden', boxShadow: 'none', background: 'transparent' }}>
-            <img 
-              src={course.coverImage} 
-              alt={course.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16 }}
-            />
-          </Box>
-        )}
-        {/* Description and Enroll */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5, justifyContent: 'flex-start', alignItems: 'flex-start', mt: { xs: 2, md: 0 } }}>
-          <Typography variant="h5" sx={{ color: '#232046', fontWeight: 700, mb: 0.5 }}>Description</Typography>
-          <Typography variant="body1" sx={{ color: '#444', fontSize: 17, mb: 1, lineHeight: 1.6, maxWidth: 700 }}>
-            {course.description}
-          </Typography>
-          {/* Tags above rating/metrics chips, styled as white buttons with black text */}
-          {course.tags && course.tags.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-              {course.tags.map((tag, index) => (
-                <Button
-                  key={index}
-                  variant="contained"
-                  sx={{
-                    background: '#fff',
-                    color: '#232046',
-                    fontWeight: 700,
-                    borderRadius: 999,
-                    px: 2.5,
-                    py: 0.5,
-                    fontSize: 15,
-                    textTransform: 'none',
-                    boxShadow: '0 2px 8px #a78bfa11',
-                    border: '1.5px solid #e0e7ff',
-                    '&:hover': { background: '#f3f4f6' },
-                    minWidth: 'unset',
-                  }}
-                  disableElevation
-                >
-                  {tag}
-                </Button>
-              ))}
-            </Box>
-          )}
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
-            <Chip icon={<Star sx={{ color: '#fbbf24' }} />} label={`${course.averageRating || 4.5} (${course.ratingsCount || 0} reviews)`} sx={{ fontWeight: 600, fontSize: 15, background: '#fff7e6', color: '#b45309' }} />
-            <Chip icon={<AccessTime sx={{ color: '#6366f1' }} />} label={course.duration || 'Not specified'} sx={{ fontWeight: 600, fontSize: 15, background: '#e0e7ff', color: '#3730a3' }} />
-            <Chip icon={<Category sx={{ color: '#6366f1' }} />} label={course.category || 'Not specified'} sx={{ fontWeight: 600, fontSize: 15, background: '#f3f4f6', color: '#4b5563' }} />
-            <Chip icon={<Language sx={{ color: '#6366f1' }} />} label={course.language || 'Not specified'} sx={{ fontWeight: 600, fontSize: 15, background: '#f3f4f6', color: '#4b5563' }} />
-            <Chip icon={<TrendingUp sx={{ color: '#6366f1' }} />} label={course.level || 'Beginner'} sx={{ fontWeight: 600, fontSize: 15, background: '#f3e8ff', color: '#7c3aed' }} />
-          </Box>
-          {/* Price and Enroll button side by side */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, mb: 1 }}>
-            <Button
-              variant="contained"
-              sx={{
-                fontWeight: 900,
-                fontSize: 17,
-                borderRadius: 4,
-                px: 3,
-                py: 0.7,
-                minHeight: 40,
-                height: 40,
-                background: '#fbbf24',
-                color: '#fff',
-                letterSpacing: 0.5,
-                textTransform: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.1,
-                border: '1.5px solid #fde68a',
-                boxShadow: '0 2px 8px 0 #fbbf2422',
-                position: 'relative',
-                transition: 'box-shadow 0.2s',
-                '&:hover': { background: '#fde68a', color: '#fff', boxShadow: '0 4px 16px 0 #fbbf2444' },
-              }}
-              disabled
-              startIcon={<CurrencyRupee sx={{ color: '#fff', fontSize: 20, mb: '-2px' }} />}
-            >
-              {course.price?.amount ? course.price.amount : 'Free'}
-            </Button>
+    <div className="min-h-screen px-0 pt-2 md:pt-4 flex flex-col items-center">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover style={{ zIndex: 20000, position: 'fixed', top: 16, right: 16 }} />
+      <div className="w-full mt-2">
+        <div className="flex items-center mb-6">
+          <Button onClick={() => navigate(-1)} startIcon={<ArrowBackIcon />} sx={{ color: '#fff', fontWeight: 700, fontSize: 18, textTransform: 'none', background: 'rgba(168,139,250,0.15)', borderRadius: 2, px: 2, py: 1, minWidth: 0, mr: 0, boxShadow: 'none', '&:hover': { background: 'rgba(236,72,153,0.15)' } }} />
+        </div>
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Left: Image */}
+          <div className="flex-shrink-0 w-full md:w-1/3 flex flex-col items-center">
+            <img src={course.coverImage} alt={course.title} className="rounded-2xl shadow-lg w-full object-cover mb-4" style={{ maxHeight: 220 }} />
+          </div>
+          {/* Right: Details */}
+          <div className="flex-1 flex flex-col gap-4 justify-between" style={{ lineHeight: 2 }}>
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-3" style={{ lineHeight: 1.6 }}>{course.title}</h2>
+              <p className="text-purple-200 mb-4 w-full" style={{ lineHeight: 2.1 }}>{course.description}</p>
+              <div className="flex flex-wrap gap-4 mb-4">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-br from-blue-400/80 to-purple-400/80 text-white shadow border border-white/20">{course.type}</span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-br from-pink-400/80 to-purple-400/80 text-white shadow border border-white/20">{course.level}</span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-br from-yellow-400/80 to-pink-400/80 text-white shadow border border-white/20">{course.language}</span>
+              </div>
+              <div className="flex items-center gap-5 mb-4 flex-wrap">
+                <span className="text-yellow-400 font-bold text-lg">★ {course.averageRating}</span>
+                <span className="text-purple-200 text-sm">({course.ratingsCount} ratings)</span>
+                <span className="text-purple-100 text-sm font-semibold">Duration: {course.duration}</span>
+              </div>
+              <div className="flex flex-wrap gap-3 mb-4">
+                {course.tags && course.tags.map((tag, idx) => (
+                  <span key={idx} className="bg-purple-700/40 text-purple-200 px-2 py-0.5 rounded-full text-base font-semibold">#{tag}</span>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-pink-300 font-bold text-2xl">{course.isFree ? 'Free' : `₹${course.price?.amount}`}</span>
+                {course.price?.discountPercent > 0 && !course.isFree && (
+                  <span className="ml-2 px-2 py-0.5 bg-purple-900/40 text-purple-200 rounded-full border border-white/10 font-semibold text-xs">{course.price.discountPercent}% OFF</span>
+                )}
+              </div>
+            </div>
             <Button
               variant="contained"
               color="primary"
-              size="medium"
+              onClick={() => setEnrollModalOpen(true)}
               sx={{
-                fontWeight: 800,
-                fontSize: 16,
-                borderRadius: 3,
-                px: 4,
-                py: 0.7,
-                minHeight: 40,
-                height: 40,
-                boxShadow: '0 2px 12px #a78bfa22',
-                background: '#6366f1',
+                background: 'linear-gradient(to right, #f472b6, #a78bfa)',
                 color: '#fff',
-                letterSpacing: 0.5,
-                textTransform: 'none',
-                display: 'flex',
-                alignItems: 'center',
+                fontWeight: 700,
+                borderRadius: 2,
+                fontSize: 15,
+                px: 1.5,
+                py: 0.7,
+                width: 150,
+                minWidth: 70,
+                mt: 1,
+                boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
+                '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' }
               }}
-              onClick={handleEnroll}
             >
-              Enroll
+              {enrolling ? 'Enrolling...' : 'Enroll Now'}
             </Button>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Course Overview - creative horizontal info bar */}
-      <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, mt: 3, mb: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, background: '#ede9fe', borderRadius: 3, p: 2, boxShadow: '0 2px 12px #a78bfa11' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <School sx={{ fontSize: 28, color: '#7c3aed' }} />
-            <Typography sx={{ fontWeight: 700, color: '#5b21b6', fontSize: 18 }}>{course.modules?.length || 0}</Typography>
-            <Typography sx={{ color: '#5b21b6', fontSize: 15 }}>Modules</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <VideoLibrary sx={{ fontSize: 28, color: '#2563eb' }} />
-            <Typography sx={{ fontWeight: 700, color: '#1e40af', fontSize: 18 }}>{course.modules?.reduce((total, module) => total + (module.lessons?.length || 0), 0) || 0}</Typography>
-            <Typography sx={{ color: '#1e40af', fontSize: 15 }}>Lessons</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Assignment sx={{ fontSize: 28, color: '#16a34a' }} />
-            <Typography sx={{ fontWeight: 700, color: '#15803d', fontSize: 18 }}>{course.modules?.reduce((total, module) => total + module.lessons?.reduce((lTotal, lesson) => lTotal + (lesson.quizIncluded ? 1 : 0), 0), 0) || 0}</Typography>
-            <Typography sx={{ color: '#15803d', fontSize: 15 }}>Quizzes</Typography>
-          </Box>
-          {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <TrendingUp sx={{ fontSize: 28, color: '#9333ea' }} />
-            <Typography sx={{ fontWeight: 700, color: '#7c3aed', fontSize: 18 }}>{course.level || 'Beginner'}</Typography>
-            <Typography sx={{ color: '#7c3aed', fontSize: 15 }}>Level</Typography>
-          </Box> */}
-        </Box>
-      </Box>
-
-      {/* Course Content - Accordion style */}
-      <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, mt: 3, background: 'transparent', boxShadow: 'none' }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#232046', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Book sx={{ color: '#6366f1' }} />
-          Course Content
-        </Typography>
-        {course.modules?.map((module, moduleIndex) => (
-          <Accordion key={moduleIndex} sx={{ mb: 2, borderRadius: 2, background: '#f8fafc', boxShadow: '0 2px 8px #a78bfa11', '&:before': { display: 'none' } }}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ backgroundColor: '#6366f1', width: 26, height: 26, fontSize: 13, fontWeight: 700 }}>
-                  {moduleIndex + 1}
-                </Avatar>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', fontSize: 20 }}>
-                  {module.moduleTitle}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontSize: 15 }}>
-                  {module.lessons?.length || 0} lessons
-                </Typography>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" sx={{ color: '#6366f1', fontWeight: 500, mb: 1 }}>
-                {module.moduleDescription}
-              </Typography>
-              <List>
-                {module.lessons?.map((lesson, lessonIndex) => (
-                  <ListItem key={lessonIndex} sx={{ px: 0, mb: 1, borderRadius: 2, background: '#fff', boxShadow: '0 1px 4px #a78bfa11', minHeight: 48, flexDirection: 'column', alignItems: 'stretch' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                      <ListItemIcon>
-                        <PlayCircle sx={{ color: '#6366f1' }} />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b', fontSize: 16 }}>
-                            {lesson.title}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box sx={{ mt: 0.5 }}>
-                            <Typography variant="body2" sx={{ color: '#64748b', mb: 0.5, fontSize: 14 }}>
-                              {lesson.summary}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              {lesson.previewAvailable && (
-                                <Chip size="small" label="Preview" sx={{ backgroundColor: '#dcfce7', color: '#15803d', fontWeight: 600 }} />
-                              )}
-                              {lesson.quizIncluded && (
-                                <Chip
-                                  size="small"
-                                  icon={<Quiz />}
-                                  label="Quiz"
-                                  sx={{ backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 600, cursor: 'pointer' }}
-                                />
-                              )}
-                              {/* <Chip size="small" icon={<AccessTime />} label={lesson.durationMinutes || 'Not specified'} sx={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: 600 }} /> */}
-                            </Box>
-                          </Box>
-                        }
-                      />
-                    </Box>
-                  </ListItem>
-                ))}
-              </List>
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </Box>
-
-      {/* Quiz Modal */}
-      <Dialog open={!!quizLesson} onClose={handleCloseQuiz} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: 22, color: '#232046', pb: 1 }}>Quiz: {quizLesson?.title}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {quizLesson?.quizQuestions?.length > 0 ? (
-            quizLesson.quizQuestions.map((q, idx) => (
-              <Box key={idx} sx={{ mb: 2, p: 2, borderRadius: 2, background: '#f3f4f6' }}>
-                <Typography sx={{ fontWeight: 700, mb: 1 }}>Q{idx + 1}: {q.question}</Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {q.options.map((opt, oidx) => (
-                    <Button key={oidx} variant="outlined" sx={{ justifyContent: 'flex-start', borderRadius: 2, textTransform: 'none', fontWeight: 600, color: '#232046', borderColor: '#a78bfa' }}>
-                      {opt}
-                    </Button>
-                  ))}
-                </Box>
-                <Typography sx={{ mt: 1, color: '#6366f1', fontWeight: 600, fontSize: 15 }}>Answer: {q.answer}</Typography>
-              </Box>
+          </div>
+        </div>
+        {/* Curriculum Accordions */}
+        <div className="mt-8 w-full">
+          <h2 className="text-2xl font-bold text-white mb-4">Course Curriculum</h2>
+          {course.modules && course.modules.length > 0 ? (
+            course.modules.map((mod, mIdx) => (
+              <Accordion key={mIdx} sx={{ width: '100%', background: 'rgba(88,28,135,0.15)', color: '#fff', borderRadius: 2, mb: 2, boxShadow: 'none', border: '1px solid #a78bfa33' }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#fff' }} />}>
+                  <Typography sx={{ fontWeight: 700 }}>{mod.moduleTitle}</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography sx={{ mb: 1, color: '#d1b3ff', lineHeight: 1.8 }}>{mod.moduleDescription}</Typography>
+                  {mod.lessons && mod.lessons.length > 0 ? (
+                    mod.lessons.map((lesson, lIdx) => (
+                      <Box key={lIdx} sx={{ mb: 2, pl: 2 }}>
+                        <Typography sx={{ fontWeight: 600, color: '#fff', lineHeight: 1.7 }}>{lesson.title}</Typography>
+                        <Typography sx={{ color: '#bdb4e6', mb: 1, lineHeight: 1.7 }}>{lesson.summary}</Typography>
+                        {lesson.topics && lesson.topics.length > 0 && (
+                          <ul className="list-disc ml-6">
+                            {lesson.topics.map((topic, tIdx) => (
+                              <li key={tIdx} className="mb-1" style={{ lineHeight: 1.7 }}>
+                                <span className="font-semibold text-purple-200">{topic.title}</span>: <span className="text-purple-100">{topic.description}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </Box>
+                    ))
+                  ) : <Typography sx={{ color: '#bdb4e6' }}>No lessons in this module.</Typography>}
+                </AccordionDetails>
+              </Accordion>
             ))
-          ) : (
-            <Typography>No quiz questions available for this lesson.</Typography>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseQuiz} color="secondary" variant="outlined">Close</Button>
-        </DialogActions>
-      </Dialog>
-
+          ) : <Typography sx={{ color: '#bdb4e6' }}>No modules found.</Typography>}
+        </div>
+      </div>
       {/* Enroll Modal */}
-      <Dialog open={enrollOpen} onClose={() => setEnrollOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, p: 0, background: '#f5f6fa' } }}>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: 24, color: '#232046', pb: 1 }}>Enroll in {course.title}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {enrollError && <Alert severity="error">{enrollError}</Alert>}
-          <TextField
-            label="Amount Paid"
-            type="number"
-            value={amountPaid}
-            onChange={e => setAmountPaid(e.target.value)}
-            fullWidth
-            required
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Payment Method"
-            value={paymentMethod}
-            onChange={e => setPaymentMethod(e.target.value)}
-            fullWidth
-            required
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Transaction ID"
-            value={transactionId}
-            onChange={e => setTransactionId(e.target.value)}
-            fullWidth
-            required
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Receipt URL"
-            value={receiptUrl}
-            onChange={e => setReceiptUrl(e.target.value)}
-            fullWidth
-            required
-            sx={{ mb: 1 }}
-          />
+      <Dialog open={enrollModalOpen} onClose={() => setEnrollModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{
+        sx: {
+          borderRadius: 4,
+          background: 'linear-gradient(135deg, #2d225a 80%, #a78bfa 100%)',
+          boxShadow: '0 8px 32px 0 rgba(168,139,250,0.25)',
+          border: '1.5px solid #f472b6',
+          color: '#fff',
+        }
+      }}>
+        <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-2xl mb-2" />
+        <DialogTitle sx={{ color: '#fff', fontWeight: 700, fontSize: 22, pb: 1 }}>Enroll in Course</DialogTitle>
+        <DialogContent sx={{ pb: 0 }}>
+          <form onSubmit={handleEnrollSubmit} className="flex flex-col gap-4 mt-2">
+            <TextField
+              label="Amount Paid"
+              name="amountPaid"
+              value={enrollForm.amountPaid}
+              onChange={handleEnrollFieldChange}
+              type="number"
+              fullWidth
+              required
+              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
+              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
+              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
+            />
+            <TextField
+              select
+              label="Payment Method"
+              name="paymentMethod"
+              value={enrollForm.paymentMethod}
+              onChange={handleEnrollFieldChange}
+              fullWidth
+              required
+              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
+              sx={{ background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2, label: { color: '#d1b3ff' } }}
+              SelectProps={{ MenuProps: { PaperProps: { sx: { background: '#2d225a', color: '#fff' } } } }}
+            >
+              {paymentMethods.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+            </TextField>
+            <TextField
+              label="Transaction ID"
+              name="transactionId"
+              value={enrollForm.transactionId}
+              onChange={handleEnrollFieldChange}
+              fullWidth
+              required
+              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
+              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
+              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
+            />
+            <TextField
+              select
+              label="Payment Status"
+              name="paymentStatus"
+              value={enrollForm.paymentStatus}
+              onChange={handleEnrollFieldChange}
+              fullWidth
+              required
+              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
+              sx={{ background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2, label: { color: '#d1b3ff' } }}
+              SelectProps={{ MenuProps: { PaperProps: { sx: { background: '#2d225a', color: '#fff' } } } }}
+            >
+              {paymentStatuses.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+            </TextField>
+            <TextField
+              label="Receipt URL"
+              name="receiptUrl"
+              value={enrollForm.receiptUrl}
+              onChange={handleEnrollFieldChange}
+              fullWidth
+              required
+              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
+              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
+              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
+            />
+            <DialogActions sx={{ justifyContent: 'flex-end', gap: 2, mt: 1 }}>
+              <Button onClick={() => setEnrollModalOpen(false)} sx={{ background: 'linear-gradient(to right, #a78bfa, #f472b6)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #f472b6, #a78bfa)' } }}>Cancel</Button>
+              <Button type="submit" variant="contained" disabled={enrolling} sx={{ background: 'linear-gradient(to right, #f472b6, #a78bfa)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' } }}>{enrolling ? 'Enrolling...' : 'Enroll'}</Button>
+            </DialogActions>
+          </form>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEnrollOpen(false)} color="secondary" variant="outlined">Cancel</Button>
-          <Button onClick={handleEnrollSubmit} color="primary" variant="contained" disabled={enrollLoading} sx={{ fontWeight: 700, px: 4, borderRadius: 3 }}>{enrollLoading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Enroll'}</Button>
-        </DialogActions>
       </Dialog>
-      {/* Snackbar for feedback */}
-      <Snackbar 
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} 
-        open={snackbar.open} 
-        autoHideDuration={3000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        sx={{ zIndex: 99999 }}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%', minWidth: '300px', fontWeight: 600, fontSize: '14px' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

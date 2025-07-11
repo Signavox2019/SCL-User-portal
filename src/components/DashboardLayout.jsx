@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SignavoxLogo from '../assets/snignavox_icon.png';
 import {
@@ -15,6 +15,8 @@ import Layout from './Layout'; // adjust path as needed
 import './DashboardLayout.css';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import BaseUrl from '../Api';
+import NotificationBell from './NotificationBell';
 
 const navItems = [
   { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
@@ -40,6 +42,24 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  // Get user ID for notifications
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    setUser(() => {
+      try {
+        return JSON.parse(localStorage.getItem('user'));
+      } catch {
+        return null;
+      }
+    });
+  }, []);
 
   const handleProfileMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -145,11 +165,9 @@ const DashboardLayout = ({ children }) => {
             {/* Company name at intersection removed as per last change */}
             <div className="flex-1" />
             {/* Right-side icons */}
-            <div className="flex items-center gap-4 ml-auto">
-              <button className="relative p-2 rounded-full bg-gradient-to-br from-pink-400/20 to-purple-400/10 hover:bg-pink-400/30 transition-all shadow-lg">
-                <NotificationsIcon className="text-pink-300" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />
-              </button>
+            <div className="flex items-center gap-4 ml-auto relative">
+              {/* NotificationBell Component */}
+              <NotificationBell userId={user?._id} sidebarOpen={sidebarOpen} />
               {/* Profile Dropdown */}
               <button
                 className="p-2 rounded-full bg-gradient-to-br from-purple-400/20 to-purple-900/10 hover:bg-purple-400/30 transition-all shadow-lg focus:outline-none"
@@ -214,6 +232,7 @@ const DashboardLayout = ({ children }) => {
           }
           .animate-fade-in {
             animation: fade-in 2s ease-in;
+            
           }
           .drop-shadow-glow {
             filter: drop-shadow(0 0 8px #f472b6) drop-shadow(0 0 16px #a78bfa);

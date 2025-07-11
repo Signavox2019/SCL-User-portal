@@ -534,6 +534,7 @@ const Progress = () => {
             <div className="text-purple-200 font-semibold">Lessons Completed</div>
             <div className="text-xs text-purple-300/80 mt-1">Skills mastered!</div>
           </div>
+          
         </div>
       </div>
 
@@ -590,21 +591,6 @@ const Progress = () => {
                                   </div>
                                 ))}
                               </div>
-                              {/* Quiz */}
-                              {lesson.quizIncluded && lesson.quizQuestions && lesson.quizQuestions.length > 0 && (
-                                <div className="mt-2 ml-4">
-                                  <div className="font-semibold text-green-300">Quiz:</div>
-                                  <ul className="list-disc ml-5 text-xs text-green-200">
-                                    {lesson.quizQuestions.map((q, qIdx) => (
-                                      <li key={q._id}>
-                                        <span className="font-bold">Q:</span> {q.question}
-                                        <div className="ml-2">Options: {q.options.join(', ')}</div>
-                                        <div className="ml-2">Answer: <span className="text-yellow-300">{q.answer}</span></div>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
@@ -613,17 +599,21 @@ const Progress = () => {
                   </div>
                   {/* Progress & Stats */}
                   <div className="flex flex-wrap gap-4 mt-4">
-                    <div className="bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-xl p-4 flex-1 min-w-[180px]">
-                      <div className="text-xs text-purple-200 mb-1">Registered</div>
-                      <div className="text-2xl font-bold text-white">{stats.registered}</div>
+                    <div className="bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-xl p-4 flex-1 min-w-[180px]">
+                      <div className="text-xs text-blue-200 mb-1">Modules Completed</div>
+                      <div className="text-2xl font-bold text-white">
+                        {progressData.reduce((total, course) => total + course.progress.modules.completed, 0)}
+                        /
+                        {progressData.reduce((total, course) => total + course.progress.modules.total, 0)}
+                      </div>
                     </div>
-                    <div className="bg-gradient-to-br from-green-400/20 to-green-600/20 rounded-xl p-4 flex-1 min-w-[180px]">
-                      <div className="text-xs text-green-200 mb-1">Completed</div>
-                      <div className="text-2xl font-bold text-white">{stats.completed}</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-xl p-4 flex-1 min-w-[180px]">
-                      <div className="text-xs text-yellow-200 mb-1">In Progress</div>
-                      <div className="text-2xl font-bold text-white">{stats.inProgress}</div>
+                    <div className="bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-xl p-4 flex-1 min-w-[180px]">
+                      <div className="text-xs text-purple-200 mb-1">Lessons Completed</div>
+                      <div className="text-2xl font-bold text-white">
+                        {progressData.reduce((total, course) => total + course.progress.lessons.completed, 0)}
+                        /
+                        {progressData.reduce((total, course) => total + course.progress.lessons.total, 0)}
+                      </div>
                     </div>
                   </div>
                   {/* Last Updated & Certificate */}

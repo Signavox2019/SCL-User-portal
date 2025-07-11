@@ -10,7 +10,10 @@ import Courses from './pages/Courses';
 import Progress from './pages/Progress';
 import ProtectedRoute from './components/ProtectedRoute';
 import CourseDetails from './pages/CourseDetails';
-
+import Events from './pages/Events';
+import NotificationBell from './components/NotificationBell';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const theme = createTheme({
   palette: {
@@ -67,7 +70,18 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/events"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Events />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
+        <ToastContainer />
       </ThemeProvider>
     </Router>
   );
