@@ -99,6 +99,7 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
   // Handle new notification with useCallback to prevent unnecessary re-renders
   const handleNotification = useCallback((notif) => {
     console.log('🔔 [handleNotification] Called with:', notif);
+    // toast.info('🔔 [handleNotification] Called with:', notif);
     if (!notif || (!notif.title && !notif.message)) {
       console.warn('⚠️ [handleNotification] Notification missing title or message:', notif);
       return;

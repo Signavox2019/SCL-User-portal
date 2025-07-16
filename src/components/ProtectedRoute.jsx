@@ -12,61 +12,88 @@ const ProtectedRoute = ({ children }) => {
   const [isValid, setIsValid] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
+  // Check token validity on every page load and route change
   useEffect(() => {
-    setToken(localStorage.getItem('token'));
-  }, [location.pathname]);
+    const checkTokenValidity = async () => {
+      const currentToken = localStorage.getItem('token');
+      setToken(currentToken);
 
-  useEffect(() => {
-    const validateToken = async () => {
-      // If on a public path and has token, redirect to dashboard
-      if (PUBLIC_PATHS.includes(location.pathname) && token) {
-        navigate('/dashboard', { replace: true });
-        setLoading(false);
-        return;
-      }
-
-      // If no token and trying to access protected route, redirect to login
-      if (!token && !PUBLIC_PATHS.includes(location.pathname)) {
-        navigate('/login', { replace: true });
-        setLoading(false);
-        return;
-      }
-
-      // If token exists, validate it
-      if (token) {
+      // If on a public path and has valid token, redirect to dashboard
+      if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
+              'Authorization': `Bearer ${currentToken}`,
             },
           });
           const data = await res.json();
           
           if (res.ok && data.valid) {
-            setIsValid(true);
-            // Store user details in localStorage
+            // Token is valid, redirect to dashboard
             localStorage.setItem('user', JSON.stringify(data.user));
+            navigate('/dashboard', { replace: true });
+            setLoading(false);
+            return;
           } else {
-            // Token is invalid, remove it and redirect to login
+            // Token is invalid, clear storage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setIsValid(false);
-            if (!PUBLIC_PATHS.includes(location.pathname)) {
-              navigate('/login', { replace: true });
-            }
+            setLoading(false);
+            return;
           }
         } catch (err) {
           console.error('Token validation error:', err);
-          setIsValid(false);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          if (!PUBLIC_PATHS.includes(location.pathname)) {
+          setIsValid(false);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // If no token and trying to access protected route, redirect to login
+      if (!currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login', { replace: true });
+        setLoading(false);
+        return;
+      }
+
+      // If token exists and on protected route, validate it
+      if (currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        try {
+          const res = await fetch(`${BaseUrl}/auth/validate`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentToken}`,
+            },
+          });
+          const data = await res.json();
+          
+          if (res.ok && data.valid) {
+            // Token is valid, stay on current page
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setIsValid(true);
+          } else {
+            // Token is invalid, clear storage and redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setIsValid(false);
             navigate('/login', { replace: true });
           }
+        } catch (err) {
+          console.error('Token validation error:', err);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsValid(false);
+          navigate('/login', { replace: true });
         }
-      } else {
+      } else if (!currentToken && PUBLIC_PATHS.includes(location.pathname)) {
         // No token, but on public path - allow access
         setIsValid(true);
       }
@@ -75,8 +102,8 @@ const ProtectedRoute = ({ children }) => {
     };
 
     setLoading(true);
-    validateToken();
-  }, [location.pathname, token, navigate]);
+    checkTokenValidity();
+  }, [location.pathname, navigate]);
 
   if (loading) {
     return (

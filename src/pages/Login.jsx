@@ -8,7 +8,7 @@ import SignavoxLogo from '../assets/snignavox_icon.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,8 +49,14 @@ const Login = () => {
       setTimeout(() => {
         setLoading(false);
         if (isSuccess) {
-          toast.success(toastMsg);
-          setTimeout(() => navigate('/dashboard'), 1200);
+          // toast.success(toastMsg);
+          setTimeout(() => {
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            } else {
+              navigate('/dashboard');
+            }
+          }, 1200);
         } else {
           toast.error(toastMsg);
         }

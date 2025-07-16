@@ -93,7 +93,6 @@ const CourseDetails = () => {
 
   return (
     <div className="min-h-screen px-0 pt-2 md:pt-4 flex flex-col items-center">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover style={{ zIndex: 20000, position: 'fixed', top: 16, right: 16 }} />
       <div className="w-full mt-2">
         <div className="flex items-center mb-6">
           <Button onClick={() => navigate(-1)} startIcon={<ArrowBackIcon />} sx={{ color: '#fff', fontWeight: 700, fontSize: 18, textTransform: 'none', background: 'rgba(168,139,250,0.15)', borderRadius: 2, px: 2, py: 1, minWidth: 0, mr: 0, boxShadow: 'none', '&:hover': { background: 'rgba(236,72,153,0.15)' } }} />

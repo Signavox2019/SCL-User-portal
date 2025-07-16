@@ -41,30 +41,46 @@ const textFieldSx = {
   background: 'linear-gradient(135deg, #2d1a4d 0%, #3b206b 100%)',
   borderRadius: 3,
   color: '#fff',
-  input: { color: '#fff', fontWeight: 600, fontSize: 20, textShadow: '0 0 8px #fff8' },
+  '& .MuiInputBase-input': { 
+    color: '#fff', 
+    fontWeight: 500, 
+    fontSize: 16,
+    padding: '12px 16px',
+    '&::placeholder': {
+      color: '#a78bfa',
+      opacity: 0.7
+    }
+  },
   '& .MuiInputBase-root': {
     color: '#fff',
-    border: '1px solid #a78bfa',
+    border: '2px solid #a78bfa',
     boxShadow: 'none',
-    background: 'rgba(60, 30, 90, 0.85)',
-    borderRadius: 1.5,
+    background: 'rgba(60, 30, 90, 0.9)',
+    borderRadius: 2,
     fontWeight: 500,
+    fontSize: 16,
+    minHeight: 48,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      borderColor: '#60a5fa',
+      boxShadow: '0 0 8px #60a5fa33'
+    }
+  },
+  '& .MuiInputLabel-root': { 
+    color: '#a78bfa', 
+    fontWeight: 600, 
     fontSize: 14,
-    minHeight: 30,
-    transition: 'box-shadow 0.2s',
+    '&.Mui-focused': {
+      color: '#60a5fa'
+    }
   },
-  '& label': { color: '#a78bfa', fontWeight: 600, fontSize: 13 },
-  '& .Mui-focused': {
+  '& .Mui-focused .MuiInputBase-root': {
     borderColor: '#60a5fa',
-    boxShadow: '0 0 6px #60a5fa55',
+    boxShadow: '0 0 12px #60a5fa55',
   },
-  '& .MuiInputBase-root.Mui-focused': {
-    borderColor: '#60a5fa',
-    boxShadow: '0 0 6px #60a5fa55',
-  },
-  '& .MuiInputBase-root:hover': {
-    borderColor: '#60a5fa',
-  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none'
+  }
 };
 const inputLabelProps = { style: { color: '#a78bfa', fontWeight: 600, fontSize: 13 } };
 const formControlSx = {
@@ -73,27 +89,40 @@ const formControlSx = {
   color: '#fff',
   '& .MuiInputBase-root': {
     color: '#fff',
-    border: '1px solid #a78bfa',
+    border: '2px solid #a78bfa',
     boxShadow: 'none',
-    background: 'rgba(60, 30, 90, 0.85)',
-    borderRadius: 1.5,
+    background: 'rgba(60, 30, 90, 0.9)',
+    borderRadius: 2,
     fontWeight: 500,
+    fontSize: 16,
+    minHeight: 48,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      borderColor: '#60a5fa',
+      boxShadow: '0 0 8px #60a5fa33'
+    }
+  },
+  '& .MuiInputLabel-root': { 
+    color: '#a78bfa', 
+    fontWeight: 600, 
     fontSize: 14,
-    minHeight: 30,
-    transition: 'box-shadow 0.2s',
+    '&.Mui-focused': {
+      color: '#60a5fa'
+    }
   },
-  '& label': { color: '#a78bfa', fontWeight: 600, fontSize: 13 },
-  '& .Mui-focused': {
+  '& .Mui-focused .MuiInputBase-root': {
     borderColor: '#60a5fa',
-    boxShadow: '0 0 6px #60a5fa55',
+    boxShadow: '0 0 12px #60a5fa55',
   },
-  '& .MuiInputBase-root.Mui-focused': {
-    borderColor: '#60a5fa',
-    boxShadow: '0 0 6px #60a5fa55',
+  '& .MuiSelect-select': {
+    color: '#fff',
+    fontWeight: 500,
+    fontSize: 16,
+    padding: '12px 16px'
   },
-  '& .MuiInputBase-root:hover': {
-    borderColor: '#60a5fa',
-  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none'
+  }
 };
 const selectSx = formControlSx;
 
@@ -105,7 +134,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
   const [profError, setProfError] = useState(null);
 
   React.useEffect(() => {
-    setCourse(initialData || defaultCourse);
+    setCourse(initialData ? JSON.parse(JSON.stringify(initialData)) : defaultCourse);
   }, [initialData, open]);
 
   React.useEffect(() => {
@@ -279,510 +308,507 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
       PaperProps={{
         sx: {
           borderRadius: '1.5rem',
-          boxShadow: '0 12px 48px 0 #1e293b99, 0 2px 0 #fff2',
+          boxShadow: '0 20px 60px 0 rgba(0,0,0,0.3)', // Remove bottom color border
           background: 'linear-gradient(135deg, #312e81e6 0%, #0a081ee6 100%)',
-          border: '2px solid #ec4899',
-          borderColor: '#ec4899',
+          border: 'none',
           position: 'relative',
-          overflow: 'visible',
+          overflow: 'hidden',
           px: 0,
+          maxHeight: '90vh'
         }
       }}
       BackdropProps={{
         sx: {
-          background: 'rgba(16, 10, 40, 0.8)',
-          backdropFilter: 'blur(6px)'
+          background: 'rgba(16, 10, 40, 0.2)',
+          backdropFilter: 'blur(3px)'
         }
       }}
     >
-      {/* Accent bar */}
-      <Box sx={{ height: 12, width: '100%', background: 'linear-gradient(90deg, #ec4899 0%, #a78bfa 50%, #60a5fa 100%)', borderTopLeftRadius: '1.5rem', borderTopRightRadius: '1.5rem', mb: 2 }} />
+
+      {/* Top accent bar */}
+      <Box className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
+
       <DialogContent sx={{
         bgcolor: 'transparent',
-        px: { xs: 2, md: 6 },
-        py: 2,
+        px: { xs: 3, md: 4 },
+        py: 0,
         border: 'none',
         boxShadow: 'none',
         borderRadius: '1.5rem',
+        overflowY: 'auto',
+        maxHeight: '80vh',
+        position: 'relative',
+        mt: '6px', // Push content below accent bar
+        '&::-webkit-scrollbar': {
+          width: '7px',
+          background: 'rgba(167,139,250,0.08)',
+          borderRadius: '8px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'linear-gradient(90deg, #a78bfa 0%, #60a5fa 100%)',
+          borderRadius: '8px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: 'linear-gradient(90deg, #60a5fa 0%, #a78bfa 100%)',
+        },
       }}>
+
         <DialogTitle sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: 32, color: '#fff', letterSpacing: 1, pb: 1, pt: 2, px: 4, background: 'none',
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          fontWeight: 800, 
+          fontSize: { xs: 24, md: 32 }, 
+          color: '#fff', 
+          letterSpacing: 1, 
+          pb: 2, 
+          pt: 1, 
+          px: 0, 
+          background: 'none',
           fontFamily: 'Montserrat, Merriweather, sans-serif',
+          borderBottom: '2px solid rgba(167,139,250,0.3)',
+          mb: 3
         }}>
           <span style={{
             color: '#fff',
             fontWeight: 800,
-            fontSize: '2rem',
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
             letterSpacing: 2,
             fontFamily: 'Montserrat, Merriweather, sans-serif',
             textTransform: 'uppercase',
-          }}>{mode === 'edit' ? 'Update Course' : 'Add New Course'}</span>
-          <IconButton onClick={onClose} sx={{
-            color: '#a78bfa',
-            background: 'rgba(167,139,250,0.18)',
-            boxShadow: '0 2px 16px #a78bfa55',
-            position: 'absolute', right: 24, top: 18, zIndex: 5,
-            width: 48, height: 48,
-            borderRadius: '50%',
-            fontSize: 32,
-            border: '2px solid #a78bfa',
-            transition: 'all 0.2s',
+            background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
           }}>
+            {mode === 'edit' ? 'Update Course' : 'Add New Course'}
+          </span>
+          <IconButton 
+            onClick={onClose} 
+            sx={{
+              color: '#a78bfa',
+              background: 'rgba(167,139,250,0.15)',
+              boxShadow: '0 4px 20px rgba(167,139,250,0.3)',
+              position: 'absolute', 
+              right: 16, 
+              top: 16, 
+              zIndex: 5,
+              width: 48, 
+              height: 48,
+              borderRadius: '50%',
+              fontSize: 32,
+              border: '2px solid #a78bfa',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'rgba(167,139,250,0.25)',
+                transform: 'scale(1.1)',
+                boxShadow: '0 6px 25px rgba(167,139,250,0.4)'
+              }
+            }}
+          >
             <CloseIcon fontSize="large" />
           </IconButton>
         </DialogTitle>
         <form onSubmit={handleSubmit} id="course-form" style={{ background: 'none', boxShadow: 'none', border: 'none' }}>
-          <Grid container direction="column" spacing={2}>
+          <Grid container direction="column" spacing={1}>
             {/* Basic Info Section */}
-            <Grid item xs={12}><div className="text-purple-200 mb-1 font-semibold text-lg">Basic Information</div></Grid>
-            <Grid item xs={12}><TextField label="Title" value={course.title} onChange={e => handleChange('title', e.target.value)} fullWidth required margin="dense"
-              InputLabelProps={{ style: { color: '#a78bfa', fontWeight: 600 } }}
-              sx={{
-                background: 'linear-gradient(135deg, #4b206b66 0%, #1e293b66 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #fff2',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #fff2',
-                  background: 'rgba(60, 30, 90, 0.25)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 16,
-                  minHeight: 36,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#a78bfa' },
-              }} /></Grid>
-            <Grid item xs={12}><TextField label="Slug" value={course.slug} onChange={e => handleChange('slug', e.target.value)} fullWidth required margin="dense"
-              InputLabelProps={{ style: { color: '#a78bfa', fontWeight: 600 } }}
-              sx={{
-                background: 'linear-gradient(135deg, #4b206b66 0%, #1e293b66 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #fff2',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #fff2',
-                  background: 'rgba(60, 30, 90, 0.25)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 16,
-                  minHeight: 36,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#a78bfa' },
-              }} /></Grid>
-            <Grid item xs={12}><TextField label="Description" value={course.description} onChange={e => handleChange('description', e.target.value)} fullWidth required margin="dense"
-              multiline minRows={2} sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><Divider sx={{ my: 2, bgcolor: '#a78bfa' }} /></Grid>
-            {/* Category/Type/Level Section */}
-            <Grid item xs={12}><Typography variant="h6" color="secondary" sx={{ fontWeight: 700, mb: 1 }}>Course Details</Typography></Grid>
-            <Grid item xs={12}><FormControl fullWidth margin="dense" sx={formControlSx}>
-              <InputLabel>Type</InputLabel>
-              <Select value={course.type} label="Type" onChange={e => handleChange('type', e.target.value)} sx={selectSx}>
-                {['Technical', 'Soft Skills', 'Management', 'Creative', 'Language', 'Other'].map(opt => (
-                  <MenuItem key={opt} value={opt}><Typography variant="body1" sx={{ color: '#000', fontWeight: 600 }}>{opt}</Typography></MenuItem>
-                ))}
-              </Select>
-            </FormControl></Grid>
-            <Grid item xs={12}><TextField label="Category" value={course.category} onChange={e => handleChange('category', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><TextField label="Sub Category" value={course.subCategory} onChange={e => handleChange('subCategory', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><FormControl fullWidth margin="dense" sx={formControlSx}>
-              <InputLabel>Level</InputLabel>
-              <Select value={course.level} label="Level" onChange={e => handleChange('level', e.target.value)} sx={selectSx}>
-                {['Beginner', 'Intermediate', 'Advanced'].map(opt => (
-                  <MenuItem key={opt} value={opt}><Typography variant="body1" sx={{ color: '#000', fontWeight: 600 }}>{opt}</Typography></MenuItem>
-                ))}
-              </Select>
-            </FormControl></Grid>
-            <Grid item xs={12}><TextField label="Language" value={course.language} onChange={e => handleChange('language', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><FormControl fullWidth margin="dense" sx={formControlSx}>
-              <InputLabel>Status</InputLabel>
-              <Select value={course.status} label="Status" onChange={e => handleChange('status', e.target.value)} sx={selectSx}>
-                {['Draft', 'Published', 'Archived'].map(opt => (
-                  <MenuItem key={opt} value={opt}><Typography variant="body1" sx={{ color: '#000', fontWeight: 600 }}>{opt}</Typography></MenuItem>
-                ))}
-              </Select>
-            </FormControl></Grid>
-            <Grid item xs={12}><FormControl fullWidth margin="dense" sx={formControlSx}>
-              <InputLabel>Professor</InputLabel>
-              <Select
-                value={course.professor || ''}
-                label="Professor"
-                onChange={e => handleChange('professor', e.target.value)}
-                renderValue={selected => {
-                  const prof = professors.find(p => p._id === selected);
-                  return prof ? `${prof.name} (${prof.email})` : 'Select Professor';
-                }}
-                disabled={profLoading}
-                sx={selectSx}
-              >
-                {profLoading ? (
-                  <MenuItem value=""><CircularProgress size={20} /> <span style={{ color: '#fff' }}>Loading...</span></MenuItem>
-                ) : profError ? (
-                  <MenuItem value=""><span style={{ color: 'red' }}>{profError}</span></MenuItem>
-                ) : professors.length === 0 ? (
-                  <MenuItem value="">No professors found</MenuItem>
-                ) : professors.map(prof => (
-                  <MenuItem key={prof._id} value={prof._id}>{prof.name} ({prof.email})</MenuItem>
-                ))}
-              </Select>
-            </FormControl></Grid>
-            <Grid item xs={12}><TextField label="Duration (e.g. 12h 30m)" value={course.duration} onChange={e => handleChange('duration', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><TextField label="Published At" type="date" value={course.publishedAt} onChange={e => handleChange('publishedAt', e.target.value)} fullWidth margin="dense"
-              InputLabelProps={{ shrink: true, style: { color: '#a78bfa', fontWeight: 600 } }}
-              sx={{
-                background: 'linear-gradient(135deg, #4b206b66 0%, #1e293b66 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #fff2',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #fff2',
-                  background: 'rgba(60, 30, 90, 0.25)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 16,
-                  minHeight: 36,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#ec4899', boxShadow: '0 0 8px #ec4899aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#a78bfa' },
-              }} /></Grid>
-            <Grid item xs={12}><TextField label="Cover Image URL" value={course.coverImage} onChange={e => handleChange('coverImage', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><TextField label="Promo Video URL" value={course.promoVideoUrl} onChange={e => handleChange('promoVideoUrl', e.target.value)} fullWidth margin="dense"
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><FormControlLabel control={<Checkbox checked={course.isFree} onChange={e => handleChange('isFree', e.target.checked)} />} label="Is Free?" sx={{ ml: 1, mt: 1 }} /></Grid>
-            <Grid item xs={12}><TextField label="Average Rating" type="number" value={course.averageRating} onChange={e => handleChange('averageRating', parseFloat(e.target.value))} fullWidth margin="dense" inputProps={{ min: 0, max: 5, step: 0.1 }}
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><TextField label="Ratings Count" type="number" value={course.ratingsCount} onChange={e => handleChange('ratingsCount', parseInt(e.target.value))} fullWidth margin="dense" inputProps={{ min: 0 }}
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><Divider sx={{ my: 2, bgcolor: '#a78bfa' }} /></Grid>
-            {/* Price Section */}
-            <Grid item xs={12}><Typography variant="h6" color="secondary" sx={{ fontWeight: 700, mb: 1 }}>Pricing</Typography></Grid>
-            <Grid item xs={12}><TextField label="Price Amount" type="number" value={course.price.amount} onChange={e => handlePriceChange('amount', parseFloat(e.target.value))} fullWidth margin="dense" inputProps={{ min: 0 }}
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><FormControl fullWidth margin="dense" sx={formControlSx}>
-              <InputLabel>Currency</InputLabel>
-              <Select value={course.price.currency} label="Currency" onChange={e => handlePriceChange('currency', e.target.value)} sx={selectSx}>
-                {['INR', 'USD', 'EUR'].map(opt => (
-                  <MenuItem key={opt} value={opt}><Typography variant="body1" sx={{ color: '#000', fontWeight: 600 }}>{opt}</Typography></MenuItem>
-                ))}
-              </Select>
-            </FormControl></Grid>
-            <Grid item xs={12}><TextField label="Discount %" type="number" value={course.price.discountPercent} onChange={e => handlePriceChange('discountPercent', parseInt(e.target.value))} fullWidth margin="dense" inputProps={{ min: 0, max: 100 }}
-              sx={{
-                background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                borderRadius: 2,
-                color: '#fff',
-                border: '1.5px solid #a78bfa',
-                boxShadow: '0 2px 12px #a78bfa33',
-                input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                '& .MuiInputBase-root': {
-                  color: '#fff',
-                  border: '1px solid #a78bfa',
-                  boxShadow: 'none',
-                  background: 'rgba(60, 30, 90, 0.85)',
-                  borderRadius: 1.5,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  minHeight: 30,
-                  transition: 'box-shadow 0.2s',
-                },
-                '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-              }} InputLabelProps={inputLabelProps} /></Grid>
-            <Grid item xs={12}><Divider sx={{ my: 2, bgcolor: '#a78bfa' }} /></Grid>
-            {/* Tags Section */}
-            <Grid item xs={12}><Typography variant="h6" color="secondary" sx={{ fontWeight: 700, mb: 1 }}>Tags</Typography></Grid>
             <Grid item xs={12}>
-              <Box display="flex" alignItems="center" gap={1} sx={{ mb: 2 }}>
-                <TextField label="Add Tag" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }} margin="dense"
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                color: '#a78bfa',
+                fontSize: '1.25rem',
+                borderBottom: '1px solid rgba(167,139,250,0.3)',
+                pb: 1
+              }}>
+                Basic Information
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <TextField 
+                label="Title" 
+                value={course.title} 
+                onChange={e => handleChange('title', e.target.value)} 
+                fullWidth 
+                required 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField 
+                label="Slug" 
+                value={course.slug} 
+                onChange={e => handleChange('slug', e.target.value)} 
+                fullWidth 
+                required 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField 
+                label="Description" 
+                value={course.description} 
+                onChange={e => handleChange('description', e.target.value)} 
+                fullWidth 
+                required 
+                margin="dense"
+                multiline 
+                minRows={3}
+                maxRows={6}
+                sx={{
+                  ...textFieldSx,
+                  '& .MuiInputBase-input': {
+                    ...textFieldSx['& .MuiInputBase-input'],
+                    lineHeight: 1.6
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}><Divider sx={{ my: 3, bgcolor: 'rgba(167,139,250,0.3)', height: 2 }} /></Grid>
+            {/* Category/Type/Level Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                color: '#a78bfa',
+                fontSize: '1.25rem',
+                borderBottom: '1px solid rgba(167,139,250,0.3)',
+                pb: 1
+              }}>
+                Course Details
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="dense" sx={formControlSx}>
+                <InputLabel>Type</InputLabel>
+                <Select value={course.type} label="Type" onChange={e => handleChange('type', e.target.value)}>
+                  {['Technical', 'Soft Skills', 'Management', 'Creative', 'Language', 'Other'].map(opt => (
+                    <MenuItem key={opt} value={opt} sx={{ color: '#000', fontWeight: 600 }}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="dense" sx={formControlSx}>
+                <InputLabel>Level</InputLabel>
+                <Select value={course.level} label="Level" onChange={e => handleChange('level', e.target.value)}>
+                  {['Beginner', 'Intermediate', 'Advanced'].map(opt => (
+                    <MenuItem key={opt} value={opt} sx={{ color: '#000', fontWeight: 600 }}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Category" 
+                value={course.category} 
+                onChange={e => handleChange('category', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Sub Category" 
+                value={course.subCategory} 
+                onChange={e => handleChange('subCategory', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Language" 
+                value={course.language} 
+                onChange={e => handleChange('language', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="dense" sx={formControlSx}>
+                <InputLabel>Status</InputLabel>
+                <Select value={course.status} label="Status" onChange={e => handleChange('status', e.target.value)}>
+                  {['Draft', 'Published', 'Archived'].map(opt => (
+                    <MenuItem key={opt} value={opt} sx={{ color: '#000', fontWeight: 600 }}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth margin="dense" sx={formControlSx}>
+                <InputLabel>Professor</InputLabel>
+                <Select
+                  value={course.professor || ''}
+                  label="Professor"
+                  onChange={e => handleChange('professor', e.target.value)}
+                  renderValue={selected => {
+                    const prof = professors.find(p => p._id === selected);
+                    return prof ? `${prof.name} (${prof.email})` : 'Select Professor';
+                  }}
+                  disabled={profLoading}
+                >
+                  {profLoading ? (
+                    <MenuItem value=""><CircularProgress size={20} /> <span style={{ color: '#fff', marginLeft: 8 }}>Loading...</span></MenuItem>
+                  ) : profError ? (
+                    <MenuItem value=""><span style={{ color: '#ef4444' }}>{profError}</span></MenuItem>
+                  ) : professors.length === 0 ? (
+                    <MenuItem value=""><span style={{ color: '#fff' }}>No professors found</span></MenuItem>
+                  ) : professors.map(prof => (
+                    <MenuItem key={prof._id} value={prof._id} sx={{ color: '#000', fontWeight: 600 }}>{prof.name} ({prof.email})</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Duration (e.g. 12h 30m)" 
+                value={course.duration} 
+                onChange={e => handleChange('duration', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Published At" 
+                type="date" 
+                value={course.publishedAt} 
+                onChange={e => handleChange('publishedAt', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                InputLabelProps={{ shrink: true }}
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Cover Image URL" 
+                value={course.coverImage} 
+                onChange={e => handleChange('coverImage', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Promo Video URL" 
+                value={course.promoVideoUrl} 
+                onChange={e => handleChange('promoVideoUrl', e.target.value)} 
+                fullWidth 
+                margin="dense"
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControlLabel 
+                control={
+                  <Checkbox 
+                    checked={course.isFree} 
+                    onChange={e => handleChange('isFree', e.target.checked)}
+                    sx={{
+                      color: '#a78bfa',
+                      '&.Mui-checked': {
+                        color: '#60a5fa'
+                      }
+                    }}
+                  />
+                } 
+                label="Is Free?" 
+                sx={{ 
+                  ml: 1, 
+                  mt: 1,
+                  '& .MuiFormControlLabel-label': {
+                    color: '#a78bfa',
+                    fontWeight: 600
+                  }
+                }} 
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField 
+                label="Average Rating" 
+                type="number" 
+                value={course.averageRating} 
+                onChange={e => handleChange('averageRating', parseFloat(e.target.value))} 
+                fullWidth 
+                margin="dense" 
+                inputProps={{ min: 0, max: 5, step: 0.1 }}
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField 
+                label="Ratings Count" 
+                type="number" 
+                value={course.ratingsCount} 
+                onChange={e => handleChange('ratingsCount', parseInt(e.target.value))} 
+                fullWidth 
+                margin="dense" 
+                inputProps={{ min: 0 }}
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12}><Divider sx={{ my: 3, bgcolor: 'rgba(167,139,250,0.3)', height: 2 }} /></Grid>
+            {/* Price Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                color: '#a78bfa',
+                fontSize: '1.25rem',
+                borderBottom: '1px solid rgba(167,139,250,0.3)',
+                pb: 1
+              }}>
+                Pricing
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                label="Price Amount" 
+                type="number" 
+                value={course.price.amount} 
+                onChange={e => handlePriceChange('amount', parseFloat(e.target.value))} 
+                fullWidth 
+                margin="dense" 
+                inputProps={{ min: 0 }}
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth margin="dense" sx={formControlSx}>
+                <InputLabel>Currency</InputLabel>
+                <Select value={course.price.currency} label="Currency" onChange={e => handlePriceChange('currency', e.target.value)}>
+                  {['INR', 'USD', 'EUR'].map(opt => (
+                    <MenuItem key={opt} value={opt} sx={{ color: '#000', fontWeight: 600 }}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField 
+                label="Discount %" 
+                type="number" 
+                value={course.price.discountPercent} 
+                onChange={e => handlePriceChange('discountPercent', parseInt(e.target.value))} 
+                fullWidth 
+                margin="dense" 
+                inputProps={{ min: 0, max: 100 }}
+                sx={textFieldSx}
+              />
+            </Grid>
+            <Grid item xs={12}><Divider sx={{ my: 3, bgcolor: 'rgba(167,139,250,0.3)', height: 2 }} /></Grid>
+            {/* Tags Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                color: '#a78bfa',
+                fontSize: '1.25rem',
+                borderBottom: '1px solid rgba(167,139,250,0.3)',
+                pb: 1
+              }}>
+                Tags
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" gap={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
+                <TextField 
+                  label="Add Tag" 
+                  value={tagInput} 
+                  onChange={e => setTagInput(e.target.value)} 
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }} 
+                  margin="dense"
                   sx={{
-                    background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                    borderRadius: 2,
-                    color: '#fff',
-                    border: '1.5px solid #a78bfa',
-                    boxShadow: '0 2px 12px #a78bfa33',
-                    input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                    '& .MuiInputBase-root': {
-                      color: '#fff',
-                      border: '1px solid #a78bfa',
-                      boxShadow: 'none',
-                      background: 'rgba(60, 30, 90, 0.85)',
-                      borderRadius: 1.5,
-                      fontWeight: 500,
-                      fontSize: 14,
-                      minHeight: 30,
-                      transition: 'box-shadow 0.2s',
-                    },
-                    '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                    '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                    '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                    '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                  }} InputLabelProps={inputLabelProps} />
-                <Button onClick={handleAddTag} variant="contained" color="secondary" sx={{ minWidth: 0, px: 2, py: 1, background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', color: '#fff', borderRadius: 2, boxShadow: '0 2px 8px #f472b655', '&:hover': { background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)' } }}>Add</Button>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: 2 }}>
+                    ...textFieldSx,
+                    minWidth: 200,
+                    maxWidth: 300
+                  }}
+                />
+                <Button 
+                  onClick={handleAddTag} 
+                  variant="contained" 
+                  sx={{ 
+                    minWidth: 80, 
+                    px: 3, 
+                    py: 1.5, 
+                    background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', 
+                    color: '#fff', 
+                    borderRadius: 2, 
+                    boxShadow: '0 2px 8px #f472b655', 
+                    fontWeight: 600,
+                    '&:hover': { 
+                      background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px #f472b655'
+                    } 
+                  }}
+                >
+                  Add
+                </Button>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, flex: 1 }}>
                   {course.tags.map(tag => (
-                    <Chip key={tag} label={tag} onDelete={() => handleRemoveTag(tag)} color="primary" />
+                    <Chip 
+                      key={tag} 
+                      label={tag} 
+                      onDelete={() => handleRemoveTag(tag)} 
+                      sx={{
+                        background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        '& .MuiChip-deleteIcon': {
+                          color: '#fff',
+                          '&:hover': {
+                            color: '#fecaca'
+                          }
+                        }
+                      }}
+                    />
                   ))}
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12}><Divider sx={{ my: 2, bgcolor: '#a78bfa' }} /></Grid>
+            <Grid item xs={12}><Divider sx={{ my: 3, bgcolor: 'rgba(167,139,250,0.3)', height: 2 }} /></Grid>
             {/* Modules Section */}
-            <Grid item xs={12}><Typography variant="h6" color="secondary" sx={{ fontWeight: 700, mb: 1 }}>Modules</Typography></Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                color: '#a78bfa',
+                fontSize: '1.25rem',
+                borderBottom: '1px solid rgba(167,139,250,0.3)',
+                pb: 1
+              }}>
+                Modules
+              </Typography>
+            </Grid>
             <Grid item xs={12}>
               <Box mt={1} mb={1} display="flex" alignItems="center" gap={1}>
                 <IconButton onClick={handleAddModule} color="primary" sx={{ background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', color: '#fff', borderRadius: 2, boxShadow: '0 2px 8px #f472b655', '&:hover': { background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)' } }}>
                   <AddCircleOutlineIcon />
                 </IconButton>
-                <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>Add Module</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 600, color: '#a78bfa' }}>Add Module</Typography>
               </Box>
             </Grid>
             {course.modules.map((mod, mIdx) => (
               <Accordion key={mIdx} sx={{ background: 'rgba(60, 30, 90, 0.85)' }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>{mod.moduleTitle}</Typography>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, flex: 1, color: '#a78bfa' }}>{`Module ${mIdx + 1}`}</Typography>
+                  <IconButton 
+                    onClick={e => { e.stopPropagation(); handleRemoveModule(mIdx); }} 
+                    color="error" 
+                    size="small" 
+                    sx={{ ml: 2 }}
+                  >
+                    <RemoveCircleOutlineIcon fontSize="small" />
+                  </IconButton>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container direction="column" spacing={2}>
@@ -794,30 +820,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                         fullWidth 
                         required 
                         margin="dense" 
-                        sx={{
-                          background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                          borderRadius: 2,
-                          color: '#fff',
-                          border: '1.5px solid #a78bfa',
-                          boxShadow: '0 2px 12px #a78bfa33',
-                          input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                          '& .MuiInputBase-root': {
-                            color: '#fff',
-                            border: '1px solid #a78bfa',
-                            boxShadow: 'none',
-                            background: 'rgba(60, 30, 90, 0.85)',
-                            borderRadius: 1.5,
-                            fontWeight: 500,
-                            fontSize: 14,
-                            minHeight: 30,
-                            transition: 'box-shadow 0.2s',
-                          },
-                          '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                          '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                          '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                          '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                        }} 
-                        InputLabelProps={inputLabelProps} 
+                        sx={textFieldSx}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -827,30 +830,16 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                         onChange={e => handleModuleChange(mIdx, 'moduleDescription', e.target.value)} 
                         fullWidth 
                         margin="dense"
+                        multiline
+                        minRows={2}
+                        maxRows={4}
                         sx={{
-                          background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                          borderRadius: 2,
-                          color: '#fff',
-                          border: '1.5px solid #a78bfa',
-                          boxShadow: '0 2px 12px #a78bfa33',
-                          input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                          '& .MuiInputBase-root': {
-                            color: '#fff',
-                            border: '1px solid #a78bfa',
-                            boxShadow: 'none',
-                            background: 'rgba(60, 30, 90, 0.85)',
-                            borderRadius: 1.5,
-                            fontWeight: 500,
-                            fontSize: 14,
-                            minHeight: 30,
-                            transition: 'box-shadow 0.2s',
-                          },
-                          '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                          '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                          '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                          '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                        }} 
-                        InputLabelProps={inputLabelProps} 
+                          ...textFieldSx,
+                          '& .MuiInputBase-input': {
+                            ...textFieldSx['& .MuiInputBase-input'],
+                            lineHeight: 1.6
+                          }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -872,13 +861,21 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                           }}>
                           <AddCircleOutlineIcon />
                         </IconButton>
-                        <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>Add Lesson</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: '#a78bfa' }}>Add Lesson</Typography>
                       </Box>
                     </Grid>
                     {mod.lessons && mod.lessons.map((les, lIdx) => (
                       <Accordion key={lIdx} sx={{ background: 'rgba(60, 30, 90, 0.85)' }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>{les.title}</Typography>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 600, flex: 1, color: '#a78bfa' }}>{`Lesson ${lIdx + 1}`}</Typography>
+                          <IconButton 
+                            onClick={e => { e.stopPropagation(); handleRemoveLesson(mIdx, lIdx); }} 
+                            color="error" 
+                            size="small" 
+                            sx={{ ml: 2 }}
+                          >
+                            <RemoveCircleOutlineIcon fontSize="small" />
+                          </IconButton>
                         </AccordionSummary>
                         <AccordionDetails>
                           <Grid container direction="column" spacing={2}>
@@ -890,30 +887,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                 fullWidth 
                                 required 
                                 margin="dense" 
-                                sx={{
-                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                  borderRadius: 2,
-                                  color: '#fff',
-                                  border: '1.5px solid #a78bfa',
-                                  boxShadow: '0 2px 12px #a78bfa33',
-                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                  '& .MuiInputBase-root': {
-                                    color: '#fff',
-                                    border: '1px solid #a78bfa',
-                                    boxShadow: 'none',
-                                    background: 'rgba(60, 30, 90, 0.85)',
-                                    borderRadius: 1.5,
-                                    fontWeight: 500,
-                                    fontSize: 14,
-                                    minHeight: 30,
-                                    transition: 'box-shadow 0.2s',
-                                  },
-                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                }} 
-                                InputLabelProps={inputLabelProps} 
+                                sx={textFieldSx}
                               />
                             </Grid>
                             <Grid item xs={12}>
@@ -923,30 +897,16 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                 onChange={e => handleLessonChange(mIdx, lIdx, 'summary', e.target.value)} 
                                 fullWidth 
                                 margin="dense"
+                                multiline
+                                minRows={2}
+                                maxRows={4}
                                 sx={{
-                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                  borderRadius: 2,
-                                  color: '#fff',
-                                  border: '1.5px solid #a78bfa',
-                                  boxShadow: '0 2px 12px #a78bfa33',
-                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                  '& .MuiInputBase-root': {
-                                    color: '#fff',
-                                    border: '1px solid #a78bfa',
-                                    boxShadow: 'none',
-                                    background: 'rgba(60, 30, 90, 0.85)',
-                                    borderRadius: 1.5,
-                                    fontWeight: 500,
-                                    fontSize: 14,
-                                    minHeight: 30,
-                                    transition: 'box-shadow 0.2s',
-                                  },
-                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                }} 
-                                InputLabelProps={inputLabelProps} 
+                                  ...textFieldSx,
+                                  '& .MuiInputBase-input': {
+                                    ...textFieldSx['& .MuiInputBase-input'],
+                                    lineHeight: 1.6
+                                  }
+                                }}
                               />
                             </Grid>
                             <Grid item xs={12}>
@@ -957,49 +917,10 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                 onChange={e => handleLessonChange(mIdx, lIdx, 'durationMinutes', parseInt(e.target.value))} 
                                 margin="dense"
                                 sx={{
-                                  width: 120,
-                                  mb: 2,
-                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                  borderRadius: 2,
-                                  color: '#fff',
-                                  border: '1.5px solid #a78bfa',
-                                  boxShadow: '0 2px 12px #a78bfa33',
-                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                  '& .MuiInputBase-root': {
-                                    color: '#fff',
-                                    border: '1px solid #a78bfa',
-                                    boxShadow: 'none',
-                                    background: 'rgba(60, 30, 90, 0.85)',
-                                    borderRadius: 1.5,
-                                    fontWeight: 500,
-                                    fontSize: 14,
-                                    minHeight: 30,
-                                    transition: 'box-shadow 0.2s',
-                                  },
-                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                }} 
-                                InputLabelProps={inputLabelProps} 
+                                  ...textFieldSx,
+                                  width: 150
+                                }}
                               />
-                              <FormControlLabel 
-                                control={<Checkbox checked={!!les.previewAvailable} onChange={e => handleLessonChange(mIdx, lIdx, 'previewAvailable', e.target.checked)} />} 
-                                label="Preview" 
-                              />
-                              <IconButton 
-                                onClick={() => handleRemoveLesson(mIdx, lIdx)} 
-                                color="error" 
-                                size="small" 
-                                sx={{ 
-                                  background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', 
-                                  color: '#fff', 
-                                  borderRadius: 2, 
-                                  boxShadow: '0 2px 8px #f472b655', 
-                                  '&:hover': { background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)' } 
-                                }}>
-                                <RemoveCircleOutlineIcon fontSize="small" />
-                              </IconButton>
                             </Grid>
                             {/* Topics Section */}
                             <Grid item xs={12}><Typography variant="h6" color="secondary" sx={{ fontWeight: 700, mb: 1 }}>Topics</Typography></Grid>
@@ -1018,13 +939,21 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                   }}>
                                   <AddCircleOutlineIcon fontSize="small" />
                                 </IconButton>
-                                <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>Add Topic</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 600, color: '#a78bfa' }}>Add Topic</Typography>
                               </Box>
                             </Grid>
                             {les.topics && les.topics.map((top, tIdx) => (
                               <Accordion key={tIdx} sx={{ background: 'rgba(60, 30, 90, 0.85)' }}>
-                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                  <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>{top.title}</Typography>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Typography variant="body1" sx={{ fontWeight: 600, flex: 1, color: '#a78bfa' }}>{`Topic ${tIdx + 1}`}</Typography>
+                                  <IconButton 
+                                    onClick={e => { e.stopPropagation(); handleRemoveTopic(mIdx, lIdx, tIdx); }} 
+                                    color="error" 
+                                    size="small" 
+                                    sx={{ ml: 2 }}
+                                  >
+                                    <RemoveCircleOutlineIcon fontSize="small" />
+                                  </IconButton>
                                 </AccordionSummary>
                                 <AccordionDetails>
                                   <Grid container direction="column" spacing={2}>
@@ -1036,30 +965,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                         fullWidth 
                                         required 
                                         margin="dense" 
-                                        sx={{
-                                          background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                          borderRadius: 2,
-                                          color: '#fff',
-                                          border: '1.5px solid #a78bfa',
-                                          boxShadow: '0 2px 12px #a78bfa33',
-                                          input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                          '& .MuiInputBase-root': {
-                                            color: '#fff',
-                                            border: '1px solid #a78bfa',
-                                            boxShadow: 'none',
-                                            background: 'rgba(60, 30, 90, 0.85)',
-                                            borderRadius: 1.5,
-                                            fontWeight: 500,
-                                            fontSize: 14,
-                                            minHeight: 30,
-                                            transition: 'box-shadow 0.2s',
-                                          },
-                                          '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                          '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                        }} 
-                                        InputLabelProps={inputLabelProps} 
+                                        sx={textFieldSx}
                                       />
                                     </Grid>
                                     <Grid item xs={12}>
@@ -1069,30 +975,16 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                         onChange={e => handleTopicChange(mIdx, lIdx, tIdx, 'description', e.target.value)} 
                                         fullWidth 
                                         margin="dense"
+                                        multiline
+                                        minRows={2}
+                                        maxRows={4}
                                         sx={{
-                                          background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                          borderRadius: 2,
-                                          color: '#fff',
-                                          border: '1.5px solid #a78bfa',
-                                          boxShadow: '0 2px 12px #a78bfa33',
-                                          input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                          '& .MuiInputBase-root': {
-                                            color: '#fff',
-                                            border: '1px solid #a78bfa',
-                                            boxShadow: 'none',
-                                            background: 'rgba(60, 30, 90, 0.85)',
-                                            borderRadius: 1.5,
-                                            fontWeight: 500,
-                                            fontSize: 14,
-                                            minHeight: 30,
-                                            transition: 'box-shadow 0.2s',
-                                          },
-                                          '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                          '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                        }} 
-                                        InputLabelProps={inputLabelProps} 
+                                          ...textFieldSx,
+                                          '& .MuiInputBase-input': {
+                                            ...textFieldSx['& .MuiInputBase-input'],
+                                            lineHeight: 1.6
+                                          }
+                                        }}
                                       />
                                     </Grid>
                                     <Grid item xs={12}>
@@ -1102,31 +994,10 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                         onChange={e => handleTopicChange(mIdx, lIdx, tIdx, 'videoUrl', e.target.value)} 
                                         fullWidth 
                                         margin="dense"
-                                        sx={{
-                                          background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                          borderRadius: 2,
-                                          color: '#fff',
-                                          border: '1.5px solid #a78bfa',
-                                          boxShadow: '0 2px 12px #a78bfa33',
-                                          input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                          '& .MuiInputBase-root': {
-                                            color: '#fff',
-                                            border: '1px solid #a78bfa',
-                                            boxShadow: 'none',
-                                            background: 'rgba(60, 30, 90, 0.85)',
-                                            borderRadius: 1.5,
-                                            fontWeight: 500,
-                                            fontSize: 14,
-                                            minHeight: 30,
-                                            transition: 'box-shadow 0.2s',
-                                          },
-                                          '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                          '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                          '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                        }} 
-                                        InputLabelProps={inputLabelProps} 
+                                        sx={textFieldSx}
                                       />
+                                    </Grid>
+                                    <Grid item xs={12}>
                                       <IconButton 
                                         onClick={() => handleRemoveTopic(mIdx, lIdx, tIdx)} 
                                         color="error" 
@@ -1158,13 +1029,21 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                           }}>
                                           <AddCircleOutlineIcon fontSize="small" />
                                         </IconButton>
-                                        <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>Add SubTopic</Typography>
+                                        <Typography variant="body1" sx={{ fontWeight: 600, color: '#a78bfa' }}>Add SubTopic</Typography>
                                       </Box>
                                     </Grid>
                                     {top.subTopics && top.subTopics.map((sub, sIdx) => (
                                       <Accordion key={sIdx} sx={{ background: 'rgba(60, 30, 90, 0.85)' }}>
-                                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                          <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>{sub.title}</Typography>
+                                        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                          <Typography variant="body1" sx={{ fontWeight: 600, flex: 1, color: '#a78bfa' }}>{`Subtopic ${sIdx + 1}`}</Typography>
+                                          <IconButton 
+                                            onClick={e => { e.stopPropagation(); handleRemoveSubTopic(mIdx, lIdx, tIdx, sIdx); }} 
+                                            color="error" 
+                                            size="small" 
+                                            sx={{ ml: 2 }}
+                                          >
+                                            <RemoveCircleOutlineIcon fontSize="small" />
+                                          </IconButton>
                                         </AccordionSummary>
                                         <AccordionDetails>
                                           <Grid container direction="column" spacing={2}>
@@ -1176,30 +1055,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                                 fullWidth 
                                                 required 
                                                 margin="dense" 
-                                                sx={{
-                                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                                  borderRadius: 2,
-                                                  color: '#fff',
-                                                  border: '1.5px solid #a78bfa',
-                                                  boxShadow: '0 2px 12px #a78bfa33',
-                                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                                  '& .MuiInputBase-root': {
-                                                    color: '#fff',
-                                                    border: '1px solid #a78bfa',
-                                                    boxShadow: 'none',
-                                                    background: 'rgba(60, 30, 90, 0.85)',
-                                                    borderRadius: 1.5,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    minHeight: 30,
-                                                    transition: 'box-shadow 0.2s',
-                                                  },
-                                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                                }} 
-                                                InputLabelProps={inputLabelProps} 
+                                                sx={textFieldSx}
                                               />
                                             </Grid>
                                             <Grid item xs={12}>
@@ -1209,30 +1065,16 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                                 onChange={e => handleSubTopicChange(mIdx, lIdx, tIdx, sIdx, 'content', e.target.value)} 
                                                 fullWidth 
                                                 margin="dense"
+                                                multiline
+                                                minRows={2}
+                                                maxRows={4}
                                                 sx={{
-                                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                                  borderRadius: 2,
-                                                  color: '#fff',
-                                                  border: '1.5px solid #a78bfa',
-                                                  boxShadow: '0 2px 12px #a78bfa33',
-                                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                                  '& .MuiInputBase-root': {
-                                                    color: '#fff',
-                                                    border: '1px solid #a78bfa',
-                                                    boxShadow: 'none',
-                                                    background: 'rgba(60, 30, 90, 0.85)',
-                                                    borderRadius: 1.5,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    minHeight: 30,
-                                                    transition: 'box-shadow 0.2s',
-                                                  },
-                                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                                }} 
-                                                InputLabelProps={inputLabelProps} 
+                                                  ...textFieldSx,
+                                                  '& .MuiInputBase-input': {
+                                                    ...textFieldSx['& .MuiInputBase-input'],
+                                                    lineHeight: 1.6
+                                                  }
+                                                }}
                                               />
                                             </Grid>
                                             <Grid item xs={12}>
@@ -1242,30 +1084,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                                 onChange={e => handleSubTopicChange(mIdx, lIdx, tIdx, sIdx, 'videoUrl', e.target.value)} 
                                                 fullWidth 
                                                 margin="dense"
-                                                sx={{
-                                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                                  borderRadius: 2,
-                                                  color: '#fff',
-                                                  border: '1.5px solid #a78bfa',
-                                                  boxShadow: '0 2px 12px #a78bfa33',
-                                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                                  '& .MuiInputBase-root': {
-                                                    color: '#fff',
-                                                    border: '1px solid #a78bfa',
-                                                    boxShadow: 'none',
-                                                    background: 'rgba(60, 30, 90, 0.85)',
-                                                    borderRadius: 1.5,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    minHeight: 30,
-                                                    transition: 'box-shadow 0.2s',
-                                                  },
-                                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                                }} 
-                                                InputLabelProps={inputLabelProps} 
+                                                sx={textFieldSx}
                                               />
                                               <IconButton 
                                                 onClick={() => handleRemoveSubTopic(mIdx, lIdx, tIdx, sIdx)} 
@@ -1292,11 +1111,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                           </Grid>
                           {/* Quiz Section */}
                           <Grid item xs={12}>
-                            <Typography variant="h6" color="secondary"
-                              sx={{
-                                fontWeight: 700,
-                                mb: 1
-                              }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#a78bfa' }}>
                               Quiz
                             </Typography>
                           </Grid>
@@ -1304,7 +1119,7 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                             <FormControlLabel control={<Checkbox checked={!!les.quizIncluded} onChange={e => handleQuizIncludedChange(mIdx, lIdx, e.target.checked)} />} label="Quiz Included" />
                             {les.quizIncluded && (
                               <Box>
-                                <Typography variant="body2" color="primary">Quiz Questions</Typography>
+                                <Typography variant="body2" sx={{ color: '#a78bfa' }}>Quiz Questions</Typography>
                                 <IconButton
                                   onClick={() => handleAddQuizQuestion(mIdx, lIdx)}
                                   color="primary" size="small"
@@ -1321,11 +1136,29 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                 </IconButton>
                                 {les.quizQuestions && les.quizQuestions.map((q, qIdx) => (
                                   <Accordion key={qIdx} sx={{ background: 'rgba(60, 30, 90, 0.85)' }}>
-                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                      <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>{q.question}</Typography>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <Typography variant="body1" sx={{ fontWeight: 600, flex: 1, color: '#a78bfa' }}>{`Quiz Question ${qIdx + 1}`}</Typography>
+                                      <IconButton 
+                                        onClick={e => { e.stopPropagation(); handleRemoveQuizQuestion(mIdx, lIdx, qIdx); }} 
+                                        color="error" 
+                                        size="small" 
+                                        sx={{ ml: 2 }}
+                                      >
+                                        <RemoveCircleOutlineIcon fontSize="small" />
+                                      </IconButton>
                                     </AccordionSummary>
                                     <AccordionDetails>
-                                      <Grid container direction="column" spacing={2}>
+                                      <Grid container direction="column" spacing={1}>
+                                        <Grid item xs={12}>
+                                          <TextField 
+                                            label="Quiz Question" 
+                                            value={q.question} 
+                                            onChange={e => handleQuizQuestionChange(mIdx, lIdx, qIdx, 'question', e.target.value)} 
+                                            fullWidth 
+                                            margin="dense"
+                                            sx={textFieldSx}
+                                          />
+                                        </Grid>
                                         <Grid item xs={12}>
                                           <TextField 
                                             label="Answer" 
@@ -1333,34 +1166,8 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                             onChange={e => handleQuizQuestionChange(mIdx, lIdx, qIdx, 'answer', e.target.value)} 
                                             fullWidth 
                                             margin="dense"
-                                            sx={{
-                                              background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                              borderRadius: 2,
-                                              color: '#fff',
-                                              border: '1.5px solid #a78bfa',
-                                              boxShadow: '0 2px 12px #a78bfa33',
-                                              input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                              '& .MuiInputBase-root': {
-                                                color: '#fff',
-                                                border: '1px solid #a78bfa',
-                                                boxShadow: 'none',
-                                                background: 'rgba(60, 30, 90, 0.85)',
-                                                borderRadius: 1.5,
-                                                fontWeight: 500,
-                                                fontSize: 14,
-                                                minHeight: 30,
-                                                transition: 'box-shadow 0.2s',
-                                              },
-                                              '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                              '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                              '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                              '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                            }} 
-                                            InputLabelProps={inputLabelProps} 
+                                            sx={textFieldSx}
                                           />
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                          <Divider sx={{ my: 2, bgcolor: '#a78bfa' }} />
                                         </Grid>
                                         <Grid item xs={12}>
                                           <Typography variant="body2" color="primary">Options</Typography>
@@ -1370,34 +1177,12 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
                                             <Box key={oIdx} mb={1} p={1} borderRadius={1} boxShadow={0}>
                                               <TextField 
                                                 label={`Option ${oIdx + 1}`} 
+                                                name={`Option ${oIdx + 1}`} 
                                                 value={opt} 
                                                 onChange={e => handleQuizOptionChange(mIdx, lIdx, qIdx, oIdx, e.target.value)} 
                                                 fullWidth 
                                                 margin="dense"
-                                                sx={{
-                                                  background: 'linear-gradient(135deg, #312e81 0%, #0a081e 100%)',
-                                                  borderRadius: 2,
-                                                  color: '#fff',
-                                                  border: '1.5px solid #a78bfa',
-                                                  boxShadow: '0 2px 12px #a78bfa33',
-                                                  input: { color: '#fff', fontWeight: 600, fontSize: 18 },
-                                                  '& .MuiInputBase-root': {
-                                                    color: '#fff',
-                                                    border: '1px solid #a78bfa',
-                                                    boxShadow: 'none',
-                                                    background: 'rgba(60, 30, 90, 0.85)',
-                                                    borderRadius: 1.5,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    minHeight: 30,
-                                                    transition: 'box-shadow 0.2s',
-                                                  },
-                                                  '& label': { color: '#a78bfa', fontWeight: 700, fontSize: 15 },
-                                                  '& .Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root.Mui-focused': { borderColor: '#f472b6', boxShadow: '0 0 8px #f472b6aa' },
-                                                  '& .MuiInputBase-root:hover': { borderColor: '#60a5fa' },
-                                                }} 
-                                                InputLabelProps={inputLabelProps} 
+                                                sx={textFieldSx}
                                               />
                                             </Box>
                                           ))}
@@ -1435,47 +1220,68 @@ function CourseModal({ open, onClose, onSubmit, initialData, mode }) {
           ))}
         </Grid>
       </form>
-      <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
+      <Box mt={4} display="flex" justifyContent="flex-end" gap={2} sx={{ 
+        borderTop: '2px solid rgba(167,139,250,0.3)', 
+        pt: 3, 
+        px: { xs: 3, md: 4 },
+        pb: 2
+      }}>
         <Button
           onClick={onClose}
-          color="secondary"
           variant="outlined"
           sx={{
             borderRadius: 2,
             fontWeight: 700,
-            px: 4, py: 1.5,
-            background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)',
-            color: '#fff',
-            border: 'none',
-            boxShadow: '0 2px 8px #a78bfa55',
-            width: '100px',
-            height: '40px',
-            mr: 2,
-            fontSize: 18,
+            px: 4, 
+            py: 1.5,
+            background: 'transparent',
+            color: '#a78bfa',
+            border: '2px solid #a78bfa',
+            boxShadow: '0 2px 8px rgba(167,139,250,0.2)',
+            minWidth: 120,
+            height: 48,
+            fontSize: 16,
             letterSpacing: 1,
-            '&:hover': { background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', color: '#fff' }
+            transition: 'all 0.3s ease',
+            '&:hover': { 
+              background: 'rgba(167,139,250,0.1)', 
+              borderColor: '#60a5fa',
+              color: '#60a5fa',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(167,139,250,0.3)'
+            }
           }}
-        >Cancel</Button>
+        >
+          Cancel
+        </Button>
         <Button
           type="submit"
           form="course-form"
-          color="primary"
           variant="contained"
           sx={{
             borderRadius: 2,
             fontWeight: 700,
-            px: 5, py: 1.5,
+            px: 5, 
+            py: 1.5,
             background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)',
             color: '#fff',
-            boxShadow: '0 2px 16px #f472b655',
-            width: '100px',
-            height: '40px',
+            boxShadow: '0 4px 20px rgba(244,114,182,0.4)',
+            minWidth: 140,
+            height: 48,
             border: 'none',
-            fontSize: 18,
+            fontSize: 16,
             letterSpacing: 1,
-            '&:hover': { background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)', color: '#fff' }
+            transition: 'all 0.3s ease',
+            '&:hover': { 
+              background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)', 
+              color: '#fff',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 25px rgba(244,114,182,0.5)'
+            }
           }}
-        >{mode === 'edit' ? 'Update Course' : 'Create'}</Button>
+        >
+          {mode === 'edit' ? 'Update Course' : 'Create Course'}
+        </Button>
       </Box>
     </DialogContent>
   </Dialog>

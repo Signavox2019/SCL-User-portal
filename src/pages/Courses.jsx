@@ -31,19 +31,12 @@ const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
 const typeOptions = ['Technical', 'Soft Skills', 'Management', 'Creative', 'Language', 'Other'];
 const statusOptions = ['Draft', 'Published', 'Archived'];
 
-const Courses = () => {
+const Courses = ({ user }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState({ category: '', level: '' });
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user'));
-    } catch {
-      return null;
-    }
-  });
   const isLoggedIn = !!user;
   const isAdmin = user && user.role === 'admin';
   const navigate = useNavigate();
@@ -51,17 +44,7 @@ const Courses = () => {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
-
-
-  useEffect(() => {
-    setUser(() => {
-      try {
-        return JSON.parse(localStorage.getItem('user'));
-      } catch {
-        return null;
-      }
-    });
-  }, []);
+  const [deleteDialogCourse, setDeleteDialogCourse] = useState(null);
 
   // Fetch courses
   const fetchCourses = async () => {
@@ -134,21 +117,45 @@ const Courses = () => {
         });
         data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to create course');
+        setModalOpen(false);
+        await fetchCourses();
         showToast('Course created successfully!', 'success');
       } else {
+        // Remove _id before sending to backend
+        const { _id, ...courseDataWithoutId } = courseData;
         res = await fetch(`${BaseUrl}/courses/${selectedCourse._id}`, {
-          method: 'PATCH',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify(courseData)
+          body: JSON.stringify(courseDataWithoutId)
         });
         data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to update course');
+        setModalOpen(false);
+        await fetchCourses();
         showToast('Course updated successfully!', 'success');
       }
-      setModalOpen(false);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleDeleteCourse = async (course) => {
+    if (!course) return;
+    setModalLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BaseUrl}/courses/${course._id}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error('Failed to delete course');
+      showToast('Course deleted successfully!', 'success');
+      setDeleteDialogCourse(null);
       fetchCourses();
     } catch (err) {
       showToast(err.message, 'error');
@@ -170,7 +177,7 @@ const Courses = () => {
           <p className="text-lg text-purple-100/80 mt-2">Explore, learn, and create new courses!</p>
         </div>
         <div className="ml-auto">
-          {isLoggedIn && (
+          {isAdmin && (
             <button
               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 hover:from-pink-600 hover:to-purple-600 transition-all duration-300 text-lg"
               onClick={handleAddCourse}
@@ -248,59 +255,91 @@ const Courses = () => {
         ) : filteredCourses.map(course => (
           <div
             key={course._id}
-            className="group w-full rounded-xl shadow-xl bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/95 border border-white/20 overflow-hidden flex flex-col md:flex-row items-stretch hover:scale-[1.01] transition-all duration-300 min-h-[120px] cursor-pointer relative"
+            className="group w-full rounded-xl shadow-xl bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/95 border border-white/20 overflow-hidden flex flex-row items-stretch hover:scale-[1.01] transition-all duration-300 cursor-pointer relative min-h-[130px]"
             onClick={() => navigate(`/courses/${course._id}`)}
+            style={{ height: 'auto', minHeight: 'unset', alignItems: 'stretch' }}
           >
-            {/* Card Content - Compact, Price Top Right, No Level/Category, No View Details */}
-            <div className="flex flex-col justify-between flex-1 p-5 gap-2 relative">
-              <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-10">
-                <div className="mt-2 flex items-center text-lg font-bold text-purple-200">
-                  {course.isFree ? 'Free' : `₹${course.price.amount}`}
-                  {course.price.discountPercent > 0 && !course.isFree && (
-                    <span className="ml-2 px-2 py-0.5 bg-purple-900/40 text-purple-200 rounded-full border border-white/10 font-semibold text-xs">{course.price.discountPercent}% OFF</span>
-                  )}
-                </div>
-                {isAdmin && (
-                  <button
-                    className="mt-2 px-3 py-1 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 text-white text-xs font-bold shadow hover:scale-105 transition-all flex items-center gap-1"
-                    style={{ zIndex: 20 }}
-                    onClick={e => { e.stopPropagation(); handleEditCourse(course); }}
-                  >
-                    <EditIcon fontSize="small" /> Edit
-                  </button>
-                )}
-              </div>
-              <h3 className="font-extrabold text-lg md:text-xl text-white leading-tight drop-shadow-lg group-hover:text-purple-200 transition-colors duration-300 flex-1">
+            {/* Left: Main Content */}
+            <div className="flex flex-col flex-1 p-4 gap-3 justify-center min-w-0">
+              <h3 className="font-extrabold text-xl text-white leading-7 drop-shadow-lg group-hover:text-purple-200 transition-colors duration-300 truncate">
                 {course.title}
               </h3>
-              <div className="text-purple-200 text-sm leading-relaxed mb-1 line-clamp-2">
+              <div className="text-purple-200 text-base leading-7 mb-1 truncate">
                 {course.description}
               </div>
-              <div className="flex flex-wrap items-center gap-3 mt-1">
-                <div className="flex items-center gap-1 text-sm text-blue-200">
-                  <AccessTimeIcon className="text-blue-300" fontSize="small" />
+              <div className="flex flex-wrap items-center gap-3 mt-1 leading-7">
+                <div className="flex items-center gap-1 text-base text-blue-200">
+                  <AccessTimeIcon className="text-blue-300" fontSize="medium" />
                   <span>{course.duration}</span>
                 </div>
-                <div className="flex items-center gap-1 text-sm text-yellow-200">
-                  <StarIcon className="text-yellow-400" fontSize="small" />
+                <div className="flex items-center gap-1 text-base text-yellow-200">
+                  <StarIcon className="text-yellow-400" fontSize="medium" />
                   <span className="font-semibold">{course.averageRating}</span>
-                  <span className="text-purple-300 text-xs">({course.ratingsCount})</span>
+                  <span className="text-purple-300 text-sm">({course.ratingsCount})</span>
                 </div>
                 {course.tags && course.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 ml-2">
                     {course.tags.slice(0, 3).map((tag, idx) => (
-                      <span key={idx} className="bg-purple-700/40 text-purple-200 px-2 py-0.5 rounded-full text-xs">#{tag}</span>
+                      <span key={idx} className="bg-purple-700/40 text-purple-200 px-2 py-0.5 rounded-full text-sm">#{tag}</span>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="mt-2 flex justify-end">
+            </div>
+            {/* Right: Icons, Price, and Learn More */}
+            <div className="flex flex-col items-end justify-between p-4 min-w-[150px] max-w-[200px] h-full">
+              <div className="flex flex-row items-center gap-2 mb-2">
+                {isAdmin && (
+                  <>
+                    <IconButton
+                      style={{
+                        background: 'linear-gradient(135deg, #f472b6 0%, #a78bfa 100%)', // matches Add Course button
+                        color: '#fff',
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 8px #f472b655',
+                        width: 36,
+                        height: 36,
+                        marginRight: 2,
+                        padding: 0
+                      }}
+                      onClick={e => { e.stopPropagation(); handleEditCourse(course); }}
+                      size="small"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      style={{
+                        background: 'linear-gradient(90deg, #f472b6 0%, #a78bfa 100%)', // matches Add Course button
+                        color: '#fff',
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 8px #a78bfa55',
+                        width: 36,
+                        height: 36,
+                        padding: 0
+                      }}
+                      onClick={e => { e.stopPropagation(); setDeleteDialogCourse(course); }}
+                      size="small"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </>
+                )}
+              </div>
+              <div className="flex flex-col items-end mt-2 w-full">
+                <div className="flex items-center text-xl font-bold text-purple-200 leading-7">
+                  {course.isFree ? 'Free' : `₹${course.price.amount}`}
+                  {course.price.discountPercent > 0 && !course.isFree && (
+                    <span className="ml-2 px-2 py-0.5 bg-purple-900/40 text-purple-200 rounded-full border border-white/10 font-semibold text-base">{course.price.discountPercent}% OFF</span>
+                  )}
+                </div>
+                {/* Learn More link moved here */}
                 <a
-                  href="#"
-                  className="inline-flex items-center gap-1 text-purple-200 font-semibold hover:text-pink-400 transition-colors text-sm"
-                  onClick={e => { e.stopPropagation(); navigate(`/courses/${course._id}`); }}
+                  href={"/courses/" + course._id}
+                  className="inline-flex items-center gap-1 text-purple-200 font-bold hover:text-pink-400 transition-colors text-base leading-7 mt-3 justify-end w-full"
+                  style={{ fontSize: '1.15rem', lineHeight: '2rem' }}
+                  onClick={e => { e.preventDefault(); navigate(`/courses/${course._id}`); }}
                 >
-                  Learn More <ArrowForwardIosIcon style={{ fontSize: 16 }} />
+                  Learn More <ArrowForwardIosIcon style={{ fontSize: 20 }} />
                 </a>
               </div>
             </div>
@@ -314,18 +353,24 @@ const Courses = () => {
         initialData={modalMode === 'edit' ? selectedCourse : null}
         mode={modalMode}
       />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 20000, position: 'fixed', top: 16, right: 16 }}
-      />
+      {/* Delete Confirmation Dialog */}
+      {isAdmin && deleteDialogCourse && (
+        // Custom Delete Modal (like Events page)
+        typeof document !== 'undefined' && document.getElementById('modal-root') &&
+        ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl shadow-2xl border border-white/10 p-8 max-w-sm w-full">
+              <h2 className="text-xl font-bold text-white mb-4">Confirm Delete</h2>
+              <p className="text-purple-200 mb-6">Are you sure you want to delete the course <span className="font-bold text-pink-300">{deleteDialogCourse?.title}</span>?</p>
+              <div className="flex justify-end gap-3">
+                <button className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setDeleteDialogCourse(null)}>Cancel</button>
+                <button className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => handleDeleteCourse(deleteDialogCourse)} disabled={modalLoading}>{modalLoading ? 'Deleting...' : 'Delete'}</button>
+              </div>
+            </div>
+          </div>,
+          document.getElementById('modal-root')
+        )
+      )}
     </div>
   );
 };

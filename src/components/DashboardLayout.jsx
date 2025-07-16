@@ -9,7 +9,9 @@ import {
   AssignmentTurnedIn as EnrollmentIcon,
   Menu as MenuIcon,
   Notifications as NotificationsIcon,
-  AccountCircle as AccountCircleIcon
+  AccountCircle as AccountCircleIcon,
+  Group as UsersIcon,
+  School as BatchIcon
 } from '@mui/icons-material';
 import Layout from './Layout'; // adjust path as needed
 import './DashboardLayout.css';
@@ -17,22 +19,8 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import BaseUrl from '../Api';
 import NotificationBell from './NotificationBell';
-
-const navItems = [
-  { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
-  { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
-  { label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' },
-  { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
-  { label: 'Enrollment', icon: <EnrollmentIcon fontSize="medium" />, path: '/enrollment' },
-];
-
-const companyName = (
-  <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-clip-text text-white font-spoof leading-none text-transparent select-none">
-    Sign
-    <img src={SignavoxLogo} alt="Signavox Logo" className="inline w-7 h-7 align-middle " />
-    vox
-  </h1>
-);
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -61,6 +49,44 @@ const DashboardLayout = ({ children }) => {
     });
   }, []);
 
+  let navItems = [
+    { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
+    { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
+    { label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' },
+    { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
+  ];
+  if (user?.role === 'admin') {
+    navItems = [
+      ...navItems,
+      { label: 'Batch', icon: <BatchIcon fontSize="medium" />, path: '/batch' },
+      { label: 'Users', icon: <UsersIcon fontSize="medium" />, path: '/users' },
+      { label: 'Enrollment', icon: <EnrollmentIcon fontSize="medium" />, path: '/enrollments' },
+
+    ];
+  }
+
+  const companyName = (
+    <span className="flex items-center">
+      <span className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-white font-spoof leading-none select-none">Sign</span>
+      <img
+        src={SignavoxLogo}
+        alt="Signavox Logo"
+        className="inline align-middle"
+        style={{
+          height: '1.6em',
+          width: '1.7em',
+          display: 'inline-block',
+          verticalAlign: 'baseline',
+          position: 'relative',
+          top: '0.2em',
+          padding: 0,
+          margin: 0,
+        }}
+      />
+      <span className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-white font-spoof leading-none select-none">vox</span>
+    </span>
+  );
+
   const handleProfileMenu = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -75,7 +101,34 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <Layout>
-      <div className="min-h-screen w-full flex">
+      {/* ToastContainer overlays everything, including navbar */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 99999, position: 'fixed', top: 16, right: 16 }}
+      />
+      <div className="min-h-screen w-full flex relative">
+        {/* Animated, Large, Low-Opacity Logo Background for Dashboard */}
+        <img
+          src={SignavoxLogo}
+          alt="Signavox Logo Watermark"
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 hidden md:block animate-dashboard-logo-float"
+          style={{
+            width: '55vw',
+            maxWidth: 600,
+            minWidth: 300,
+            opacity: 0.07,
+            filter: 'drop-shadow(0 0 80px #a78bfa) drop-shadow(0 0 32px #f472b6)',
+          }}
+          draggable={false}
+        />
         {/* Sidebar */}
         <aside
           className={`
@@ -206,17 +259,17 @@ const DashboardLayout = ({ children }) => {
                 alt="Signavox Logo"
                 className="w-[32rem] h-[32rem] object-contain mx-auto "
                 style={{
-                //   filter: 'drop-shadow(0 0 32px #a78bfa) drop-shadow(0 0 12px #f472b6)',
-                //   transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
-                //   transform: 'rotate(-8deg) scale(1.08)',
+                  //   filter: 'drop-shadow(0 0 32px #a78bfa) drop-shadow(0 0 12px #f472b6)',
+                  //   transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
+                  //   transform: 'rotate(-8deg) scale(1.08)',
                 }}
                 draggable={false}
               />
             </div>
-              {/* <svg width="1em" height="1em" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* <svg width="1em" height="1em" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M192 128V48a16 16 0 0 0-16-16H48a16 16 0 0 0-16 16v160a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-80h-32Z" fill="currentColor"/>
               </svg> */}
-              {/* <img src={SignavoxLogo} alt="Signavox Logo" className="w-10 h-10 mx-auto" />
+            {/* <img src={SignavoxLogo} alt="Signavox Logo" className="w-10 h-10 mx-auto" />
             </div> */}
             {/* Actual page content */}
             <div className="relative z-10 max-w-7xl mx-auto w-full">
@@ -226,13 +279,20 @@ const DashboardLayout = ({ children }) => {
         </div>
         {/* Custom Animations */}
         <style>{`
+          @keyframes dashboard-logo-float {
+            0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+            50% { transform: translate(-50%, -52%) scale(1.04) rotate(2deg); }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+          }
+          .animate-dashboard-logo-float {
+            animation: dashboard-logo-float 16s ease-in-out infinite;
+          }
           @keyframes fade-in {
             from { opacity: 0; }
             to { opacity: 0.1; }
           }
           .animate-fade-in {
             animation: fade-in 2s ease-in;
-            
           }
           .drop-shadow-glow {
             filter: drop-shadow(0 0 8px #f472b6) drop-shadow(0 0 16px #a78bfa);
