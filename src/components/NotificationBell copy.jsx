@@ -5,10 +5,6 @@ import useNotificationSocket from '../hooks/useNotificationSocket';
 import BaseUrl from '../Api';
 import 'react-toastify/dist/ReactToastify.css';
 import ReactDOM from 'react-dom';
-import axios from 'axios';
-import CircularProgress from '@mui/material/CircularProgress';
-import CloseIcon from '@mui/icons-material/Close';
-import React from 'react'; // Added for React.useRef
 
 const NotificationBell = ({ userId, sidebarOpen = false }) => {
   const [notifications, setNotifications] = useState([]);
@@ -468,109 +464,8 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
     }
   };
 
-  // Batch Notification Modal State
-  const [batchModalOpen, setBatchModalOpen] = useState(false);
-  const [batchForm, setBatchForm] = useState({
-    title: '',
-    message: '',
-    type: '',
-    link: '',
-    batchIds: []
-  });
-  const [batchFormLoading, setBatchFormLoading] = useState(false);
-  const [batchFormError, setBatchFormError] = useState('');
-  const [batches, setBatches] = useState([]);
-  const notificationTypeOptions = [
-    { value: 'registration', label: 'Registration' },
-    { value: 'course', label: 'Course' },
-    { value: 'event', label: 'Event' },
-    { value: 'quiz', label: 'Quiz' },
-    { value: 'certificate', label: 'Certificate' },
-    { value: 'system', label: 'System' },
-  ];
-
-  // Fetch batches when modal opens
-  useEffect(() => {
-    if (batchModalOpen) {
-      setBatchFormError('');
-      setBatchFormLoading(true);
-      axios.get(`${BaseUrl}/batches/`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      })
-        .then(res => {
-          setBatches(res.data.data || []);
-        })
-        .catch(err => {
-          setBatchFormError('Failed to fetch batches');
-        })
-        .finally(() => setBatchFormLoading(false));
-    }
-  }, [batchModalOpen]);
-
-  // Handle batch form input
-  const handleBatchFormChange = (e) => {
-    const { name, value, type, selectedOptions } = e.target;
-    if (name === 'batchIds') {
-      setBatchForm(f => ({ ...f, batchIds: Array.from(selectedOptions).map(opt => opt.value) }));
-    } else {
-      setBatchForm(f => ({ ...f, [name]: value }));
-    }
-  };
-
-  // Submit batch notification
-  const handleBatchFormSubmit = async (e) => {
-    e.preventDefault();
-    setBatchFormLoading(true);
-    setBatchFormError('');
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${BaseUrl}/notifications/batch`,
-        batchForm,
-        { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }
-      );
-      toast.success(res.data.message || 'Batch notification sent!', { position: 'top-right', autoClose: 4000 });
-      setBatchModalOpen(false);
-      setBatchForm({ title: '', message: '', type: '', link: '', batchIds: [] });
-    } catch (err) {
-      setBatchFormError(err.response?.data?.message || err.message || 'Failed to send notification');
-    } finally {
-      setBatchFormLoading(false);
-    }
-  };
-
   // Get unread count (from stats)
   const unreadCount = notificationStats.unread;
-
-  // Add state for custom batch dropdown
-  const [batchDropdownOpen, setBatchDropdownOpen] = useState(false);
-  const batchDropdownRef = React.useRef();
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target)) {
-        setBatchDropdownOpen(false);
-      }
-    }
-    if (batchDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [batchDropdownOpen]);
-
-  // Handle batch checkbox change
-  const handleBatchCheckboxChange = (batchId) => {
-    setBatchForm(f => {
-      const exists = f.batchIds.includes(batchId);
-      return {
-        ...f,
-        batchIds: exists ? f.batchIds.filter(id => id !== batchId) : [...f.batchIds, batchId]
-      };
-    });
-  };
 
   return (
     <>
@@ -796,25 +691,6 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   🔗 Test Socket
-                </button>
-                <button
-                  onClick={() => setBatchModalOpen(true)}
-                  style={{
-                    background: 'linear-gradient(135deg, #be185d 0%, #7c3aed 100%)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 4px rgba(190, 24, 93, 0.3)'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                >
-                  📢 Batch Notification
                 </button>
               </div>
               <div style={{ 
@@ -1300,121 +1176,6 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
           }
         }
       `}</style>
-
-      {/* Batch Notification Modal */}
-      {batchModalOpen && ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
-          <div className="relative w-full max-w-2xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
-            {/* Accent Header Bar */}
-            <div className="h-3 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
-            {/* Close Button */}
-            <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => setBatchModalOpen(false)}>
-              <CloseIcon fontSize="large" />
-            </button>
-            <form className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar" onSubmit={handleBatchFormSubmit}>
-              <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-glow">Send Batch Notification</h2>
-              {batchFormError && <div className="text-red-400 font-bold mb-2">{batchFormError}</div>}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-purple-200 mb-1 font-semibold">Title</label>
-                  <input type="text" name="title" value={batchForm.title} onChange={handleBatchFormChange} required className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
-                </div>
-                <div>
-                  <label className="block text-purple-200 mb-1 font-semibold">Type</label>
-                  <select name="type" value={batchForm.type} onChange={handleBatchFormChange} required className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40">
-                    <option value="">Select</option>
-                    {notificationTypeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-purple-200 mb-1 font-semibold">Message</label>
-                  <textarea name="message" value={batchForm.message} onChange={handleBatchFormChange} required rows={2} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-purple-200 mb-1 font-semibold">Link (optional)</label>
-                  <input type="text" name="link" value={batchForm.link} onChange={handleBatchFormChange} placeholder="/dashboard/quizzes/module-2" className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
-                </div>
-                {/* Batches custom dropdown */}
-                <div className="md:col-span-2">
-                  <label className="block text-purple-200 mb-1 font-semibold">Batches</label>
-                  <div className="relative" ref={batchDropdownRef}>
-                    <div
-                      className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 cursor-pointer flex items-center justify-between"
-                      onClick={() => setBatchDropdownOpen(open => !open)}
-                      style={{ minHeight: '40px' }}
-                    >
-                      <span className="truncate">
-                        {batchForm.batchIds.length === 0
-                          ? 'Select batches...'
-                          : batches
-                              .filter(b => batchForm.batchIds.includes(b.batchId))
-                              .map(b => b.batchName)
-                              .join(', ')
-                        }
-                      </span>
-                      <svg width="20" height="20" fill="currentColor" className="ml-2 text-purple-200" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" /></svg>
-                    </div>
-                    {batchDropdownOpen && (
-                      <div className="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto border border-purple-200 animate-fadeIn" style={{ color: '#312e81' }}>
-                        {batches.length === 0 ? (
-                          <div className="p-3 text-center text-gray-400">No batches found</div>
-                        ) : (
-                          batches.map(batch => (
-                            <label key={batch.batchId} className="flex items-center px-4 py-2 hover:bg-purple-100 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={batchForm.batchIds.includes(batch.batchId)}
-                                onChange={() => handleBatchCheckboxChange(batch.batchId)}
-                                className="form-checkbox h-4 w-4 text-pink-500 rounded mr-3"
-                              />
-                              <span className="truncate">{batch.batchName}</span>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button type="button" className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setBatchModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" disabled={batchFormLoading} className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {batchFormLoading ? (
-                    <CircularProgress size={22} color="inherit" thickness={5} style={{ color: '#fff' }} />
-                  ) : 'Send Notification'}
-                </button>
-              </div>
-            </form>
-          </div>
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            .animate-fadeIn {
-              animation: fadeIn 0.3s cubic-bezier(0.4,0,0.2,1);
-            }
-            @keyframes modalPop {
-              0% { transform: scale(0.95) translateY(40px); opacity: 0; }
-              100% { transform: scale(1) translateY(0); opacity: 1; }
-            }
-            .animate-modalPop {
-              animation: modalPop 0.4s cubic-bezier(0.4,0,0.2,1);
-            }
-            .custom-scrollbar::-webkit-scrollbar {
-              width: 8px;
-              background: transparent;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: #a78bfa55;
-              border-radius: 8px;
-            }
-          `}</style>
-        </div>,
-        document.getElementById('modal-root')
-      )}
     </>
   );
 };

@@ -1,13 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
-import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart} from '@mui/icons-material';
+import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 import { motion } from 'framer-motion';
 import BaseUrl from '../Api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Select from 'react-select';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {
+    PieChart, Pie, Cell, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LineChart, Line
+} from 'recharts';
+// Add MUI DatePicker imports at the top
+import * as dayjs from 'dayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+
+// Helper to ensure an array (avoids undefined/null errors)
+const safeArray = (arr) => Array.isArray(arr) ? arr : [];
 
 const getToken = () => localStorage.getItem('token');
 
@@ -27,6 +39,12 @@ const initialForm = {
     professor: '',
     startDate: '',
     endDate: '',
+    quizzes: [],
+    events: [],
+    completedModules: [],
+    completedLessons: [],
+    completedTopics: [],
+    markAsCompleted: false,
 };
 
 const BatchAdmin = () => {
@@ -43,7 +61,7 @@ const BatchAdmin = () => {
     // Add state for view modal
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [viewBatch, setViewBatch] = useState(null);
-
+    const [editingBatch, setEditingBatch] = useState(null);
     // New state for fetched data
     const [courses, setCourses] = useState([]);
     const [users, setUsers] = useState([]);
@@ -52,49 +70,50 @@ const BatchAdmin = () => {
     const [availableUsers, setAvailableUsers] = useState([]);
     const [availableUsersLoading, setAvailableUsersLoading] = useState(false);
     const [editUserBreakdown, setEditUserBreakdown] = useState({ assigned: [], available: [] });
-
+    // Add state for selected course details
+    const [selectedCourseDetails, setSelectedCourseDetails] = useState(null);
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const batchesPerPage = 6;
+    // Rows per page state
+    const [rowsPerPage, setRowsPerPage] = useState(10); // default 10
+    const [viewUsersPage, setViewUsersPage] = useState(1); // for user pagination in view modal
+    const USERS_PER_PAGE = 5;
+    // Reset page when opening new batch
+    useEffect(() => { setViewUsersPage(1); }, [viewBatch]);
 
     // Filtered batches
     const filteredBatches = batches.filter(batch => {
-      const s = search.trim().toLowerCase();
-      if (!s) return true;
-      // Defensive: support both string and object for course/professor
-      let batchName = (batch.batchName || '').toLowerCase();
-      let courseTitle = '';
-      if (typeof batch.course === 'string') {
-        courseTitle = batch.course.toLowerCase();
-      } else if (batch.course && batch.course.title) {
-        courseTitle = batch.course.title.toLowerCase();
-      }
-      let professorName = '';
-      if (typeof batch.professor === 'string') {
-        professorName = batch.professor.toLowerCase();
-      } else if (batch.professor && batch.professor.name) {
-        professorName = batch.professor.name.toLowerCase();
-      }
-      return (
-        batchName.includes(s) ||
-        courseTitle.includes(s) ||
-        professorName.includes(s)
-      );
+        const s = search.trim().toLowerCase();
+        if (!s) return true;
+        let batchName = (batch.batchName || '').toLowerCase();
+        let courseTitle = '';
+        if (batch.course && batch.course.title) {
+            courseTitle = batch.course.title.toLowerCase();
+        }
+        let professorName = '';
+        if (batch.professor && batch.professor.name) {
+            professorName = batch.professor.name.toLowerCase();
+        }
+        return (
+            batchName.includes(s) ||
+            courseTitle.includes(s) ||
+            professorName.includes(s)
+        );
     });
 
-    const totalPages = Math.ceil(filteredBatches.length / batchesPerPage);
-    const paginatedBatches = filteredBatches.slice((currentPage - 1) * batchesPerPage, currentPage * batchesPerPage);
+    const totalPages = Math.ceil(filteredBatches.length / rowsPerPage);
+    const paginatedBatches = filteredBatches.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-    // Fetch all batches
+    // Fetch all batches (new API structure)
     const fetchBatches = async () => {
         setLoading(true);
         setError('');
         try {
             const token = getToken();
-            const res = await axios.get(`${BaseUrl}/batches`, {
+            const res = await axios.get(`${BaseUrl}/batches/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setBatches(res.data.data || []);
+            setBatches(res.data.batches || []);
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'Failed to fetch batches');
         } finally {
@@ -104,25 +123,25 @@ const BatchAdmin = () => {
 
     // Fetch dropdown data on mount
     useEffect(() => {
-      const fetchDropdowns = async () => {
-        setFetchingDropdowns(true);
-        try {
-          const token = getToken();
-          const [coursesRes, usersRes, profsRes] = await Promise.all([
-            axios.get(`${BaseUrl}/courses`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`${BaseUrl}/users`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`${BaseUrl}/professors`, { headers: { Authorization: `Bearer ${token}` } }),
-          ]);
-          setCourses(coursesRes.data);
-          setUsers(usersRes.data.filter(u => u.role === 'intern'));
-          setProfessors(profsRes.data);
-        } catch (err) {
-          toast.error('Failed to fetch dropdown data');
-        } finally {
-          setFetchingDropdowns(false);
-        }
-      };
-      fetchDropdowns();
+        const fetchDropdowns = async () => {
+            setFetchingDropdowns(true);
+            try {
+                const token = getToken();
+                const [coursesRes, usersRes, profsRes] = await Promise.all([
+                    axios.get(`${BaseUrl}/courses`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${BaseUrl}/users`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${BaseUrl}/professors`, { headers: { Authorization: `Bearer ${token}` } }),
+                ]);
+                setCourses(coursesRes.data);
+                setUsers(usersRes.data.filter(u => u.role === 'intern'));
+                setProfessors(profsRes.data);
+            } catch (err) {
+                toast.error('Failed to fetch dropdown data');
+            } finally {
+                setFetchingDropdowns(false);
+            }
+        };
+        fetchDropdowns();
     }, []);
 
     useEffect(() => {
@@ -131,43 +150,53 @@ const BatchAdmin = () => {
 
     // Fetch available users for selected course (create) or user breakdown (edit)
     useEffect(() => {
-      if (!form.course) {
-        setAvailableUsers([]);
-        setEditUserBreakdown({ assigned: [], available: [] });
-        return;
-      }
-      const fetchUsers = async () => {
-        setAvailableUsersLoading(true);
-        try {
-          const token = getToken();
-          if (modalMode === 'edit' && selectedBatchId) {
-            // Edit mode: fetch user breakdown
-            const res = await axios.get(
-              `${BaseUrl}/batches/user-breakdown/${form.course}/${selectedBatchId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const assigned = res.data.breakdown.assignedToThisBatch.users || [];
-            const available = res.data.breakdown.availableUsers.users || [];
-            setEditUserBreakdown({ assigned, available });
-          } else {
-            // Create mode: fetch available users
-            const res = await axios.get(
-              `${BaseUrl}/batches/available-users/${form.course}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setAvailableUsers(res.data.users || []);
-          }
-        } catch (err) {
-          setAvailableUsers([]);
-          setEditUserBreakdown({ assigned: [], available: [] });
-          toast.error('Failed to fetch users for this course');
-        } finally {
-          setAvailableUsersLoading(false);
+        if (!form.course) {
+            setAvailableUsers([]);
+            setEditUserBreakdown({ assigned: [], available: [] });
+            return;
         }
-      };
-      fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        const fetchUsers = async () => {
+            setAvailableUsersLoading(true);
+            try {
+                const token = getToken();
+                if (modalMode === 'edit' && selectedBatchId) {
+                    // Edit mode: fetch user breakdown
+                    const res = await axios.get(
+                        `${BaseUrl}/batches/user-breakdown/${form.course}/${selectedBatchId}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const assigned = res.data.breakdown.assignedToThisBatch.users || [];
+                    const available = res.data.breakdown.availableUsers.users || [];
+                    setEditUserBreakdown({ assigned, available });
+                } else {
+                    // Create mode: fetch available users
+                    const res = await axios.get(
+                        `${BaseUrl}/batches/available-users/${form.course}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setAvailableUsers(res.data.users || []);
+                }
+            } catch (err) {
+                setAvailableUsers([]);
+                setEditUserBreakdown({ assigned: [], available: [] });
+                toast.error('Failed to fetch users for this course');
+            } finally {
+                setAvailableUsersLoading(false);
+            }
+        };
+        fetchUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form.course, modalMode, selectedBatchId]);
+
+    // Fetch course details when course changes in edit modal
+    useEffect(() => {
+        if (modalMode === 'edit' && form.course && courses.length > 0) {
+            const course = courses.find(c => c._id === form.course || c.id === form.course);
+            setSelectedCourseDetails(course || null);
+        } else {
+            setSelectedCourseDetails(null);
+        }
+    }, [form.course, courses, modalMode]);
 
     // Modal close on ESC or background click
     useEffect(() => {
@@ -196,16 +225,24 @@ const BatchAdmin = () => {
             const res = await axios.get(`${BaseUrl}/batches/${batchId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const batch = res.data;
+            const batch = res.data.batch; // <-- FIXED: use .batch
+            setEditingBatch(batch);
+            const completedModules = batch.completedModules || (batch.batchProgress?.completedModules ? batch.batchProgress.completedModules.map(m => m._id) : []);
+            const completedLessons = batch.completedLessons || [];
+            const completedTopics = batch.completedTopics || [];
             setForm({
                 batchName: batch.batchName || '',
-                course: batch.course?.id || '',
-                users: batch.users?.map(u => u.userId) || [],
-                professor: batch.professor?._id || '',
+                course: batch.course?._id || batch.course || '',
+                users: batch.users?.map(u => u._id || u.userId) || [],
+                professor: batch.professor?._id || batch.professor || '',
                 startDate: batch.startDate ? batch.startDate.slice(0, 10) : '',
                 endDate: batch.endDate ? batch.endDate.slice(0, 10) : '',
-                progressUpdates: batch.progressUpdates || [],
-                isCourseCompleted: typeof batch.courseCompleted === 'boolean' ? batch.courseCompleted : false,
+                quizzes: batch.quizzes || [],
+                events: batch.events || [],
+                completedModules,
+                completedLessons,
+                completedTopics,
+                markAsCompleted: batch.courseCompleted === true || batch.courseCompleted === 'true' || batch.isCourseCompleted === true || batch.isCourseCompleted === 'true',
             });
         } catch (err) {
             toast.error('Failed to fetch batch details');
@@ -215,10 +252,28 @@ const BatchAdmin = () => {
         }
     };
 
-    // Handler to open view modal
-    const openViewModal = (batch) => {
-        setViewBatch(batch);
+    // Handler to open view modal (updated to fetch full details with new API response)
+    const [viewModalLoading, setViewModalLoading] = useState(false); // Add loading state for view modal
+    const openViewModal = async (batch) => {
+        setViewModalLoading(true);
         setViewModalOpen(true);
+        try {
+            const token = getToken();
+            const res = await axios.get(`${BaseUrl}/batches/${batch._id || batch.batchId || batch.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            // Set the batch and progress separately for creative display
+            setViewBatch({
+                ...res.data.batch,
+                _apiMessage: res.data.message,
+                _progress: res.data.progress,
+            });
+        } catch (err) {
+            toast.error('Failed to fetch batch details');
+            setViewModalOpen(false);
+        } finally {
+            setViewModalLoading(false);
+        }
     };
     // Handler to close view modal
     const closeViewModal = () => {
@@ -270,9 +325,13 @@ const BatchAdmin = () => {
                 professor: form.professor,
                 startDate: form.startDate,
                 endDate: form.endDate,
+                quizzes: form.quizzes,
+                events: form.events,
+                completedModules: form.completedModules,
+                completedLessons: form.completedLessons,
+                completedTopics: form.completedTopics,
+                markAsCompleted: form.markAsCompleted,
             };
-            if (form.progressUpdates) payload.progressUpdates = form.progressUpdates;
-            if (typeof form.isCourseCompleted === 'boolean') payload.isCourseCompleted = form.isCourseCompleted;
             await axios.put(`${BaseUrl}/batches/${selectedBatchId}`, payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -319,6 +378,62 @@ const BatchAdmin = () => {
         return 50;
     }
 
+    // New state for batch stats
+    const [batchStats, setBatchStats] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(true);
+    const [statsError, setStatsError] = useState('');
+    // New state for monthly batch counts (date-range API)
+    const [monthlyBatchCounts, setMonthlyBatchCounts] = useState([]);
+    const [monthlyLoading, setMonthlyLoading] = useState(true);
+    const [monthlyError, setMonthlyError] = useState('');
+    // Default to current year Jan 1 and Dec 31
+    const currentYear = new Date().getFullYear();
+    const pad = n => n.toString().padStart(2, '0');
+    const defaultStart = `${currentYear}-01-01`;
+    const defaultEnd = `${currentYear}-12-31`;
+    const [startDate, setStartDate] = useState(defaultStart);
+    const [endDate, setEndDate] = useState(defaultEnd);
+
+    // Fetch /batches/stats on mount
+    useEffect(() => {
+        const fetchStats = async () => {
+            setStatsLoading(true);
+            setStatsError('');
+            try {
+                const token = getToken();
+                const res = await axios.get(`${BaseUrl}/batches/stats`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setBatchStats(res.data);
+            } catch (err) {
+                setStatsError(err.response?.data?.message || err.message || 'Failed to fetch stats');
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    // Fetch /batches/date-range for monthly batch counts
+    useEffect(() => {
+        const fetchMonthly = async () => {
+            setMonthlyLoading(true);
+            setMonthlyError('');
+            try {
+                const token = getToken();
+                const res = await axios.get(`${BaseUrl}/batches/date-range?startDate=${startDate}&endDate=${endDate}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setMonthlyBatchCounts(res.data.data || []);
+            } catch (err) {
+                setMonthlyError(err.response?.data?.message || err.message || 'Failed to fetch monthly batch counts');
+            } finally {
+                setMonthlyLoading(false);
+            }
+        };
+        fetchMonthly();
+    }, [startDate, endDate]);
+
     // Modal content (portal)
     const modalContent = modalOpen && (
         <div
@@ -332,6 +447,12 @@ const BatchAdmin = () => {
                 <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => setModalOpen(false)}>
                     <CloseIcon className="text-lg font-bold" />
                 </button>
+                {(modalLoading || (modalMode === 'edit' && (!form.batchName || !selectedCourseDetails))) ? (
+                    <div className="flex flex-col items-center justify-center h-96">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-400 mb-4"></div>
+                        <div className="text-lg text-purple-200 font-bold">Loading batch details...</div>
+                    </div>
+                ) : (
                 <form onSubmit={modalMode === 'create' ? handleCreate : handleEdit} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
                     <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">{modalMode === 'create' ? 'Create Batch' : 'Edit Batch'}</h2>
                     <div className="space-y-4">
@@ -382,55 +503,55 @@ const BatchAdmin = () => {
                                 closeMenuOnSelect={false}
                                 hideSelectedOptions={false}
                                 options={
-                                  modalMode === 'edit'
-                                    ? [
-                                        ...editUserBreakdown.assigned.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: true })),
-                                        ...editUserBreakdown.available.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: false })),
-                                      ]
-                                    : availableUsers.map(u => ({ value: u._id, label: u.name, email: u.email }))
+                                    modalMode === 'edit'
+                                        ? [
+                                            ...editUserBreakdown.assigned.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: true })),
+                                            ...editUserBreakdown.available.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: false })),
+                                        ]
+                                        : availableUsers.map(u => ({ value: u._id, label: u.name, email: u.email }))
                                 }
                                 value={
-                                  modalMode === 'edit'
-                                    ? [...editUserBreakdown.assigned, ...editUserBreakdown.available]
-                                        .filter(u => form.users.includes(u._id))
-                                        .map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: !!editUserBreakdown.assigned.find(a => a._id === u._id) }))
-                                    : availableUsers
-                                        .filter(u => form.users.includes(u._id))
-                                        .map(u => ({ value: u._id, label: u.name, email: u.email }))
+                                    modalMode === 'edit'
+                                        ? [...editUserBreakdown.assigned, ...editUserBreakdown.available]
+                                            .filter(u => form.users.includes(u._id))
+                                            .map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: !!editUserBreakdown.assigned.find(a => a._id === u._id) }))
+                                        : availableUsers
+                                            .filter(u => form.users.includes(u._id))
+                                            .map(u => ({ value: u._id, label: u.name, email: u.email }))
                                 }
                                 onChange={opts => setForm(f => ({ ...f, users: opts.map(o => o.value) }))}
                                 classNamePrefix="react-select"
                                 placeholder={form.course ? (availableUsersLoading ? "Loading users..." : "Select users...") : "Select a course first"}
                                 styles={{
-                                  control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                  menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                  multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
-                                  option: (base, state) => ({
-                                    ...base,
-                                    background: state.isFocused ? '#a78bfa' : 'transparent',
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    opacity: state.data.isAssigned ? 1 : 1,
-                                  }),
-                                  input: (base) => ({ ...base, color: 'white' }),
-                                  singleValue: (base) => ({ ...base, color: 'white' })
+                                    control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                    menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                    multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
+                                    option: (base, state) => ({
+                                        ...base,
+                                        background: state.isFocused ? '#a78bfa' : 'transparent',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        opacity: state.data.isAssigned ? 1 : 1,
+                                    }),
+                                    input: (base) => ({ ...base, color: 'white' }),
+                                    singleValue: (base) => ({ ...base, color: 'white' })
                                 }}
                                 components={{
-                                  Option: (props) => (
-                                    <div {...props.innerProps} className={props.className} style={props.style}>
-                                      <input
-                                        type="checkbox"
-                                        checked={props.isSelected}
-                                        onChange={() => null}
-                                        style={{ marginRight: 8 }}
-                                      />
-                                      <span>{props.label}</span>
-                                      <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
-                                      {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
-                                    </div>
-                                  )
+                                    Option: (props) => (
+                                        <div {...props.innerProps} className={props.className} style={props.style}>
+                                            <input
+                                                type="checkbox"
+                                                checked={props.isSelected}
+                                                onChange={() => null}
+                                                style={{ marginRight: 8 }}
+                                            />
+                                            <span>{props.label}</span>
+                                            <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
+                                            {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
+                                        </div>
+                                    )
                                 }}
                             />
                             <div className="text-xs text-purple-200 mt-1">You can select multiple users. {modalMode === 'edit' ? 'Already assigned users are pre-selected.' : 'Only users enrolled in the selected course and not already assigned to the batch are shown.'}</div>
@@ -445,6 +566,89 @@ const BatchAdmin = () => {
                                 <input type="date" name="endDate" value={form.endDate} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
                             </div>
                         </div>
+                        {/* Additional fields for edit mode only */}
+                        {modalMode === 'edit' && selectedCourseDetails && (
+                            <div className="space-y-4">
+                                <label className="block text-purple-200 mb-1 font-bold">Mark Completed Modules, Lessons, Topics</label>
+                                {/* Modules */}
+                                <div className="space-y-2">
+                                    {selectedCourseDetails.modules?.map(module => (
+                                        <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={form.completedModules.includes(module._id)}
+                                                    onChange={e => {
+                                                        setForm(f => {
+                                                            const arr = f.completedModules.includes(module._id)
+                                                                ? f.completedModules.filter(id => id !== module._id)
+                                                                : [...f.completedModules, module._id];
+                                                            return { ...f, completedModules: arr };
+                                                        });
+                                                    }}
+                                                />
+                                                <span className="font-bold text-pink-200">{module.moduleTitle}</span>
+                                            </div>
+                                            {/* Lessons */}
+                                            <div className="ml-6 space-y-1">
+                                                {module.lessons?.map(lesson => (
+                                                    <div key={lesson._id} className="flex items-center gap-2 mb-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={form.completedLessons.includes(lesson._id)}
+                                                            onChange={e => {
+                                                                setForm(f => {
+                                                                    const arr = f.completedLessons.includes(lesson._id)
+                                                                        ? f.completedLessons.filter(id => id !== lesson._id)
+                                                                        : [...f.completedLessons, lesson._id];
+                                                                    return { ...f, completedLessons: arr };
+                                                                });
+                                                            }}
+                                                        />
+                                                        <span className="text-blue-200">{lesson.title}</span>
+                                                        {/* Topics */}
+                                                        {lesson.topics && lesson.topics.length > 0 && (
+                                                            <div className="ml-4 flex flex-wrap gap-2">
+                                                                {lesson.topics.map(topic => (
+                                                                    <label key={topic._id} className="flex items-center gap-1 text-xs">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={form.completedTopics.includes(topic._id)}
+                                                                            onChange={e => {
+                                                                                setForm(f => {
+                                                                                    const arr = f.completedTopics.includes(topic._id)
+                                                                                        ? f.completedTopics.filter(id => id !== topic._id)
+                                                                                        : [...f.completedTopics, topic._id];
+                                                                                    return { ...f, completedTopics: arr };
+                                                                                });
+                                                                            }}
+                                                                        />
+                                                                        <span className="text-pink-200">{topic.title}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {modalMode === 'edit' && (
+                            <div className="mt-6">
+                                <label className="block text-purple-200 mb-1 flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.markAsCompleted}
+                                        onChange={e => setForm(f => ({ ...f, markAsCompleted: e.target.checked }))}
+                                        className="mr-2"
+                                    />
+                                    Course Completed
+                                </label>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-center mt-6">
                         <button type="submit" disabled={modalLoading} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
@@ -452,6 +656,7 @@ const BatchAdmin = () => {
                         </button>
                     </div>
                 </form>
+                )}
             </div>
             <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -484,46 +689,287 @@ const BatchAdmin = () => {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-purple-400/30 to-purple-700/30 backdrop-blur-xl border border-white/10 group overflow-hidden">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center shadow-lg mt-3">
-                        <School className="text-2xl text-purple-100 drop-shadow-lg" />
+                {/* Total Batches */}
+                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-purple-400/60 to-purple-700/80 backdrop-blur-xl border border-white/10 group overflow-hidden transition-transform hover:scale-105 hover:shadow-3xl">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-b-lg bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center shadow-lg mt-3 animate-bounce-slow">
+                        <School className="text-3xl text-purple-100 drop-shadow-lg" />
                     </div>
-                    <div className="z-10 flex flex-col items-center mt-10">
-                        <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">{totalBatches}</div>
-                        <div className="text-sm font-medium mt-1 tracking-wide uppercase text-purple-100/90">Total Batches</div>
-                    </div>
-                </div>
-                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-xl border border-white/10 group overflow-hidden">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg mt-3">
-                        <Group className="text-2xl text-green-100 drop-shadow-lg" />
-                    </div>
-                    <div className="z-10 flex flex-col items-center mt-10">
-                        <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">{totalUsers}</div>
-                        <div className="text-sm font-medium mt-1 tracking-wide uppercase text-green-100/90">Total Users</div>
+                    <div className="z-10 flex flex-col items-center mt-12">
+                        <div className="text-4xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                            {statsLoading ? <span className="animate-pulse">...</span> : batchStats?.summary?.totalBatches ?? '--'}
+                        </div>
+                        <div className="text-base font-medium mt-1 tracking-wide uppercase text-purple-100/90">Total Batches</div>
                     </div>
                 </div>
-                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-blue-400/30 to-blue-600/30 backdrop-blur-xl border border-white/10 group overflow-hidden">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg mt-3">
-                        <Person className="text-2xl text-blue-100 drop-shadow-lg" />
+                {/* Active Batches */}
+                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-blue-400/60 to-blue-700/80 backdrop-blur-xl border border-white/10 group overflow-hidden transition-transform hover:scale-105 hover:shadow-3xl">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-b-lg bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center shadow-lg mt-3 animate-bounce-slow">
+                        <TrendingUp className="text-3xl text-blue-100 drop-shadow-lg" />
                     </div>
-                    <div className="z-10 flex flex-col items-center mt-10">
-                        <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">{totalProfessors}</div>
-                        <div className="text-sm font-medium mt-1 tracking-wide uppercase text-blue-100/90">Professors</div>
+                    <div className="z-10 flex flex-col items-center mt-12">
+                        <div className="text-4xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                            {statsLoading ? <span className="animate-pulse">...</span> : batchStats?.summary?.activeBatches ?? '--'}
+                        </div>
+                        <div className="text-base font-medium mt-1 tracking-wide uppercase text-blue-100/90">Active Batches</div>
                     </div>
                 </div>
-                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-pink-400/30 to-pink-600/30 backdrop-blur-xl border border-white/10 group overflow-hidden">
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-lg mt-3">
-                        <TrendingUp className="text-2xl text-pink-100 drop-shadow-lg" />
+                {/* Completed Batches */}
+                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-green-400/60 to-green-700/80 backdrop-blur-xl border border-white/10 group overflow-hidden transition-transform hover:scale-105 hover:shadow-3xl">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-b-lg bg-gradient-to-br from-green-400 to-green-700 flex items-center justify-center shadow-lg mt-3 animate-bounce-slow">
+                        <BarChart className="text-3xl text-green-100 drop-shadow-lg" />
                     </div>
-                    <div className="z-10 flex flex-col items-center mt-10">
-                        <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">{totalCourses}</div>
-                        <div className="text-sm font-medium mt-1 tracking-wide uppercase text-pink-100/90">Courses</div>
+                    <div className="z-10 flex flex-col items-center mt-12">
+                        <div className="text-4xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                            {statsLoading ? <span className="animate-pulse">...</span> : batchStats?.summary?.completedBatches ?? '--'}
+                        </div>
+                        <div className="text-base font-medium mt-1 tracking-wide uppercase text-green-100/90">Completed Batches</div>
+                    </div>
+                </div>
+                {/* Total Users (from topBatches sum) */}
+                <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-pink-400/60 to-pink-700/80 backdrop-blur-xl border border-white/10 group overflow-hidden transition-transform hover:scale-105 hover:shadow-3xl">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-b-lg bg-gradient-to-br from-pink-400 to-pink-700 flex items-center justify-center shadow-lg mt-3 animate-bounce-slow">
+                        <Group className="text-3xl text-pink-100 drop-shadow-lg" />
+                    </div>
+                    <div className="z-10 flex flex-col items-center mt-12">
+                        <div className="text-4xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                            {statsLoading ? <span className="animate-pulse">...</span> : (batchStats?.topBatches?.reduce((acc, b) => acc + (b.userCount || 0), 0) ?? '--')}
+                        </div>
+                        <div className="text-base font-medium mt-1 tracking-wide uppercase text-pink-100/90">Total Users</div>
                     </div>
                 </div>
             </div>
+            {/* End Metrics */}
 
-            {/* Batch Table - Redesigned, only essential columns */}
-            <div className="w-full mt-10 rounded-2xl shadow-xl bg-gradient-to-b from-[#311188] to-[#0A081E] border border-[#312e81]/60 p-0 overflow-hidden">
+            {/* Enhanced Charts Section */}
+            <div className="w-full flex flex-col gap-10 mt-8">
+                {/* First row: Bar and Donut charts side by side */}
+                <div className="w-full flex flex-col md:flex-row gap-8">
+                    {/* 1. Top Batches by Progress Bar Chart (larger width) */}
+                    <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 min-w-[220px] w-full md:w-2/3 max-w-2xl mx-auto">
+                        <div className="flex items-center gap-4 w-full mb-6 mt-0 pt-0">
+                            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-lg">
+                                <TrendingUp className="text-white text-3xl drop-shadow-lg" />
+                            </div>
+                            <div>
+                                <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-2">Top Batches by Progress</div>
+                                <div className="text-sm text-purple-100/80 mt-1">Highest progress rates</div>
+                            </div>
+                        </div>
+                        <ResponsiveContainer width="100%" height={280}>
+                            <RechartsBarChart data={batchStats?.topBatches || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
+                                <XAxis dataKey="batchName" stroke="#c4b5fd" interval={0} angle={-20} textAnchor="end" height={60} />
+                                <YAxis stroke="#c4b5fd" allowDecimals={false} />
+                                <Tooltip content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        const { batchName, progress, courseTitle, userCount } = payload[0].payload;
+                                        return (
+                                            <div className="bg-black/80 text-gray-100 text-base rounded-xl shadow-lg px-4 py-3 border border-pink-400/40 min-w-[200px]">
+                                                <div className="text-lg font-bold text-pink-300 mb-1">{batchName}</div>
+                                                <div className="text-sm text-purple-200 mb-1">Course: <span className="font-semibold text-blue-200">{courseTitle}</span></div>
+                                                <div className="text-base font-bold text-green-300 mb-1">Users: {userCount}</div>
+                                                <div className="text-base font-bold text-blue-300">Progress: {progress}%</div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }} />
+                                <Legend />
+                                <Bar dataKey="progress" label={{ position: 'top', fill: '#fff', fontWeight: 700 }} fill="#f472b6" />
+                            </RechartsBarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    {/* 2. Top Batches by User Count Pie Chart (large, centered, no cutoff) */}
+                    <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 w-full md:w-1/3 max-w-lg mx-auto overflow-visible">
+                        <div className="flex items-center gap-4 w-full mb-6 mt-0 pt-0 justify-center">
+                            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-blue-400 shadow-lg mb-2">
+                                <Group className="text-white text-3xl drop-shadow-lg" />
+                            </div>
+                            <div>
+                                <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1">Batches User</div>
+                                <div className="text-sm text-purple-100/80 mb-2">Most popular batches</div>
+                            </div>
+                        </div>
+                        <div className="w-full flex flex-col items-center justify-center">
+                            <ResponsiveContainer width="100%" height={320} minWidth={260} minHeight={260}>
+                                <PieChart margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                                    <Pie
+                                        data={batchStats?.topBatches || []}
+                                        dataKey="userCount"
+                                        nameKey="batchName"
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={70}
+                                        outerRadius={120}
+                                        fill="#8884d8"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                        {batchStats?.topBatches?.map((entry, idx) => (
+                                            <Cell key={idx} fill={["#38bdf8", "#f472b6", "#22c55e", "#a78bfa", "#fbbf24"][idx % 5]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const { batchName, userCount, courseTitle, progress } = payload[0].payload;
+                                            return (
+                                                <div className="bg-black/80 text-gray-100 text-base rounded-xl shadow-lg px-4 py-3 border border-pink-400/40 min-w-[220px]">
+                                                    <div className="text-lg font-bold text-pink-300 mb-1">{batchName}</div>
+                                                    <div className="text-sm text-purple-200 mb-1">Course: <span className="font-semibold text-blue-200">{courseTitle}</span></div>
+                                                    <div className="text-base font-bold text-green-300 mb-1">Users: {userCount}</div>
+                                                    <div className="text-base font-bold text-blue-300">Progress: {progress}%</div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }} />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        align="center"
+                                        iconType="circle"
+                                        wrapperStyle={{
+                                            paddingTop: 12,
+                                            color: "#fff",
+                                            fontWeight: 600,
+                                            fontSize: 14,
+                                            textAlign: "center",
+                                        }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+                {/* Second row: Batches Created (Monthly) Bar Chart with date pickers, full width */}
+                <div className="bg-gradient-to-br from-[#312e81]/80 via-[#a78bfa22] to-[#0ea5e9]/20 rounded-2xl p-4 shadow-2xl flex flex-col items-center justify-center border border-white/10 w-full max-w-none mx-auto relative overflow-visible">
+
+                    {/* Chart header and date pickers at top right */}
+                    <div className="flex flex-row justify-between items-center w-full mb-4 gap-4">
+                        <div className="flex items-center gap-3">
+                            <BarChart className="text-pink-400 text-3xl drop-shadow-lg" style={{ fontSize: 32 }} />
+                            <span className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-0">Batches Created <span className="text-pink-400">(Monthly)</span></span>
+                        </div>
+                        <div className="flex flex-row gap-3 items-end">
+                            {/* Start Date */}
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DatePicker
+                                    label="Start"
+                                    value={dayjs.default(startDate)}
+                                    onChange={v => setStartDate(v ? v.format('YYYY-MM-DD') : '')}
+                                    slotProps={{
+                                        textField: {
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                minWidth: 150,
+                                                width: 80,
+                                                bgcolor: 'rgba(49,17,136,0.85)',
+                                                borderRadius: 2,
+                                                '& .MuiOutlinedInput-root': {
+                                                    color: '#fff', // changed to white
+                                                    fontWeight: 700,
+                                                    fontFamily: 'inherit',
+                                                    fontSize: 13,
+                                                    borderColor: '#a78bfa',
+                                                },
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#a78bfa',
+                                                },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#ec4899',
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: '#a78bfa',
+                                                    fontWeight: 700,
+                                                    fontSize: 12,
+                                                },
+                                                '& .MuiInputLabel-shrink': {
+                                                    color: '#ec4899',
+                                                },
+                                                '& .MuiOutlinedInput-input::placeholder': {
+                                                    color: '#c4b5fd',
+                                                    opacity: 1,
+                                                },
+                                            },
+                                            InputLabelProps: { style: { color: '#a78bfa', fontWeight: 700, fontSize: 12 } },
+                                            inputProps: { style: { color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' } }, // changed to white
+                                            placeholder: 'Start',
+                                        }
+                                    }}
+                                />
+                            </LocalizationProvider>
+                            {/* End Date */}
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DatePicker
+                                    label="End"
+                                    value={dayjs.default(endDate)}
+                                    onChange={v => setEndDate(v ? v.format('YYYY-MM-DD') : '')}
+                                    slotProps={{
+                                        textField: {
+                                            size: 'small',
+                                            variant: 'outlined',
+                                            sx: {
+                                                minWidth: 150,
+                                                width: 80,
+                                                bgcolor: 'rgba(49,17,136,0.85)',
+                                                borderRadius: 2,
+                                                '& .MuiOutlinedInput-root': {
+                                                    color: '#fff', // changed to white
+                                                    fontWeight: 700,
+                                                    fontFamily: 'inherit',
+                                                    fontSize: 13,
+                                                    borderColor: '#a78bfa',
+                                                },
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#a78bfa',
+                                                },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#38bdf8',
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: '#38bdf8',
+                                                    fontWeight: 700,
+                                                    fontSize: 12,
+                                                },
+                                                '& .MuiInputLabel-shrink': {
+                                                    color: '#a78bfa',
+                                                },
+                                                '& .MuiOutlinedInput-input::placeholder': {
+                                                    color: '#c4b5fd',
+                                                    opacity: 1,
+                                                },
+                                            },
+                                            InputLabelProps: { style: { color: '#38bdf8', fontWeight: 700, fontSize: 12 } },
+                                            inputProps: { style: { color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' } }, // changed to white
+                                            placeholder: 'End',
+                                        }
+                                    }}
+                                />
+                            </LocalizationProvider>
+                        </div>
+                    </div>
+                    {/* Spinner overlay while loading */}
+                    {monthlyLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 rounded-2xl">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-pink-400"></div>
+                        </div>
+                    )}
+                    <ResponsiveContainer width="100%" height={260}>
+                        <RechartsBarChart data={monthlyBatchCounts} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
+                            <XAxis dataKey="month" stroke="#c4b5fd" interval={0} angle={-20} textAnchor="end" height={60} />
+                            <YAxis stroke="#c4b5fd" allowDecimals={false} />
+                            <Tooltip contentStyle={{ background: '#312e81', border: 'none', color: '#fff' }} formatter={(value, name) => [value, 'Batches']} />
+                            <Legend />
+                            <Bar dataKey="count" label={{ position: 'top', fill: '#fff', fontWeight: 700 }} fill="#a78bfa" radius={[8, 8, 0, 0]} />
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                    {monthlyError && <div className="text-red-400 text-center mt-2">{monthlyError}</div>}
+                </div>
+            </div>
+
+            {/* Batch Table - Creative, Professional, Responsive */}
+            <div className="w-full mt-10 rounded-2xl shadow-xl bg-gradient-to-b from-[#311188] to-[#0A081E] border border-[#312e81]/60 p-0 backdrop-blur-md bg-opacity-80">
                 {/* Custom Table Header: Heading + Searchbar */}
                 <div className="flex flex-col sm:flex-row items-center justify-between px-6 pt-6 pb-3 gap-4">
                     <h2 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-white  tracking-wide">Batch details</h2>
@@ -539,9 +985,9 @@ const BatchAdmin = () => {
                     </div>
                 </div>
                 <table className="w-full rounded-2xl table-fixed border-separate border-spacing-0 bg-gradient-to-br from-[#312e81]/80 via-[#a78bfa22] to-[#0ea5e9]/20 text-white">
-                    <thead>
-                        <tr className="bg-gradient-to-r from-[#312e81]/80 via-[#a78bfa33] to-[#0ea5e9]/30 text-purple-100 text-base border-b border-[#312e81]/40">
-                            <th className="py-3 px-2 text-left font-bold w-[16%] max-w-[180px] truncate">Batch</th>
+                    <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#312e81]/80 via-[#a78bfa33] to-[#0ea5e9]/30 text-purple-100 text-base border-b border-[#312e81]/40">
+                        <tr>
+                            <th className="py-3 px-2 text-left font-bold w-[16%] max-w-[180px] truncate">Batch Name</th>
                             <th className="py-3 px-2 text-left font-bold w-[18%] max-w-[200px] truncate">Course</th>
                             <th className="py-3 px-2 text-left font-bold w-[16%] max-w-[180px] truncate">Professor</th>
                             <th className="py-3 px-2 text-left font-bold w-[11%] max-w-[120px] truncate">Dates</th>
@@ -565,70 +1011,80 @@ const BatchAdmin = () => {
                             </td></tr>
                         ) : (
                             paginatedBatches.map((batch) => {
-                                const userProgress = batch.users?.map(u => u.progress?.modules?.percent || 0) || [];
-                                const avgProgress = userProgress.length ? Math.round(userProgress.reduce((a, b) => a + b, 0) / userProgress.length) : 0;
                                 return (
-                                    <tr key={batch.batchId} className="group border-b border-[#312e81]/40 hover:bg-[#312e81]/60 transition-all duration-200 rounded-xl shadow-sm hover:shadow-lg">
-                                        {/* Batch Name or Course Title */}
-                                        <td className="py-3 px-2 align-top max-w-[180px]" title={batch.course?.title || 'Batch'}>
+                                    <tr key={batch._id} className="group border-b border-[#312e81]/40 hover:bg-gradient-to-r hover:from-pink-400/10 hover:to-blue-400/10 transition-all duration-200 rounded-xl shadow-sm hover:shadow-lg">
+                                        {/* Batch Name */}
+                                        <td className="py-3 px-2 align-top max-w-[180px] overflow-hidden text-ellipsis" title={batch.batchName}>
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <span className="inline-block w-3 h-3 rounded-full bg-gradient-to-br from-pink-400 to-blue-400 mr-2"></span>
-                                                <span className="text-lg font-semibold truncate">{batch.course?.title || 'Batch'}</span>
-                                                <span className="ml-2 px-2 py-0.5 rounded bg-purple-700/40 text-xs text-purple-100 font-bold truncate" title={batch.batchId}>{batch.batchId.slice(-5)}</span>
+                                                <span className="text-lg font-semibold truncate text-white drop-shadow-glow" title={batch.batchName}>{batch.batchName}</span>
+                                                <span className="ml-2 px-2 py-0.5 rounded bg-purple-700/40 text-xs text-purple-100 font-bold truncate" title={batch._id}>{batch._id?.slice(-5)}</span>
                                             </div>
                                         </td>
                                         {/* Course Info */}
-                                        <td className="py-3 px-2 align-top max-w-[200px]" title={batch.course?.title}>
+                                        <td className="py-3 px-2 align-top max-w-[200px] overflow-hidden text-ellipsis" title={batch.course?.title}>
                                             <div className="flex flex-col gap-1 min-w-0">
                                                 <span className="font-bold text-purple-100 truncate" title={batch.course?.title}>{batch.course?.title}</span>
-                                                <span className="text-xs text-purple-300 truncate" title={batch.course?.category + ' | ' + batch.course?.level}>{batch.course?.category} | {batch.course?.level}</span>
+                                                <span className="text-xs text-purple-300 flex items-center gap-2">
+                                                    <span className="inline-block px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold shadow" title={batch.course?.category}>{batch.course?.category}</span>
+                                                    <span
+                                                        className="inline-block px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold shadow whitespace-nowrap overflow-hidden text-ellipsis"
+                                                        title={batch.course?.level}
+                                                        style={{ maxWidth: 90, display: 'inline-block' }}
+                                                    >
+                                                        {batch.course?.level}
+                                                    </span>
+                                                </span>
                                                 <span className="text-xs text-blue-200 truncate" title={batch.course?.duration}>{batch.course?.duration}</span>
                                             </div>
                                         </td>
                                         {/* Professor Info */}
-                                        <td className="py-3 px-2 align-top max-w-[180px]" title={batch.professor?.name + ' ' + batch.professor?.email}>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-blue-100 truncate block" title={batch.professor?.name}>{batch.professor?.name}</span>
-                                                <span className="block text-xs text-blue-200 truncate" title={batch.professor?.email}>{batch.professor?.email}</span>
+                                        <td className="py-3 px-2 align-top max-w-[180px] overflow-hidden text-ellipsis" title={batch.professor?.name}>
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                {batch.professor?.profileImage ? (
+                                                    <img src={batch.professor.profileImage} alt="prof" className="w-8 h-8 rounded-full object-cover border-2 border-pink-400 shadow" />
+                                                ) : (
+                                                    <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold">{batch.professor?.name?.[0]}</span>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <span className="font-bold text-blue-100 truncate block" title={batch.professor?.name}>{batch.professor?.name}</span>
+                                                    <span className="block text-xs text-blue-200 truncate" title={batch.professor?.email}>{batch.professor?.email}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         {/* Dates */}
-                                        <td className="py-3 px-2 align-top min-w-[120px] max-w-[160px]" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}>
-                                            <div className="flex flex-col gap-1 items-start">
-                                                <div className="flex flex-col items-start">
-                                                    <span className="text-[11px] text-purple-300 font-semibold uppercase tracking-wide">Start</span>
-                                                    <span className="text-xs text-purple-100 font-bold" title={batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}>{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}</span>
-                                                </div>
-                                                <div className="flex flex-col items-start">
-                                                    <span className="text-[11px] text-pink-300 font-semibold uppercase tracking-wide">End</span>
-                                                    <span className="text-xs text-pink-100 font-bold" title={batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}>{batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}</span>
-                                                </div>
+                                        <td className="py-3 px-2 align-top min-w-[120px] max-w-[160px] overflow-hidden text-ellipsis" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}> 
+                                            <div className="flex flex-col gap-1 items-start min-w-0">
+                                                <span className="text-[11px] text-purple-300 font-semibold uppercase tracking-wide">Start</span>
+                                                <span className="text-xs text-purple-100 font-bold" title={batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}>{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}</span>
+                                                <span className="text-[11px] text-pink-300 font-semibold uppercase tracking-wide">End</span>
+                                                <span className="text-xs text-pink-100 font-bold" title={batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}>{batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}</span>
                                             </div>
                                         </td>
                                         {/* Users */}
-                                        <td className="py-3 px-2 align-top max-w-[80px] text-left" title={`Total users: ${batch.totalUsers || batch.users?.length || 0}`}>
-                                            <span className="font-bold text-pink-100 text-lg">{batch.totalUsers || batch.users?.length || 0}</span>
+                                        <td className="py-3 px-2 align-top max-w-[80px] text-left overflow-hidden text-ellipsis" title={`Total users: ${batch.users?.length || 0}`}> 
+                                            <span className="font-bold text-pink-100 text-lg">{batch.users?.length || 0}</span>
                                         </td>
                                         {/* Progress */}
-                                        <td className="py-3 px-2 align-top max-w-[160px]" title={`Average progress: ${avgProgress}%`}>
+                                        <td className="py-3 px-2 align-top max-w-[160px] overflow-hidden text-ellipsis" title={`Progress: ${batch.batchProgress?.percentage || 0}%`}>
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <div className="w-24 h-2 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner">
-                                                    <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400" style={{ width: `${avgProgress}%`, transition: 'width 1s' }}></div>
+                                                    <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 transition-all duration-700"
+                                                        style={{ width: `${batch.batchProgress?.percentage || 0}%` }}></div>
                                                 </div>
-                                                <span className="text-xs font-bold text-purple-100">{avgProgress}%</span>
-                                                <BarChart className="text-purple-300 ml-1" fontSize="small" />
+                                                <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
                                             </div>
                                         </td>
                                         {/* Actions */}
-                                        <td className="py-3 px-4 align-top max-w-[180px] min-w-[120px]" title="Actions">
+                                        <td className="py-3 px-4 align-top max-w-[180px] min-w-[120px]">
                                             <div className="flex flex-wrap gap-2 min-w-[120px]">
                                                 <button onClick={() => openViewModal(batch)} className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold rounded-md hover:from-purple-600 hover:to-blue-600 transition-all duration-200 flex items-center gap-1 break-words shadow" title="View Batch">
                                                     <Visibility fontSize="small" />
                                                 </button>
-                                                <button onClick={() => openEditModal(batch.batchId)} className="px-2 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-semibold rounded-md hover:from-purple-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-1 break-words shadow" title="Edit Batch">
+                                                <button onClick={() => openEditModal(batch._id)} className="px-2 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-semibold rounded-md hover:from-purple-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-1 break-words shadow" title="Edit Batch">
                                                     <Edit fontSize="small" />
                                                 </button>
-                                                <button disabled={deleteLoading} onClick={() => handleDelete(batch.batchId)} className="px-2 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-semibold rounded-md hover:from-pink-600 hover:to-red-600 transition-all duration-200 flex items-center gap-1 break-words shadow" title="Delete Batch">
+                                                <button disabled={deleteLoading} onClick={() => handleDelete(batch._id)} className="px-2 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-semibold rounded-md hover:from-pink-600 hover:to-red-600 transition-all duration-200 flex items-center gap-1 break-words shadow" title="Delete Batch">
                                                     <Delete fontSize="small" />
                                                 </button>
                                             </div>
@@ -638,6 +1094,33 @@ const BatchAdmin = () => {
                             })
                         )}
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colSpan={7} className='p-2'>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-2 py-2">
+
+                                    <div className="text-purple-200 text-sm mt-2 sm:mt-0">
+                                        {filteredBatches.length === 0
+                                            ? 'Showing 0 of 0'
+                                            : `Showing ${(currentPage - 1) * rowsPerPage + 1}–${Math.min(currentPage * rowsPerPage, filteredBatches.length)} of ${filteredBatches.length}`}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label htmlFor="rowsPerPage" className="text-purple-200 text-sm">Rows per page:</label>
+                                        <select
+                                            id="rowsPerPage"
+                                            value={rowsPerPage}
+                                            onChange={e => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                            className="rounded bg-[#1a1536]/80 text-white border border-[#312e81]/40 px-2 py-1"
+                                        >
+                                            {[5, 10, 20, 50].map(n => (
+                                                <option key={n} value={n}>{n}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
                 </table>
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
@@ -672,7 +1155,7 @@ const BatchAdmin = () => {
             {/* View Modal (portal) */}
             {viewModalOpen && ReactDOM.createPortal(
                 <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn" onClick={e => { if (e.target === e.currentTarget) closeViewModal(); }}>
-                    <div className="relative w-full max-w-xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/98 rounded-3xl shadow-2xl border border-purple-400/30 flex flex-col max-h-[90vh] overflow-hidden ring-2 ring-pink-400/10 animate-modalPop">
+                    <div className="relative w-full max-w-4xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/98 rounded-3xl shadow-2xl border border-purple-400/30 flex flex-col max-h-[90vh] overflow-hidden ring-2 ring-pink-400/10 animate-modalPop">
                         {/* Accent Header Bar */}
                         <div className="h-3 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
                         {/* Close Button */}
@@ -681,59 +1164,248 @@ const BatchAdmin = () => {
                             style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={closeViewModal}
                         >
-                            <CloseIcon className="text-xl  flex items-center justify-center w-full h-full" />
+                            <CloseIcon className="text-xl flex items-center justify-center w-full h-full" />
                         </button>
                         <div className="flex-1 overflow-y-auto px-8 pb-8 pt-4 custom-scrollbar">
-                            {viewBatch && (
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-400 to-blue-400 flex items-center justify-center shadow-lg">
-                                            <Visibility className="text-white text-3xl" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-3xl font-extrabold text-white mb-1 ">{viewBatch.batchName}</h2>
-                                            <div className="text-purple-200 text-lg font-semibold">{viewBatch.course?.title}</div>
+                            {viewModalLoading ? (
+                                <div className="flex flex-col items-center justify-center h-96">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-400 mb-4"></div>
+                                    <div className="text-lg text-purple-200 font-bold">Loading batch details...</div>
+                                </div>
+                            ) : viewBatch && (
+                                <div className="space-y-8">
+                                    {/* Batch Info Section */}
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-purple-400/20 pb-4">
+                                        <div className="flex items-center gap-4">
+                                            <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-lg">
+                                                <TrendingUp className="text-white text-3xl" />
+                                            </span>
+                                            <div>
+                                                <h2 className="text-3xl font-extrabold text-white mb-1 flex items-center gap-2">
+                                                    {viewBatch.batchName}
+                                                    <span className="ml-2 px-2 py-0.5 rounded bg-purple-700/40 text-xs text-purple-100 font-bold truncate" title={viewBatch._id}>{viewBatch._id?.slice(-5)}</span>
+                                                </h2>
+                                                <div className="flex flex-wrap gap-3 mt-1 text-sm text-purple-200">
+                                                    <span className="flex items-center gap-1"><CalendarToday fontSize="small" className="text-pink-300" /> {viewBatch.startDate ? new Date(viewBatch.startDate).toLocaleDateString() : '-'} <span className="mx-1">→</span> {viewBatch.endDate ? new Date(viewBatch.endDate).toLocaleDateString() : '-'}</span>
+                                                    <span className="flex items-center gap-1"><BarChart fontSize="small" className="text-blue-300" /> Status: <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold border ${getBatchStatus(viewBatch.startDate, viewBatch.endDate).color} ${getBatchStatus(viewBatch.startDate, viewBatch.endDate).text}`}>{getBatchStatus(viewBatch.startDate, viewBatch.endDate).label}</span></span>
+                                                </div>
+                                                <div className="mt-1 text-xs text-purple-400">Batch ID: {viewBatch._id}</div>
+                                                <div className="mt-1 text-xs text-purple-400">API Message: {viewBatch._apiMessage}</div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20">
-                                            <div className="text-purple-200 font-semibold mb-1">Course</div>
-                                            <div className="text-white text-lg">{viewBatch.course?.title}</div>
-                                        </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20">
-                                            <div className="text-purple-200 font-semibold mb-1">Professor</div>
-                                            <div className="text-white text-lg">{viewBatch.professor?.name}</div>
-                                        </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20">
-                                            <div className="text-purple-200 font-semibold mb-1">Status</div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getBatchStatus(viewBatch.startDate, viewBatch.endDate).color} ${getBatchStatus(viewBatch.startDate, viewBatch.endDate).text}`}>{getBatchStatus(viewBatch.startDate, viewBatch.endDate).label}</span>
-                                        </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20">
-                                            <div className="text-purple-200 font-semibold mb-1">Progress</div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-24 h-2 bg-[#312e81]/40 rounded-full overflow-hidden">
-                                                    <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400" style={{ width: `${getBatchProgress(viewBatch)}%`, transition: 'width 1s' }}></div>
+                                    {/* Professor & Course Section */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-purple-400/20 pb-4">
+                                        {/* Professor */}
+                                        <div className="flex flex-col gap-3 bg-gradient-to-br from-blue-900/40 to-purple-900/10 rounded-2xl p-6 shadow-lg border border-blue-400/20 min-h-[260px]">
+                                            <div className="flex items-center gap-4 mb-2">
+                                                {viewBatch.professor?.profileImage ? (
+                                                    <img src={viewBatch.professor.profileImage} alt="prof" className="w-20 h-20 rounded-full object-cover border-4 border-pink-400 shadow-xl" />
+                                                ) : (
+                                                    <img src="https://ui-avatars.com/api/?name=Professor&background=6d28d9&color=fff&size=128" alt="prof" className="w-20 h-20 rounded-full object-cover border-4 border-pink-400 shadow-xl" />
+                                                )}
+                                                <div>
+                                                    <div className="text-2xl font-bold text-blue-100 flex items-center gap-2">{viewBatch.professor?.name} <span className="text-xs text-purple-300">({viewBatch.professor?.designation})</span></div>
+                                                    <div className="text-xs text-purple-300 mt-1">{viewBatch.professor?.currentOrganization}</div>
                                                 </div>
-                                                <span className="text-xs font-bold text-purple-100">{getBatchProgress(viewBatch)}%</span>
-                                                <BarChart className="text-purple-300 ml-1" fontSize="small" />
+                                            </div>
+                                            <div className="flex flex-wrap gap-4 text-xs text-purple-200 mt-2">
+                                                <span className="flex items-center gap-1"><Person fontSize="small" /> <span className="font-semibold">ID:</span> {viewBatch.professor?._id}</span>
+                                                <span className="flex items-center gap-1"><Group fontSize="small" /> <span className="font-semibold">Exp:</span> {viewBatch.professor?.yearsOfExperience} yrs</span>
+                                                <span className="flex items-center gap-1"><School fontSize="small" /> <span className="font-semibold">Courses:</span> {viewBatch.professor?.courses?.length}</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-4 text-xs text-purple-200 mt-2">
+                                                <span className="flex items-center gap-1"><span className="material-icons text-pink-300">mail</span> {viewBatch.professor?.email}</span>
+                                                <span className="flex items-center gap-1"><span className="material-icons text-blue-300">phone</span> {viewBatch.professor?.phone}</span>
+                                                {viewBatch.professor?.linkedIn && <span className="flex items-center gap-1"><span className="material-icons text-blue-400">link</span> <a href={viewBatch.professor?.linkedIn} target="_blank" rel="noopener noreferrer" className="underline text-blue-300">LinkedIn</a></span>}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <span className="font-bold text-pink-200 text-xs">Expertise:</span>
+                                                {viewBatch.professor?.expertise?.map((exp, i) => <span key={i} className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold shadow mr-1">{exp}</span>)}
+                                            </div>
+                                            <div className="mt-2 text-xs text-purple-200"><span className="font-bold text-pink-200">Bio:</span> {viewBatch.professor?.bio}</div>
+                                            <div className="mt-2 text-xs text-purple-200"><span className="font-bold text-pink-200">Joined:</span> {viewBatch.professor?.createdAt ? new Date(viewBatch.professor.createdAt).toLocaleDateString() : '-'}</div>
+                                        </div>
+                                        {/* Course */}
+                                        <div className="flex flex-col gap-3 bg-gradient-to-br from-purple-900/40 to-blue-900/10 rounded-2xl p-6 shadow-lg border border-purple-400/20 min-h-[260px]">
+                                            <div className="flex items-center gap-4 mb-2">
+                                                {viewBatch.course?.coverImage ? (
+                                                    <img src={viewBatch.course.coverImage} alt="cover" className="w-20 h-20 rounded-lg object-cover border-4 border-blue-400 shadow-xl" />
+                                                ) : (
+                                                    <img src="https://ui-avatars.com/api/?name=Course&background=0ea5e9&color=fff&size=128" alt="cover" className="w-20 h-20 rounded-lg object-cover border-4 border-blue-400 shadow-xl" />
+                                                )}
+                                                <div>
+                                                    <div className="text-2xl font-bold text-purple-100">{viewBatch.course?.title}</div>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <span className="inline-block px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold shadow" title={viewBatch.course?.category}>{viewBatch.course?.category}</span>
+                                                        <span className="inline-block px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold shadow" title={viewBatch.course?.level}>{viewBatch.course?.level}</span>
+                                                    </div>
+                                                    <div className="text-xs text-purple-300 mt-1">Course ID: {viewBatch.course?._id}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-4 text-xs text-purple-200 mt-2">
+                                                <span className="flex items-center gap-1"><Quiz fontSize="small" /> <span className="font-semibold">Duration:</span> {viewBatch.course?.duration}</span>
+                                                <span className="flex items-center gap-1"><Group fontSize="small" /> <span className="font-semibold">Modules:</span> {viewBatch.course?.modules?.length}</span>
                                             </div>
                                         </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20">
-                                            <div className="text-purple-200 font-semibold mb-1">Dates</div>
-                                            <div className="text-white">Start: {viewBatch.startDate ? new Date(viewBatch.startDate).toLocaleDateString() : '-'}<br />End: {viewBatch.endDate ? new Date(viewBatch.endDate).toLocaleDateString() : '-'}</div>
+                                    </div>
+                                    {/* Users Section */}
+                                    <div className="border-b border-purple-400/20 pb-4">
+                                        <div className="text-lg font-bold text-pink-200 mb-2 flex items-center gap-2"><Group className="text-pink-400" /> Users ({viewBatch.users?.length || 0})</div>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full text-xs md:text-sm text-left text-purple-100">
+                                                <thead>
+                                                    <tr className="border-b border-purple-400/10">
+                                                        <th className="py-2 px-2">Name</th>
+                                                        <th className="py-2 px-2">Email</th>
+                                                        <th className="py-2 px-2">User ID</th>
+                                                        <th className="py-2 px-2">Role</th>
+                                                        <th className="py-2 px-2">Approved</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {viewBatch.users?.length ? (
+                                                        viewBatch.users.slice((viewUsersPage - 1) * USERS_PER_PAGE, viewUsersPage * USERS_PER_PAGE).map((u, idx) => (
+                                                            <tr key={u._id || idx} className="border-b border-purple-400/10 hover:bg-[#312e81]/40 transition">
+                                                                <td className="py-2 px-2 font-bold text-pink-100">{u.name}</td>
+                                                                <td className="py-2 px-2">{u.email}</td>
+                                                                <td className="py-2 px-2">{u._id}</td>
+                                                                <td className="py-2 px-2">{u.role}</td>
+                                                                <td className="py-2 px-2">
+                                                                    {u.isApproved ? <span className="px-2 py-0.5 rounded-full bg-green-500/30 text-green-100 font-bold">Yes</span> : <span className="px-2 py-0.5 rounded-full bg-pink-500/30 text-pink-100 font-bold">No</span>}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr><td colSpan={5} className="text-center text-purple-300 py-4">No users</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20 md:col-span-2">
-                                            <div className="text-purple-200 font-semibold mb-1">Users</div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {viewBatch.users?.length ? viewBatch.users.map((u, idx) => (
-                                                    <span key={u._id || u} className="px-2 py-1 bg-purple-900/40 text-purple-100 rounded-lg text-xs">{u.name || u}</span>
-                                                )) : <span className="text-purple-300">No users</span>}
+                                        {/* Pagination Controls for Users Table */}
+                                        {viewBatch.users && viewBatch.users.length > USERS_PER_PAGE && (
+                                            <div className="flex justify-center items-center gap-2 py-4">
+                                                <button
+                                                    onClick={() => setViewUsersPage((p) => Math.max(1, p - 1))}
+                                                    disabled={viewUsersPage === 1}
+                                                    className="px-3 py-1 rounded-lg font-bold text-white bg-gradient-to-r from-purple-500 to-blue-500 hover:from-blue-600 hover:to-purple-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    Prev
+                                                </button>
+                                                {[...Array(Math.ceil(viewBatch.users.length / USERS_PER_PAGE))].map((_, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setViewUsersPage(idx + 1)}
+                                                        className={`px-3 py-1 rounded-lg font-bold mx-1 ${viewUsersPage === idx + 1 ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg' : 'bg-[#1a1536]/60 text-purple-200 hover:bg-purple-700/60'}`}
+                                                    >
+                                                        {idx + 1}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() => setViewUsersPage((p) => Math.min(Math.ceil(viewBatch.users.length / USERS_PER_PAGE), p + 1))}
+                                                    disabled={viewUsersPage === Math.ceil(viewBatch.users.length / USERS_PER_PAGE)}
+                                                    className="px-3 py-1 rounded-lg font-bold text-white bg-gradient-to-r from-purple-500 to-blue-500 hover:from-blue-600 hover:to-purple-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Batch Progress Section (creative, with bar graph and detailed accordion) */}
+                                    <div className="pt-4">
+                                        <div className="text-lg font-bold text-pink-200 mb-4 flex items-center gap-2">
+                                            <BarChart className="text-pink-400" /> Batch Progress
+                                        </div>
+                                        <div className="flex flex-col md:flex-row gap-8 items-center md:items-stretch w-full">
+                                            {/* Main Progress Bar */}
+                                            <div className="flex-1 flex flex-col gap-6 w-full max-w-md">
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-purple-200 font-semibold text-sm flex items-center gap-1"><Quiz fontSize="small" /> Lessons</span>
+                                                        <span className="text-blue-200 font-bold text-sm">{viewBatch.batchProgress?.percentage || 0}%</span>
+                                                    </div>
+                                                    <div className="w-full h-5 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner relative">
+                                                        <div className="h-5 rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 transition-all duration-700" style={{ width: `${viewBatch.batchProgress?.percentage || 0}%` }}></div>
+                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-white font-bold">
+                                                            {viewBatch._progress?.completedLessons} / {viewBatch._progress?.totalLessons} Lessons,
+                                                            {viewBatch._progress?.completedTopics} / {viewBatch._progress?.totalTopics} Topics
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* Donut Chart for Progress */}
+                                            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs">
+                                                <div className="relative w-32 h-32">
+                                                    <svg className="w-full h-full rotate-[-90deg]" viewBox="0 0 100 100">
+                                                        <circle cx="50" cy="50" r="44" stroke="#a78bfa33" strokeWidth="10" fill="none" />
+                                                        <circle
+                                                            cx="50" cy="50" r="44"
+                                                            stroke="url(#overallGradient)"
+                                                            strokeWidth="10"
+                                                            fill="none"
+                                                            strokeDasharray={276.46}
+                                                            strokeDashoffset={276.46 - ((viewBatch.batchProgress?.percentage || 0) / 100 * 276.46)}
+                                                            style={{ transition: 'stroke-dashoffset 1s' }}
+                                                        />
+                                                        <defs>
+                                                            <linearGradient id="overallGradient" x1="0" y1="0" x2="100" y2="100">
+                                                                <stop offset="0%" stopColor="#ec4899" />
+                                                                <stop offset="100%" stopColor="#38bdf8" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                    </svg>
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                        <span className="text-3xl font-bold text-purple-100">{Math.round(viewBatch.batchProgress?.percentage || 0)}%</span>
+                                                        <span className="text-xs text-purple-200">Overall Progress</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="bg-[#312e81]/40 rounded-xl p-4 border border-purple-400/20 md:col-span-2">
-                                            <div className="text-purple-200 font-semibold mb-1">Quizzes</div>
-                                            <div className="text-white">{viewBatch.quizzes?.length || 0}</div>
-                                        </div>
+                                        {/* Detailed Progress Accordion */}
+                                        {safeArray(viewBatch._progress?.completedModules).length > 0 && (
+                                            <div className="mt-8">
+                                                <div className="text-xs text-pink-200 font-bold mb-4 flex items-center gap-2"><BarChart className="text-pink-400" /> Detailed Progress</div>
+                                                <div className="flex flex-col gap-4">
+                                                    {viewBatch._progress.completedModules.map((mod, i) => (
+                                                        <details key={mod._id || i} className="rounded-xl bg-[#1a1536]/80 border border-purple-400/30 p-4 group shadow-md">
+                                                            <summary className="cursor-pointer flex items-center gap-3 font-semibold text-purple-100 text-base group-open:text-pink-400 transition mb-2">
+                                                                <span className="transition-transform duration-200 mr-1 group-open:rotate-90">
+                                                                    <ExpandMoreIcon style={{ fontSize: 22, color: '#a78bfa', verticalAlign: 'middle' }} />
+                                                                </span>
+                                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 to-blue-400"><School fontSize="small" className="text-white" /></span>
+                                                                <span>Module:</span> <span className="ml-1 text-pink-200 font-bold">{mod.title}</span>
+                                                                <span className="ml-2 text-xs text-purple-300">Lessons: {safeArray(mod.completedLessons).length}</span>
+                                                            </summary>
+                                                            <div className="mt-2 ml-4 flex flex-col gap-3">
+                                                                {safeArray(mod.completedLessons).length > 0 ? (
+                                                                    mod.completedLessons.map((lesson, j) => (
+                                                                        <div key={lesson._id || j} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 pl-2 border-l-4 border-blue-400/30 bg-blue-900/10 rounded-lg py-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-400"><Quiz fontSize="small" className="text-white" /></span>
+                                                                                <span className="text-blue-200 font-bold">Lesson:</span>
+                                                                                <span className="text-blue-100">{lesson.title}</span>
+                                                                            </div>
+                                                                            {safeArray(lesson.completedTopics).length > 0 && (
+                                                                                <div className="flex flex-wrap gap-2 items-center mt-1 md:mt-0 pl-6">
+                                                                                    <span className="text-pink-200 text-xs font-semibold flex items-center gap-1"><span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-br from-pink-400 to-purple-400"><BarChart fontSize="inherit" className="text-white" /></span> Topics:</span>
+                                                                                    {lesson.completedTopics.map((topic, k) => (
+                                                                                        <span key={topic._id || k} className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold shadow flex items-center gap-1">
+                                                                                            <span className="material-icons text-xs align-middle">check_circle</span> {topic.title}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-xs text-purple-300 ml-2">No lessons completed in this module.</span>
+                                                                )}
+                                                            </div>
+                                                        </details>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -745,6 +1417,7 @@ const BatchAdmin = () => {
               .animate-modalPop { animation: modalPop 0.4s cubic-bezier(0.4,0,0.2,1); }
               .custom-scrollbar::-webkit-scrollbar { width: 8px; background: transparent; }
               .custom-scrollbar::-webkit-scrollbar-thumb { background: #a78bfa55; border-radius: 8px; }
+              .material-icons { font-family: 'Material Icons'; font-style: normal; font-weight: normal; font-size: 18px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; }
             `}</style>
                     </div>
                 </div>, document.getElementById('modal-root')

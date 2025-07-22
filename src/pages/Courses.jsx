@@ -23,6 +23,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { useNavigate } from 'react-router-dom';
 import CourseModal from '../components/CourseModal';
 import CourseDetails from './CourseDetails';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 const categoryOptions = [
   'Web Development', 'Data Science', 'AI/ML', 'Cloud', 'DevOps', 'UI/UX', 'Soft Skills', 'Management', 'Language', 'Other'
@@ -31,7 +32,8 @@ const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
 const typeOptions = ['Technical', 'Soft Skills', 'Management', 'Creative', 'Language', 'Other'];
 const statusOptions = ['Draft', 'Published', 'Archived'];
 
-const Courses = ({ user }) => {
+const Courses = ({ user: userProp }) => {
+  const user = userProp || getUser();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -375,4 +377,16 @@ const Courses = ({ user }) => {
   );
 };
 
-export default Courses; 
+const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user'));
+  } catch {
+    return null;
+  }
+};
+
+export default (props) => (
+  <ProtectedRoute>
+    <Courses {...props} />
+  </ProtectedRoute>
+); 

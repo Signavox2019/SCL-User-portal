@@ -319,7 +319,7 @@ const Login = ({ onLoginSuccess }) => {
               {/* Sign Up Link */}
               <div className="w-full text-center mt-4">
                 <RouterLink
-                  to="/"
+                  to="/register"
                   style={{
                     color: '#7c3aed',
                     fontWeight: 600,

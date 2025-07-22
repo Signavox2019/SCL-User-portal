@@ -11,8 +11,10 @@ import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
   Group as UsersIcon,
-  School as BatchIcon
+  School as BatchIcon,
+  Person as ProfessorsIcon
 } from '@mui/icons-material';
+
 import Layout from './Layout'; // adjust path as needed
 import './DashboardLayout.css';
 import Menu from '@mui/material/Menu';
@@ -52,6 +54,7 @@ const DashboardLayout = ({ children }) => {
   let navItems = [
     { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
     { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
+    { label: 'Professors', icon: <ProfessorsIcon fontSize="medium" />, path: '/professors' },
     { label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' },
     { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
   ];

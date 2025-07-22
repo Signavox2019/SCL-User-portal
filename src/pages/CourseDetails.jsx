@@ -7,6 +7,14 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user'));
+  } catch {
+    return null;
+  }
+};
+
 const CourseDetails = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -91,6 +99,9 @@ const CourseDetails = () => {
   if (loading) return <div className="flex justify-center items-center h-96"><CircularProgress /></div>;
   if (!course) return <div className="text-center text-red-400 font-bold py-10 w-full">Course not found.</div>;
 
+  const user = getUser();
+  const isAdmin = user && user.role === 'admin';
+
   return (
     <div className="min-h-screen px-0 pt-2 md:pt-4 flex flex-col items-center">
       <div className="w-full mt-2">
@@ -129,27 +140,57 @@ const CourseDetails = () => {
                 )}
               </div>
             </div>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setEnrollModalOpen(true)}
-              sx={{
-                background: 'linear-gradient(to right, #f472b6, #a78bfa)',
-                color: '#fff',
-                fontWeight: 700,
-                borderRadius: 2,
-                fontSize: 15,
-                px: 1.5,
-                py: 0.7,
-                width: 150,
-                minWidth: 70,
-                mt: 1,
-                boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
-                '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' }
-              }}
-            >
-              {enrolling ? 'Enrolling...' : 'Enroll Now'}
-            </Button>
+            {!isAdmin ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => setEnrollModalOpen(true)}
+                sx={{
+                  background: 'linear-gradient(to right, #f472b6, #a78bfa)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  fontSize: 15,
+                  px: 1.5,
+                  py: 0.7,
+                  width: 150,
+                  minWidth: 70,
+                  mt: 1,
+                  boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
+                  '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' }
+                }}
+              >
+                {enrolling ? 'Enrolling...' : 'Enroll Now'}
+              </Button>
+            ) : (
+              <div className="mt-2">
+                {course.professor && course.professor.name ? (
+                  <span className="px-4 py-2 rounded-lg bg-green-600/30 text-green-200 font-bold">Professor is already assigned</span>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => {/* TODO: Implement assign professor logic */}}
+                    sx={{
+                      background: 'linear-gradient(to right, #a78bfa, #f472b6)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      fontSize: 15,
+                      px: 1.5,
+                      py: 0.7,
+                      width: 200,
+                      minWidth: 100,
+                      mt: 1,
+                      boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
+                      '&:hover': { background: 'linear-gradient(to right, #f472b6, #a78bfa)' }
+                    }}
+                  >
+                    Assign Professor
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {/* Curriculum Accordions */}

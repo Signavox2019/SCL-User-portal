@@ -2,16 +2,39 @@ import React, { useEffect, useState } from 'react';
 import BaseUrl from '../Api';
 import { TrendingUp, School, Event, AssignmentTurnedIn, CheckCircle, HourglassEmpty, Cancel, EmojiEvents } from '@mui/icons-material';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 const pieColors = ['#a3e635', '#f472b6', '#818cf8'];
 
 // Define a constant for the title color
 const TITLE_COLOR = '#7c3aed'; // Tailwind purple-600
 
+// Helper: Calculate course progress (by lessons)
+function getCourseProgress(enroll) {
+  const modules = enroll.course.modules || [];
+  const completedModules = enroll.completedModules || [];
+  let totalLessons = 0, completedLessons = 0, totalTopics = 0, completedTopics = 0;
+  modules.forEach(module => {
+    const completedModule = completedModules.find(m => m.moduleId === module._id);
+    module.lessons.forEach(lesson => {
+      totalLessons++;
+      const completedLesson = completedModule?.completedLessons?.find(l => l.lessonId === lesson._id);
+      if (completedLesson) completedLessons++;
+      lesson.topics.forEach(topic => {
+        totalTopics++;
+        if (completedLesson?.completedTopics?.includes(topic._id)) completedTopics++;
+      });
+    });
+  });
+  // Progress by lessons
+  return totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+}
+
 const DashboardPage = () => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -78,12 +101,16 @@ const DashboardPage = () => {
     return {
       name: enroll.course.title,
       status: isCompleted ? 'Completed' : 'In Progress',
-      progress: isCompleted ? 100 : Math.round((enroll.completedModules?.length || 0) / (enroll.course.modules?.length || 1) * 100),
+      progress: getCourseProgress(enroll),
       color: isCompleted ? 'bg-green-400' : 'bg-pink-400',
       icon: isCompleted ? CheckCircle : HourglassEmpty,
       iconColor: isCompleted ? 'text-green-400' : 'text-pink-400',
       coverImage: enroll.course.coverImage,
       certificateUrl: enroll.certificateUrl,
+      description: enroll.course.description,
+      duration: enroll.course.duration,
+      category: enroll.course.category,
+      level: enroll.course.level,
     };
   });
 
@@ -92,6 +119,9 @@ const DashboardPage = () => {
 
   // Events
   const eventsList = dashboard.registeredEvents || [];
+
+  // Batches
+  const batches = dashboard.enrolledBatches || [];
 
   return (
     <div className="space-y-10 pb-10">
@@ -212,7 +242,12 @@ const DashboardPage = () => {
           {courses.map((course, idx) => {
             const StatusIcon = course.icon;
             return (
-              <div key={course.name + idx} className="rounded-xl p-5 bg-gradient-to-br from-[#312e81]/80 to-[#0a081e]/80 shadow-xl flex flex-col gap-3 hover:scale-105 transition-transform duration-300 border border-white/10 relative overflow-hidden group">
+              <div
+                key={course.name + idx}
+                className="rounded-xl p-5 bg-gradient-to-br from-[#312e81]/80 to-[#0a081e]/80 shadow-xl flex flex-col gap-3 hover:scale-105 transition-transform duration-300 border border-white/10 relative overflow-hidden group cursor-pointer hover:ring-2 hover:ring-pink-400/60"
+                onClick={() => navigate(`/courses/${dashboard.enrolledCourses[idx].course._id}`)}
+                title={`Go to course: ${course.name}`}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`w-10 h-10 rounded-full flex items-center justify-center bg-white/10 border border-white/20 ${course.iconColor} text-xl shadow-lg`}>
                     <StatusIcon className={`text-2xl ${course.iconColor}`} />
@@ -220,7 +255,18 @@ const DashboardPage = () => {
                   <span className="font-bold text-white text-lg drop-shadow-lg">{course.name}</span>
                   <span className={`ml-auto text-xs px-2 py-1 rounded-full ${course.status === 'Completed' ? 'bg-green-500/20 text-green-200 border-green-400/30' : 'bg-pink-500/20 text-pink-200 border-pink-400/30'} border`}>{course.status}</span>
                 </div>
-                {course.coverImage && <img src={course.coverImage} alt="cover" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />}
+                {/* Course image or dummy */}
+                {course.coverImage ? (
+                  <img src={course.coverImage} alt="cover" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                ) : (
+                  <img src="https://ui-avatars.com/api/?name=Course&background=0ea5e9&color=fff&size=128" alt="cover" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                )}
+                <div className="flex flex-wrap gap-2 text-xs text-purple-200 mb-1">
+                  <span className="bg-purple-700/40 px-2 py-0.5 rounded-full">{course.category}</span>
+                  <span className="bg-blue-700/40 px-2 py-0.5 rounded-full">{course.level}</span>
+                  <span className="bg-pink-700/40 px-2 py-0.5 rounded-full">{course.duration}</span>
+                </div>
+                <div className="text-xs text-purple-300 mb-1 line-clamp-2">{course.description}</div>
                 <div className="w-full bg-purple-900/30 rounded-full h-3 mt-2">
                   <div
                     className={`h-3 rounded-full ${course.color}`}
@@ -231,8 +277,6 @@ const DashboardPage = () => {
                 {course.certificateUrl && (
                   <a href={course.certificateUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-green-300 hover:underline"><EmojiEvents className="text-yellow-400" fontSize="small" /> View Certificate</a>
                 )}
-                {/* Glow effect */}
-                {/* <div className={`absolute inset-0 rounded-xl pointer-events-none group-hover:opacity-60 opacity-0 transition-all duration-300 blur-2xl ${course.color}`} /> */}
               </div>
             );
           })}
@@ -254,7 +298,12 @@ const DashboardPage = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {certificates.map(cert => (
-              <div key={cert._id} className="rounded-xl p-5 bg-gradient-to-br from-green-400/20 to-purple-400/20 shadow-xl flex flex-col gap-2 border border-white/10 relative">
+              <div
+                key={cert._id}
+                className="rounded-xl p-5 bg-gradient-to-br from-green-400/20 to-purple-400/20 shadow-xl flex flex-col gap-2 border border-white/10 relative cursor-pointer hover:scale-105 hover:ring-2 hover:ring-green-400/60 transition"
+                onClick={() => window.open(cert.downloadLink, '_blank')}
+                title="Download certificate"
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <EmojiEvents className="text-yellow-400 text-2xl" />
                   <span className="font-bold text-white text-lg">{cert.course.title}</span>
@@ -283,8 +332,17 @@ const DashboardPage = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {eventsList.map(ev => (
-              <div key={ev._id} className="rounded-xl p-5 bg-gradient-to-br from-blue-400/20 to-purple-400/20 shadow-xl flex flex-col gap-2 border border-white/10 relative">
-                <img src={ev.bannerImage} alt="event banner" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+              <div
+                key={ev._id}
+                className="rounded-xl p-5 bg-gradient-to-br from-blue-400/20 to-purple-400/20 shadow-xl flex flex-col gap-2 border border-white/10 relative cursor-pointer hover:scale-105 hover:ring-2 hover:ring-blue-400/60 transition"
+                onClick={() => navigate('/events')}
+                title={`Go to events`}
+              >
+                {ev.bannerImage ? (
+                  <img src={ev.bannerImage} alt="event banner" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                ) : (
+                  <img src="https://ui-avatars.com/api/?name=Event&background=0ea5e9&color=fff&size=128" alt="event banner" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                )}
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-bold text-white text-lg">{ev.title}</span>
                   <span className="ml-auto text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30">{ev.category}</span>
@@ -292,10 +350,61 @@ const DashboardPage = () => {
                 <div className="text-xs text-purple-200">{new Date(ev.date).toLocaleDateString()} | {ev.startTime} - {ev.endTime}</div>
                 <div className="text-xs text-purple-200">Location: {ev.location} ({ev.mode})</div>
                 <div className="flex items-center gap-2 mt-2">
-                  <img src={ev.speaker.photo} alt="speaker" className="w-8 h-8 rounded-full border border-white/20" />
-                  <span className="text-sm text-white font-semibold">{ev.speaker.name}</span>
-                  <span className="text-xs text-purple-200">{ev.speaker.designation}</span>
-                  <a href={ev.speaker.linkedIn} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-300 hover:underline text-xs">LinkedIn</a>
+                  {ev.speaker?.photo ? (
+                    <img src={ev.speaker.photo} alt="speaker" className="w-8 h-8 rounded-full border border-white/20" />
+                  ) : (
+                    <img src="https://ui-avatars.com/api/?name=Speaker&background=6d28d9&color=fff&size=64" alt="speaker" className="w-8 h-8 rounded-full border border-white/20" />
+                  )}
+                  <span className="text-sm text-white font-semibold">{ev.speaker?.name}</span>
+                  <span className="text-xs text-purple-200">{ev.speaker?.designation}</span>
+                  {ev.speaker?.linkedIn && <a href={ev.speaker.linkedIn} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-300 hover:underline text-xs">LinkedIn</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Batches Section */}
+      {batches.length > 0 && (
+        <div className="bg-gradient-to-br from-pink-400/10 to-purple-400/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10 mt-10">
+          {/* Fancy Header for Batches */}
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-lg">
+              <School className="text-white text-3xl drop-shadow-lg" />
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-white  tracking-wide drop-shadow-lg">Enrolled Batches</div>
+              <div className="text-sm text-pink-100/80 mt-1">Your current and past batch enrollments</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {batches.map((batch, idx) => (
+              <div
+                key={batch._id}
+                className="rounded-xl p-5 bg-gradient-to-br from-pink-400/20 to-purple-400/20 shadow-xl flex flex-col gap-2 border border-white/10 relative cursor-pointer hover:scale-105 hover:ring-2 hover:ring-pink-400/60 transition"
+                onClick={() => navigate('/batch')}
+                title={`Go to batch: ${batch.batchName}`}
+              >
+                {batch.course?.coverImage ? (
+                  <img src={batch.course.coverImage} alt="batch course cover" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                ) : (
+                  <img src="https://ui-avatars.com/api/?name=Batch&background=0ea5e9&color=fff&size=128" alt="batch course cover" className="rounded-lg w-full h-32 object-cover mb-2 border border-white/10 shadow-md" />
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-bold text-white text-lg">{batch.batchName}</span>
+                  <span className="ml-auto text-xs px-2 py-1 rounded-full bg-pink-500/20 text-pink-200 border border-pink-400/30">{batch.course?.title}</span>
+                </div>
+                <div className="text-xs text-purple-200">{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} - {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}</div>
+                <div className="flex items-center gap-2 mt-2">
+                  {batch.professor?.profileImage ? (
+                    <img src={batch.professor.profileImage} alt="professor" className="w-8 h-8 rounded-full border border-white/20" />
+                  ) : (
+                    <img src="https://ui-avatars.com/api/?name=Professor&background=6d28d9&color=fff&size=64" alt="professor" className="w-8 h-8 rounded-full border border-white/20" />
+                  )}
+                  <span className="text-sm text-white font-semibold">{batch.professor?.name}</span>
+                  <span className="text-xs text-purple-200">{batch.professor?.designation}</span>
+                  {batch.professor?.linkedIn && <a href={batch.professor.linkedIn} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-300 hover:underline text-xs">LinkedIn</a>}
                 </div>
               </div>
             ))}

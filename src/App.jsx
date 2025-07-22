@@ -19,6 +19,7 @@ import LandingPage from './pages/LandingPage.jsx';
 import BatchAdmin from './pages/BatchAdmin';
 import Enrollments from './pages/Enrollments.jsx';
 import Users from './pages/Users.jsx';
+import Professors from './pages/Professors.jsx';
 
 const theme = createTheme({
   palette: {
@@ -142,6 +143,16 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             <ProtectedRoute>
               <DashboardLayout>
                 <Users />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/professors"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Professors />
               </DashboardLayout>
             </ProtectedRoute>
           }
