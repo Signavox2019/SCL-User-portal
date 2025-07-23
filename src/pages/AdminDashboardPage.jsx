@@ -85,7 +85,16 @@ const DashboardPage = () => {
       try {
         const token = localStorage.getItem('token');
         const res = await axios.get(`${BaseUrl}/batches/`, { headers: { Authorization: `Bearer ${token}` } });
-        setBatchData(res.data);
+        // Ensure batchData is always an array
+        if (Array.isArray(res.data)) {
+          setBatchData(res.data);
+        } else if (Array.isArray(res.data.batches)) {
+          setBatchData(res.data.batches);
+        } else if (Array.isArray(res.data.data)) {
+          setBatchData(res.data.data);
+        } else {
+          setBatchData([]);
+        }
       } catch (err) {
         setBatchError(err.message);
       } finally {
@@ -328,7 +337,7 @@ const DashboardPage = () => {
             <div className="flex justify-center items-center h-32"><CircularProgress size={40} style={{ color: '#a78bfa' }} /></div>
           ) : batchError ? (
             <div className="text-center text-red-400 font-bold py-6">{batchError}</div>
-          ) : batchData.length === 0 ? (
+          ) : !Array.isArray(batchData) || batchData.length === 0 ? (
             <div className="text-center text-purple-200/80 py-10">No batch data available.</div>
           ) : (
             <div className="rounded-2xl shadow-xl border border-white/10 bg-gradient-to-br from-[#312e81]/80 to-[#0a081e]/80 w-full">

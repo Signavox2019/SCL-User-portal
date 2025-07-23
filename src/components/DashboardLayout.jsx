@@ -155,7 +155,7 @@ const DashboardLayout = ({ children }) => {
             )}
           </div>
           {/* Nav Items */}
-          <nav className="flex-1 flex flex-col gap-1 mt-4">
+          <nav className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-400/40 scrollbar-track-transparent" style={{ maxHeight: 'calc(100vh - 160px)' }}>
             {navItems.map((item) => {
               const active = location.pathname.startsWith(item.path);
               return (

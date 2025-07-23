@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart } from '@mui/icons-material';
@@ -18,9 +18,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Swal from 'sweetalert2';
-// Add new imports for certificate icons
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
 // Helper to ensure an array (avoids undefined/null errors)
 const safeArray = (arr) => Array.isArray(arr) ? arr : [];
@@ -76,63 +73,11 @@ const BatchAdmin = () => {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [formErrors, setFormErrors] = useState({});
-
+    
     // Rows per page state
     const [rowsPerPage, setRowsPerPage] = useState(10); // default 10
     const [viewUsersPage, setViewUsersPage] = useState(1); // for user pagination in view modal
     const USERS_PER_PAGE = 5;
-    // --- Add state for certificate stats for all batches ---
-    const [batchCertificateStats, setBatchCertificateStats] = useState({}); // { [batchId]: { issuedCount, totalUsers, ... } }
-    const [batchCertificateStatsLoading, setBatchCertificateStatsLoading] = useState(true);
-    const [batchCertificateStatsError, setBatchCertificateStatsError] = useState('');
-    const [sendingCertificateBatchId, setSendingCertificateBatchId] = useState(null);
-    const [certificatesSentBatches, setCertificatesSentBatches] = useState([]);
-    const [certTooltipBatchId, setCertTooltipBatchId] = useState(null); // batchId or null
-    const certTooltipRef = useRef();
-    const [certModalBatch, setCertModalBatch] = useState(null); // batch object or null
-    // Add missing state for view modal certificate stats
-    const [viewBatchCertificateStats, setViewBatchCertificateStats] = useState(null);
-    const [viewBatchCertificateStatsLoading, setViewBatchCertificateStatsLoading] = useState(false);
-    const [viewBatchCertificateStatsError, setViewBatchCertificateStatsError] = useState('');
-    useEffect(() => {
-        const fetchBatchCertStats = async () => {
-            setBatchCertificateStatsLoading(true);
-            setBatchCertificateStatsError('');
-            try {
-                const token = getToken();
-                const res = await axios.get(`${BaseUrl}/batches/batch-certificates/stats/`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                // Map by batchId for easy lookup
-                const statsMap = {};
-                (res.data.data || []).forEach(batch => {
-                    statsMap[batch.batchId] = batch;
-                });
-                setBatchCertificateStats(statsMap);
-            } catch (err) {
-                setBatchCertificateStatsError(err.response?.data?.message || 'Failed to fetch certificate stats');
-            } finally {
-                setBatchCertificateStatsLoading(false);
-            }
-        };
-        fetchBatchCertStats();
-    }, []);
-    // --- Add handler for sending certificates ---
-    const handleSendCertificates = async (batchId) => {
-        setSendingCertificateBatchId(batchId);
-        try {
-            const token = getToken();
-            const res = await axios.post(`${BaseUrl}/batches/send-certificates/`, { batchId }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            toast.success(res.data.message || 'Certificates sent!');
-            setCertificatesSentBatches((prev) => [...prev, batchId]);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to send certificates');
-        } finally {
-            setSendingCertificateBatchId(null);
-        }
-    };
     // Reset page when opening new batch
     useEffect(() => { setViewUsersPage(1); }, [viewBatch]);
 
@@ -256,44 +201,25 @@ const BatchAdmin = () => {
 
     // Handler to open view modal (updated to fetch full details with new API response)
     const [viewModalLoading, setViewModalLoading] = useState(false); // Add loading state for view modal
-    const [viewModalError, setViewModalError] = useState('');
     const openViewModal = async (batch) => {
         setViewModalLoading(true);
         setViewModalOpen(true);
-        setViewBatchCertificateStats(null);
-        setViewBatchCertificateStatsLoading(true);
-        setViewBatchCertificateStatsError('');
-        setViewModalError('');
         try {
             const token = getToken();
             const res = await axios.get(`${BaseUrl}/batches/${batch._id || batch.batchId || batch.id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (!res.data || !res.data.batch) {
-                setViewModalError('Batch details not found.');
-                setViewBatch(null);
-            } else {
-                setViewBatch({
-                    ...res.data.batch,
-                    _apiMessage: res.data.message,
-                    _progress: res.data.progress,
-                });
-            }
-            // Fetch certificate stats for this batch
-            try {
-                const certRes = await axios.get(`${BaseUrl}/batches/batch-certificates/stats/${batch._id || batch.batchId || batch.id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setViewBatchCertificateStats(certRes.data);
-            } catch (certErr) {
-                setViewBatchCertificateStatsError(certErr.response?.data?.message || 'Failed to fetch certificate stats');
-            }
+            // Set the batch and progress separately for creative display
+            setViewBatch({
+                ...res.data.batch,
+                _apiMessage: res.data.message,
+                _progress: res.data.progress,
+            });
         } catch (err) {
-            setViewModalError(err.response?.data?.message || 'Failed to fetch batch details');
-            setViewBatch(null);
+            toast.error('Failed to fetch batch details');
+            setViewModalOpen(false);
         } finally {
             setViewModalLoading(false);
-            setViewBatchCertificateStatsLoading(false);
         }
     };
     // Handler to close view modal
@@ -570,33 +496,10 @@ const BatchAdmin = () => {
             toast.success('Batch updated successfully!');
             setEditModalOpen(false);
             fetchBatches();
-            fetchBatchCertStats(); // <-- Add this line to refresh certificate stats
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to update batch');
         } finally {
             setEditModalLoading(false);
-        }
-    };
-
-    // Expose fetchBatchCertStats for use after edit
-    const fetchBatchCertStats = async () => {
-        setBatchCertificateStatsLoading(true);
-        setBatchCertificateStatsError('');
-        try {
-            const token = getToken();
-            const res = await axios.get(`${BaseUrl}/batches/batch-certificates/stats/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            // Map by batchId for easy lookup
-            const statsMap = {};
-            (res.data.data || []).forEach(batch => {
-                statsMap[batch.batchId] = batch;
-            });
-            setBatchCertificateStats(statsMap);
-        } catch (err) {
-            setBatchCertificateStatsError(err.response?.data?.message || 'Failed to fetch certificate stats');
-        } finally {
-            setBatchCertificateStatsLoading(false);
         }
     };
 
@@ -619,199 +522,199 @@ const BatchAdmin = () => {
                         <div className="text-lg text-purple-200 font-bold">Saving batch details...</div>
                     </div>
                 ) : (
-                    <form onSubmit={handleCreate} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
-                        <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">{'Create Batch'}</h2>
-                        <div className="space-y-4">
-                            {/* Validation errors */}
-                            {Object.keys(formErrors).length > 0 && (
-                                <div className="bg-red-500/10 border border-red-400/30 text-red-300 rounded-lg px-4 py-2 text-sm">
-                                    {Object.values(formErrors).map((err, i) => (
-                                        <div key={i}>{err}</div>
-                                    ))}
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-purple-200 mb-1">Batch Name</label>
-                                <input name="batchName" value={form.batchName} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                <form onSubmit={handleCreate} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
+                    <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">{'Create Batch'}</h2>
+                    <div className="space-y-4">
+                        {/* Validation errors */}
+                        {Object.keys(formErrors).length > 0 && (
+                            <div className="bg-red-500/10 border border-red-400/30 text-red-300 rounded-lg px-4 py-2 text-sm">
+                                {Object.values(formErrors).map((err, i) => (
+                                    <div key={i}>{err}</div>
+                                ))}
                             </div>
-                            <div>
-                                <label className="block text-purple-200 mb-1">Course</label>
-                                <Select
-                                    isDisabled={fetchingDropdowns}
-                                    options={courses.map(c => ({ value: c._id, label: c.title }))}
-                                    value={courses.find(c => c._id === form.course) ? { value: form.course, label: courses.find(c => c._id === form.course)?.title } : null}
-                                    onChange={opt => setForm(f => ({ ...f, course: opt?.value || '', users: [] }))}
-                                    classNamePrefix="react-select"
-                                    placeholder="Select course..."
-                                    styles={{
-                                        control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                        menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                        singleValue: (base) => ({ ...base, color: 'white' }),
-                                        option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
-                                    }}
-                                />
+                        )}
+                        <div>
+                            <label className="block text-purple-200 mb-1">Batch Name</label>
+                            <input name="batchName" value={form.batchName} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                        </div>
+                        <div>
+                            <label className="block text-purple-200 mb-1">Course</label>
+                            <Select
+                                isDisabled={fetchingDropdowns}
+                                options={courses.map(c => ({ value: c._id, label: c.title }))}
+                                value={courses.find(c => c._id === form.course) ? { value: form.course, label: courses.find(c => c._id === form.course)?.title } : null}
+                                onChange={opt => setForm(f => ({ ...f, course: opt?.value || '', users: [] }))}
+                                classNamePrefix="react-select"
+                                placeholder="Select course..."
+                                styles={{
+                                    control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                    menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                    singleValue: (base) => ({ ...base, color: 'white' }),
+                                    option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-purple-200 mb-1">Professor</label>
+                            <Select
+                                isDisabled={fetchingDropdowns}
+                                options={professors.map(p => ({ value: p._id, label: p.name }))}
+                                value={professors.find(p => p._id === form.professor) ? { value: form.professor, label: professors.find(p => p._id === form.professor)?.name } : null}
+                                onChange={opt => setForm(f => ({ ...f, professor: opt?.value || '' }))}
+                                classNamePrefix="react-select"
+                                placeholder="Select professor..."
+                                styles={{
+                                    control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                    menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                    singleValue: (base) => ({ ...base, color: 'white' }),
+                                    option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-purple-200 mb-1">Users</label>
+                            <Select
+                                isMulti
+                                isSearchable
+                                isDisabled={fetchingDropdowns || availableUsersLoading || !form.course}
+                                closeMenuOnSelect={false}
+                                hideSelectedOptions={false}
+                                options={
+                                    availableUsers.map(u => ({ value: u._id, label: u.name, email: u.email }))
+                                }
+                                value={
+                                    availableUsers
+                                        .filter(u => form.users.includes(u._id))
+                                        .map(u => ({ value: u._id, label: u.name, email: u.email }))
+                                }
+                                onChange={opts => setForm(f => ({ ...f, users: opts.map(o => typeof o.value === 'object' && o.value._id ? o.value._id : o.value) }))}
+                                classNamePrefix="react-select"
+                                placeholder={form.course ? (availableUsersLoading ? "Loading users..." : "Select users...") : "Select a course first"}
+                                styles={{
+                                    control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                    menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                    multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
+                                    option: (base, state) => ({
+                                        ...base,
+                                        background: state.isFocused ? '#a78bfa' : 'transparent',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        opacity: state.data.isAssigned ? 1 : 1,
+                                    }),
+                                    input: (base) => ({ ...base, color: 'white' }),
+                                    singleValue: (base) => ({ ...base, color: 'white' })
+                                }}
+                                components={{
+                                    Option: (props) => (
+                                        <div
+                                            {...props.innerProps}
+                                            className={props.className}
+                                            style={{ ...props.style, cursor: 'pointer' }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={props.isSelected}
+                                                onChange={() => null}
+                                                style={{ marginRight: 8, cursor: 'pointer' }}
+                                            />
+                                            <span>{props.label}</span>
+                                            <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
+                                            {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
+                                        </div>
+                                    )
+                                }}
+                            />
+                            <div className="text-xs text-purple-200 mt-1">You can select multiple users. Only users enrolled in the selected course and not already assigned to the batch are shown.</div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <label className="block text-purple-200 mb-1">Start Date</label>
+                                <input type="date" name="startDate" value={form.startDate} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
                             </div>
-                            <div>
-                                <label className="block text-purple-200 mb-1">Professor</label>
-                                <Select
-                                    isDisabled={fetchingDropdowns}
-                                    options={professors.map(p => ({ value: p._id, label: p.name }))}
-                                    value={professors.find(p => p._id === form.professor) ? { value: form.professor, label: professors.find(p => p._id === form.professor)?.name } : null}
-                                    onChange={opt => setForm(f => ({ ...f, professor: opt?.value || '' }))}
-                                    classNamePrefix="react-select"
-                                    placeholder="Select professor..."
-                                    styles={{
-                                        control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                        menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                        singleValue: (base) => ({ ...base, color: 'white' }),
-                                        option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
-                                    }}
-                                />
+                            <div className="flex-1">
+                                <label className="block text-purple-200 mb-1">End Date</label>
+                                <input type="date" name="endDate" value={form.endDate} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
                             </div>
-                            <div>
-                                <label className="block text-purple-200 mb-1">Users</label>
-                                <Select
-                                    isMulti
-                                    isSearchable
-                                    isDisabled={fetchingDropdowns || availableUsersLoading || !form.course}
-                                    closeMenuOnSelect={false}
-                                    hideSelectedOptions={false}
-                                    options={
-                                        availableUsers.map(u => ({ value: u._id, label: u.name, email: u.email }))
-                                    }
-                                    value={
-                                        availableUsers
-                                            .filter(u => form.users.includes(u._id))
-                                            .map(u => ({ value: u._id, label: u.name, email: u.email }))
-                                    }
-                                    onChange={opts => setForm(f => ({ ...f, users: opts.map(o => typeof o.value === 'object' && o.value._id ? o.value._id : o.value) }))}
-                                    classNamePrefix="react-select"
-                                    placeholder={form.course ? (availableUsersLoading ? "Loading users..." : "Select users...") : "Select a course first"}
-                                    styles={{
-                                        control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                        menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                        multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
-                                        option: (base, state) => ({
-                                            ...base,
-                                            background: state.isFocused ? '#a78bfa' : 'transparent',
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            opacity: state.data.isAssigned ? 1 : 1,
-                                        }),
-                                        input: (base) => ({ ...base, color: 'white' }),
-                                        singleValue: (base) => ({ ...base, color: 'white' })
-                                    }}
-                                    components={{
-                                        Option: (props) => (
-                                            <div
-                                                {...props.innerProps}
-                                                className={props.className}
-                                                style={{ ...props.style, cursor: 'pointer' }}
-                                            >
+                        </div>
+                        {/* Additional fields for edit mode only */}
+                        {selectedCourseDetails && (
+                            <div className="space-y-4">
+                                <label className="block text-purple-200 mb-1 font-bold">Mark Completed Modules, Lessons, Topics</label>
+                                {/* Modules */}
+                                <div className="space-y-2">
+                                    {selectedCourseDetails.modules?.map(module => (
+                                        <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
+                                            <div className="flex items-center gap-2 mb-2">
                                                 <input
                                                     type="checkbox"
-                                                    checked={props.isSelected}
-                                                    onChange={() => null}
-                                                    style={{ marginRight: 8, cursor: 'pointer' }}
+                                                    checked={form.completedModules.includes(module._id)}
+                                                    onChange={e => {
+                                                        setForm(f => {
+                                                            const arr = f.completedModules.includes(module._id)
+                                                                ? f.completedModules.filter(id => id !== module._id)
+                                                                : [...f.completedModules, module._id];
+                                                            return { ...f, completedModules: arr };
+                                                        });
+                                                    }}
                                                 />
-                                                <span>{props.label}</span>
-                                                <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
-                                                {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
+                                                <span className="font-bold text-pink-200">{module.moduleTitle}</span>
                                             </div>
-                                        )
-                                    }}
-                                />
-                                <div className="text-xs text-purple-200 mt-1">You can select multiple users. Only users enrolled in the selected course and not already assigned to the batch are shown.</div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-purple-200 mb-1">Start Date</label>
-                                    <input type="date" name="startDate" value={form.startDate} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-purple-200 mb-1">End Date</label>
-                                    <input type="date" name="endDate" value={form.endDate} onChange={handleFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
-                                </div>
-                            </div>
-                            {/* Additional fields for edit mode only */}
-                            {selectedCourseDetails && (
-                                <div className="space-y-4">
-                                    <label className="block text-purple-200 mb-1 font-bold">Mark Completed Modules, Lessons, Topics</label>
-                                    {/* Modules */}
-                                    <div className="space-y-2">
-                                        {selectedCourseDetails.modules?.map(module => (
-                                            <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={form.completedModules.includes(module._id)}
-                                                        onChange={e => {
-                                                            setForm(f => {
-                                                                const arr = f.completedModules.includes(module._id)
-                                                                    ? f.completedModules.filter(id => id !== module._id)
-                                                                    : [...f.completedModules, module._id];
-                                                                return { ...f, completedModules: arr };
-                                                            });
-                                                        }}
-                                                    />
-                                                    <span className="font-bold text-pink-200">{module.moduleTitle}</span>
-                                                </div>
-                                                {/* Lessons */}
-                                                <div className="ml-6 space-y-1">
-                                                    {module.lessons?.map(lesson => (
-                                                        <div key={lesson._id} className="flex items-center gap-2 mb-1">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={form.completedLessons.includes(lesson._id)}
-                                                                onChange={e => {
-                                                                    setForm(f => {
-                                                                        const arr = f.completedLessons.includes(lesson._id)
-                                                                            ? f.completedLessons.filter(id => id !== lesson._id)
-                                                                            : [...f.completedLessons, lesson._id];
-                                                                        return { ...f, completedLessons: arr };
-                                                                    });
-                                                                }}
-                                                            />
-                                                            <span className="text-blue-200">{lesson.title}</span>
-                                                            {/* Topics */}
-                                                            {lesson.topics && lesson.topics.length > 0 && (
-                                                                <div className="ml-4 flex flex-wrap gap-2">
-                                                                    {lesson.topics.map(topic => (
-                                                                        <label key={topic._id} className="flex items-center gap-1 text-xs">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={form.completedTopics.includes(topic._id)}
-                                                                                onChange={e => {
-                                                                                    setForm(f => {
-                                                                                        const arr = f.completedTopics.includes(topic._id)
-                                                                                            ? f.completedTopics.filter(id => id !== topic._id)
-                                                                                            : [...f.completedTopics, topic._id];
-                                                                                        return { ...f, completedTopics: arr };
-                                                                                    });
-                                                                                }}
-                                                                            />
-                                                                            <span className="text-pink-200">{topic.title}</span>
-                                                                        </label>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                            {/* Lessons */}
+                                            <div className="ml-6 space-y-1">
+                                                {module.lessons?.map(lesson => (
+                                                    <div key={lesson._id} className="flex items-center gap-2 mb-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={form.completedLessons.includes(lesson._id)}
+                                                            onChange={e => {
+                                                                setForm(f => {
+                                                                    const arr = f.completedLessons.includes(lesson._id)
+                                                                        ? f.completedLessons.filter(id => id !== lesson._id)
+                                                                        : [...f.completedLessons, lesson._id];
+                                                                    return { ...f, completedLessons: arr };
+                                                                });
+                                                            }}
+                                                        />
+                                                        <span className="text-blue-200">{lesson.title}</span>
+                                                        {/* Topics */}
+                                                        {lesson.topics && lesson.topics.length > 0 && (
+                                                            <div className="ml-4 flex flex-wrap gap-2">
+                                                                {lesson.topics.map(topic => (
+                                                                    <label key={topic._id} className="flex items-center gap-1 text-xs">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={form.completedTopics.includes(topic._id)}
+                                                                            onChange={e => {
+                                                                                setForm(f => {
+                                                                                    const arr = f.completedTopics.includes(topic._id)
+                                                                                        ? f.completedTopics.filter(id => id !== topic._id)
+                                                                                        : [...f.completedTopics, topic._id];
+                                                                                    return { ...f, completedTopics: arr };
+                                                                                });
+                                                                            }}
+                                                                        />
+                                                                        <span className="text-pink-200">{topic.title}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
-                        <div className="flex justify-center mt-6">
-                            <button type="submit" disabled={modalLoading} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
-                                {modalLoading ? 'Saving...' : 'Create'}
-                            </button>
-                        </div>
-                    </form>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-center mt-6">
+                        <button type="submit" disabled={modalLoading} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
+                            {modalLoading ? 'Saving...' : 'Create'}
+                        </button>
+                    </div>
+                </form>
                 )}
             </div>
             <style>{`
@@ -1090,9 +993,9 @@ const BatchAdmin = () => {
                                             inputProps: { style: { color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' } },
                                             placeholder: 'Start',
                                             InputProps: {
-                                                sx: {
-                                                    '& .MuiSvgIcon-root': { color: '#fff' }
-                                                }
+                                              sx: {
+                                                '& .MuiSvgIcon-root': { color: '#fff' }
+                                              }
                                             },
                                         }
                                     }}
@@ -1147,9 +1050,9 @@ const BatchAdmin = () => {
                                             inputProps: { style: { color: '#fff', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' } },
                                             placeholder: 'End',
                                             InputProps: {
-                                                sx: {
-                                                    '& .MuiSvgIcon-root': { color: '#fff' }
-                                                }
+                                              sx: {
+                                                '& .MuiSvgIcon-root': { color: '#fff' }
+                                              }
                                             },
                                         }
                                     }}
@@ -1262,7 +1165,7 @@ const BatchAdmin = () => {
                                             </div>
                                         </td>
                                         {/* Dates */}
-                                        <td className="py-3 px-2 align-top min-w-[120px] max-w-[160px] overflow-hidden text-ellipsis" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}>
+                                        <td className="py-3 px-2 align-top min-w-[120px] max-w-[160px] overflow-hidden text-ellipsis" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}> 
                                             <div className="flex flex-col gap-1 items-start min-w-0">
                                                 <span className="text-[11px] text-purple-300 font-semibold uppercase tracking-wide">Start</span>
                                                 <span className="text-xs text-purple-100 font-bold" title={batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}>{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'}</span>
@@ -1271,71 +1174,17 @@ const BatchAdmin = () => {
                                             </div>
                                         </td>
                                         {/* Users */}
-                                        <td className="py-3 px-2 align-top max-w-[80px] text-left overflow-hidden text-ellipsis" title={`Total users: ${batch.users?.length || 0}`}>
+                                        <td className="py-3 px-2 align-top max-w-[80px] text-left overflow-hidden text-ellipsis" title={`Total users: ${batch.users?.length || 0}`}> 
                                             <span className="font-bold text-pink-100 text-lg">{batch.users?.length || 0}</span>
                                         </td>
                                         {/* Progress */}
                                         <td className="py-3 px-2 align-top max-w-[160px] overflow-hidden text-ellipsis" title={`Progress: ${batch.batchProgress?.percentage || 0}%`}>
-                                            <div className="flex flex-col items-start gap-2 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-24 h-2 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner">
-                                                        <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 transition-all duration-700"
-                                                            style={{ width: `${batch.batchProgress?.percentage || 0}%` }}></div>
-                                                    </div>
-                                                    <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-24 h-2 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner">
+                                                    <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 transition-all duration-700"
+                                                        style={{ width: `${batch.batchProgress?.percentage || 0}%` }}></div>
                                                 </div>
-                                                {/* Certificate count display with creative tooltip, only if certificates have been sent */}
-                                                {(() => {
-                                                    const certStats = batchCertificateStats[batch._id];
-                                                    if (
-                                                        (batch.courseCompleted === true || batch.courseCompleted === 'true' || batch.isCourseCompleted === true || batch.isCourseCompleted === 'true') &&
-                                                        batch.users && batch.users.length > 0 && certStats && certStats.issuedCount > 0
-                                                    ) {
-                                                        return (
-                                                            <span
-                                                                className="text-xs font-semibold text-green-200 cursor-pointer underline decoration-dotted decoration-2 px-1 py-0.5 rounded hover:bg-green-900/20 transition"
-                                                                onClick={() => setCertModalBatch({ batch, certStats })}
-                                                                title="View issued and not issued users"
-                                                            >
-                                                                Certificates: {certStats.issuedCount || 0}/{certStats.totalUsers || batch.users.length} sent
-                                                            </span>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
-                                                {/* --- CERTIFICATE BUTTON (now in Progress column) --- */}
-                                                {(() => {
-                                                    const certStats = batchCertificateStats[batch._id];
-                                                    if (
-                                                        (batch.courseCompleted === true || batch.courseCompleted === 'true' || batch.isCourseCompleted === true || batch.isCourseCompleted === 'true') &&
-                                                        batch.users && batch.users.length > 0 && certStats
-                                                    ) {
-                                                        if (certStats.issuedCount === certStats.totalUsers && certStats.totalUsers > 0) {
-                                                            return (
-                                                                <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs font-bold shadow animate-pulse">
-                                                                    <CheckCircleIcon style={{ fontSize: 14, color: '#fff' }} />
-                                                                    Certificates
-                                                                </span>
-                                                            );
-                                                        } else {
-                                                            return (
-                                                                <button
-                                                                    onClick={() => handleSendCertificates(batch._id)}
-                                                                    disabled={sendingCertificateBatchId === batch._id}
-                                                                    className={`px-3 py-1 rounded-md font-bold text-xs flex items-center gap-1 bg-gradient-to-r from-emerald-400 via-pink-400 to-purple-500 text-white shadow-lg hover:scale-105 transition-transform duration-200 border-2 border-white/10 ${sendingCertificateBatchId === batch._id ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                                    title="Send Certificates to all users in this batch"
-                                                                >
-                                                                    {sendingCertificateBatchId === batch._id ? (
-                                                                        <span className="flex items-center gap-1"><span className="animate-spin h-4 w-4 border-b-2 border-white rounded-full"></span> Sending...</span>
-                                                                    ) : (
-                                                                        <><MailOutlineIcon style={{ fontSize: 18, color: '#fff' }} /> Send Certificates</>
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        }
-                                                    }
-                                                    return null;
-                                                })()}
+                                                <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
                                             </div>
                                         </td>
                                         {/* Actions */}
@@ -1427,18 +1276,13 @@ const BatchAdmin = () => {
                             style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={closeViewModal}
                         >
-                            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <CloseIcon className="text-xl flex items-center justify-center w-full h-full" />
                         </button>
                         <div className="flex-1 overflow-y-auto px-8 pb-8 pt-4 custom-scrollbar">
                             {viewModalLoading ? (
                                 <div className="flex flex-col items-center justify-center h-96">
                                     <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-400 mb-4"></div>
                                     <div className="text-lg text-purple-200 font-bold">Loading batch details...</div>
-                                </div>
-                            ) : viewModalError ? (
-                                <div className="flex flex-col items-center justify-center h-96">
-                                    <div className="text-lg text-red-400 font-bold mb-4">{viewModalError}</div>
-                                    <button onClick={closeViewModal} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform mt-4">Close</button>
                                 </div>
                             ) : viewBatch && (
                                 <div className="space-y-8">
@@ -1520,53 +1364,6 @@ const BatchAdmin = () => {
                                     {/* Users Section */}
                                     <div className="border-b border-purple-400/20 pb-4">
                                         <div className="text-lg font-bold text-pink-200 mb-2 flex items-center gap-2"><Group className="text-pink-400" /> Users ({viewBatch.users?.length || 0})</div>
-                                        {/* --- Certificate Stats Section --- */}
-                                        {viewBatchCertificateStatsLoading ? (
-                                            <div className="flex items-center gap-2 text-purple-200 text-sm my-2"><span className="animate-spin h-5 w-5 border-b-2 border-pink-400 rounded-full"></span> Loading certificate stats...</div>
-                                        ) : viewBatchCertificateStatsError ? (
-                                            <div className="text-red-400 text-sm my-2">{viewBatchCertificateStatsError}</div>
-                                        ) : viewBatchCertificateStats ? (
-                                            <div className="my-4 p-4 rounded-2xl bg-gradient-to-br from-[#1a1536]/80 via-[#a78bfa22] to-[#0ea5e9]/20 border border-pink-400/20 shadow-lg">
-                                                <div className="flex flex-wrap gap-6 items-center mb-2">
-                                                    <span className="text-base font-bold text-pink-200 flex items-center gap-2"><MailOutlineIcon style={{ fontSize: 20, color: '#f472b6' }} /> Certificate Stats</span>
-                                                    <span className="text-xs text-purple-200 bg-purple-900/40 px-2 py-1 rounded-full">Total Users: <b>{viewBatchCertificateStats.totalUsers}</b></span>
-                                                    <span className="text-xs text-green-200 bg-green-900/40 px-2 py-1 rounded-full">Issued: <b>{viewBatchCertificateStats.issuedCount}</b></span>
-                                                    <span className="text-xs text-pink-200 bg-pink-900/40 px-2 py-1 rounded-full">Not Issued: <b>{viewBatchCertificateStats.notIssuedCount}</b></span>
-                                                </div>
-                                                <div className="flex flex-col md:flex-row gap-6 mt-2">
-                                                    <div className="flex-1">
-                                                        <div className="font-bold text-green-300 mb-1 flex items-center gap-1"><CheckCircleIcon style={{ fontSize: 16, color: '#22c55e' }} /> Issued To:</div>
-                                                        {viewBatchCertificateStats.issuedTo.length === 0 ? (
-                                                            <div className="text-xs text-purple-300">No certificates issued yet.</div>
-                                                        ) : (
-                                                            <ul className="text-xs text-green-100 space-y-1">
-                                                                {viewBatchCertificateStats.issuedTo.map(u => (
-                                                                    <li key={u._id} className="flex items-center gap-2 bg-green-900/20 rounded px-2 py-1">
-                                                                        <span className="font-bold">{u.name}</span>
-                                                                        <span className="text-green-200">{u.email}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="font-bold text-pink-300 mb-1 flex items-center gap-1"><MailOutlineIcon style={{ fontSize: 16, color: '#f472b6' }} /> Not Issued To:</div>
-                                                        {viewBatchCertificateStats.notIssuedTo.length === 0 ? (
-                                                            <div className="text-xs text-purple-300">All users have received certificates.</div>
-                                                        ) : (
-                                                            <ul className="text-xs text-pink-100 space-y-1">
-                                                                {viewBatchCertificateStats.notIssuedTo.map(u => (
-                                                                    <li key={u._id} className="flex items-center gap-2 bg-pink-900/20 rounded px-2 py-1">
-                                                                        <span className="font-bold">{u.name}</span>
-                                                                        <span className="text-pink-200">{u.email}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : null}
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-xs md:text-sm text-left text-purple-100">
                                                 <thead>
@@ -1584,7 +1381,7 @@ const BatchAdmin = () => {
                                                             <tr key={u._id || idx} className="border-b border-purple-400/10 hover:bg-[#312e81]/40 transition">
                                                                 <td className="py-2 px-2 font-bold text-pink-100">{u.name}</td>
                                                                 <td className="py-2 px-2">{u.email}</td>
-                                                                <td className="py-2 px-2">{u.name}</td>
+                                                                <td className="py-2 px-2">{u._id}</td>
                                                                 <td className="py-2 px-2">{u.role}</td>
                                                                 <td className="py-2 px-2">
                                                                     {u.isApproved ? <span className="px-2 py-0.5 rounded-full bg-green-500/30 text-green-100 font-bold">Yes</span> : <span className="px-2 py-0.5 rounded-full bg-pink-500/30 text-pink-100 font-bold">No</span>}
@@ -1754,285 +1551,210 @@ const BatchAdmin = () => {
                                 <div className="text-lg text-purple-200 font-bold">Loading batch details...</div>
                             </div>
                         ) : (
-                            <form onSubmit={handleEditSave} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
-                                <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">Edit Batch</h2>
-                                <div className="space-y-4">
-                                    {/* Validation errors */}
-                                    {Object.keys(editFormErrors).length > 0 && (
-                                        <div className="bg-red-500/10 border border-red-400/30 text-red-300 rounded-lg px-4 py-2 text-sm">
-                                            {Object.values(editFormErrors).map((err, i) => (
-                                                <div key={i}>{err}</div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className="block text-purple-200 mb-1">Batch Name</label>
-                                        <input name="batchName" value={editForm.batchName} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                        <form onSubmit={handleEditSave} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
+                            <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">Edit Batch</h2>
+                            <div className="space-y-4">
+                                {/* Validation errors */}
+                                {Object.keys(editFormErrors).length > 0 && (
+                                    <div className="bg-red-500/10 border border-red-400/30 text-red-300 rounded-lg px-4 py-2 text-sm">
+                                        {Object.values(editFormErrors).map((err, i) => (
+                                            <div key={i}>{err}</div>
+                                        ))}
                                     </div>
-                                    <div>
-                                        <label className="block text-purple-200 mb-1">Course</label>
-                                        <Select
-                                            isDisabled={fetchingDropdowns}
-                                            options={courses.map(c => ({ value: c._id, label: c.title }))}
-                                            value={courses.find(c => c._id === editForm.course) ? { value: editForm.course, label: courses.find(c => c._id === editForm.course)?.title } : null}
-                                            onChange={opt => setEditForm(f => ({ ...f, course: opt?.value || '', users: [] }))}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select course..."
-                                            styles={{
-                                                control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                                menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                                singleValue: (base) => ({ ...base, color: 'white' }),
-                                                option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
-                                            }}
-                                        />
+                                )}
+                                <div>
+                                    <label className="block text-purple-200 mb-1">Batch Name</label>
+                                    <input name="batchName" value={editForm.batchName} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                                </div>
+                                <div>
+                                    <label className="block text-purple-200 mb-1">Course</label>
+                                    <Select
+                                        isDisabled={fetchingDropdowns}
+                                        options={courses.map(c => ({ value: c._id, label: c.title }))}
+                                        value={courses.find(c => c._id === editForm.course) ? { value: editForm.course, label: courses.find(c => c._id === editForm.course)?.title } : null}
+                                        onChange={opt => setEditForm(f => ({ ...f, course: opt?.value || '', users: [] }))}
+                                        classNamePrefix="react-select"
+                                        placeholder="Select course..."
+                                        styles={{
+                                            control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                            menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                            singleValue: (base) => ({ ...base, color: 'white' }),
+                                            option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-purple-200 mb-1">Professor</label>
+                                    <Select
+                                        isDisabled={fetchingDropdowns}
+                                        options={professors.map(p => ({ value: p._id, label: p.name }))}
+                                        value={professors.find(p => p._id === editForm.professor) ? { value: editForm.professor, label: professors.find(p => p._id === editForm.professor)?.name } : null}
+                                        onChange={opt => setEditForm(f => ({ ...f, professor: opt?.value || '' }))}
+                                        classNamePrefix="react-select"
+                                        placeholder="Select professor..."
+                                        styles={{
+                                            control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                            menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                            singleValue: (base) => ({ ...base, color: 'white' }),
+                                            option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-purple-200 mb-1">Users</label>
+                                    <Select
+                                        isMulti
+                                        isSearchable
+                                        isDisabled={fetchingDropdowns || availableUsersLoading || !editForm.course}
+                                        closeMenuOnSelect={false}
+                                        hideSelectedOptions={false}
+                                        options={[
+                                            ...editUserBreakdown.assigned.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: true })),
+                                            ...editUserBreakdown.available.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: false })),
+                                        ]}
+                                        value={[
+                                            ...editUserBreakdown.assigned,
+                                            ...editUserBreakdown.available
+                                        ]
+                                            .filter(u => editForm.users.includes(u._id))
+                                            .map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: !!editUserBreakdown.assigned.find(a => a._id === u._id) }))}
+                                        onChange={opts => setEditForm(f => ({ ...f, users: opts.map(o => typeof o.value === 'object' && o.value._id ? o.value._id : o.value) }))}
+                                        classNamePrefix="react-select"
+                                        placeholder={editForm.course ? (availableUsersLoading ? "Loading users..." : "Select users...") : "Select a course first"}
+                                        styles={{
+                                            control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
+                                            menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
+                                            multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
+                                            option: (base, state) => ({
+                                                ...base,
+                                                background: state.isFocused ? '#a78bfa' : 'transparent',
+                                                color: 'white',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                opacity: state.data.isAssigned ? 1 : 1,
+                                                cursor: 'pointer',
+                                            }),
+                                            input: (base) => ({ ...base, color: 'white' }),
+                                            singleValue: (base) => ({ ...base, color: 'white' })
+                                        }}
+                                        components={{
+                                            Option: (props) => (
+                                                <div {...props.innerProps} className={props.className} style={{ ...props.style, cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={props.isSelected}
+                                                        onChange={() => null}
+                                                        style={{ marginRight: 8, cursor: 'pointer' }}
+                                                    />
+                                                    <span>{props.label}</span>
+                                                    <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
+                                                    {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
+                                                </div>
+                                            )
+                                        }}
+                                    />
+                                    <div className="text-xs text-purple-200 mt-1">You can select multiple users. Already assigned users are pre-selected.</div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-purple-200 mb-1">Start Date</label>
+                                        <input type="date" name="startDate" value={editForm.startDate} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
                                     </div>
-                                    <div>
-                                        <label className="block text-purple-200 mb-1">Professor</label>
-                                        <Select
-                                            isDisabled={fetchingDropdowns}
-                                            options={professors.map(p => ({ value: p._id, label: p.name }))}
-                                            value={professors.find(p => p._id === editForm.professor) ? { value: editForm.professor, label: professors.find(p => p._id === editForm.professor)?.name } : null}
-                                            onChange={opt => setEditForm(f => ({ ...f, professor: opt?.value || '' }))}
-                                            classNamePrefix="react-select"
-                                            placeholder="Select professor..."
-                                            styles={{
-                                                control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                                menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                                singleValue: (base) => ({ ...base, color: 'white' }),
-                                                option: (base, state) => ({ ...base, background: state.isFocused ? '#a78bfa' : 'transparent', color: 'white' })
-                                            }}
-                                        />
+                                    <div className="flex-1">
+                                        <label className="block text-purple-200 mb-1">End Date</label>
+                                        <input type="date" name="endDate" value={editForm.endDate} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
                                     </div>
-                                    <div>
-                                        <label className="block text-purple-200 mb-1">Users</label>
-                                        <Select
-                                            isMulti
-                                            isSearchable
-                                            isDisabled={fetchingDropdowns || availableUsersLoading || !editForm.course}
-                                            closeMenuOnSelect={false}
-                                            hideSelectedOptions={false}
-                                            options={[
-                                                ...editUserBreakdown.assigned.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: true })),
-                                                ...editUserBreakdown.available.map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: false })),
-                                            ]}
-                                            value={[
-                                                ...editUserBreakdown.assigned,
-                                                ...editUserBreakdown.available
-                                            ]
-                                                .filter(u => editForm.users.includes(u._id))
-                                                .map(u => ({ value: u._id, label: u.name, email: u.email, isAssigned: !!editUserBreakdown.assigned.find(a => a._id === u._id) }))}
-                                            onChange={opts => setEditForm(f => ({ ...f, users: opts.map(o => typeof o.value === 'object' && o.value._id ? o.value._id : o.value) }))}
-                                            classNamePrefix="react-select"
-                                            placeholder={editForm.course ? (availableUsersLoading ? "Loading users..." : "Select users...") : "Select a course first"}
-                                            styles={{
-                                                control: (base) => ({ ...base, background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: '#a78bfa', minHeight: 40 }),
-                                                menu: (base) => ({ ...base, background: '#312e81', color: 'white' }),
-                                                multiValue: (base) => ({ ...base, background: '#a78bfa', color: 'white' }),
-                                                option: (base, state) => ({
-                                                    ...base,
-                                                    background: state.isFocused ? '#a78bfa' : 'transparent',
-                                                    color: 'white',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 8,
-                                                    opacity: state.data.isAssigned ? 1 : 1,
-                                                    cursor: 'pointer',
-                                                }),
-                                                input: (base) => ({ ...base, color: 'white' }),
-                                                singleValue: (base) => ({ ...base, color: 'white' })
-                                            }}
-                                            components={{
-                                                Option: (props) => (
-                                                    <div {...props.innerProps} className={props.className} style={{ ...props.style, cursor: 'pointer' }}>
+                                </div>
+                                {/* Mark completed modules, lessons, topics */}
+                                {editSelectedCourseDetails && (
+                                    <div className="space-y-4">
+                                        <label className="block text-purple-200 mb-1 font-bold">Mark Completed Modules, Lessons, Topics</label>
+                                        <div className="space-y-2">
+                                            {editSelectedCourseDetails.modules?.map(module => (
+                                                <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
+                                                    <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
                                                         <input
                                                             type="checkbox"
-                                                            checked={props.isSelected}
-                                                            onChange={() => null}
-                                                            style={{ marginRight: 8, cursor: 'pointer' }}
+                                                            checked={editForm.completedModules.includes(module._id)}
+                                                            onChange={e => {
+                                                                setEditForm(f => {
+                                                                    const arr = f.completedModules.includes(module._id)
+                                                                        ? f.completedModules.filter(id => id !== module._id)
+                                                                        : [...f.completedModules, module._id];
+                                                                    return { ...f, completedModules: arr };
+                                                                });
+                                                            }}
                                                         />
-                                                        <span>{props.label}</span>
-                                                        <span className="ml-2 text-xs text-pink-200/80">({props.data.email})</span>
-                                                        {props.data.isAssigned && <span className="ml-2 text-xs text-green-300/80">(Already assigned)</span>}
+                                                        <span className="font-bold text-pink-200">{module.moduleTitle}</span>
+                                                    </label>
+                                                    <div className="ml-6 space-y-1">
+                                                        {module.lessons?.map(lesson => (
+                                                            <label key={lesson._id} className="flex items-center gap-2 mb-1 cursor-pointer select-none">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={editForm.completedLessons.includes(lesson._id)}
+                                                                    onChange={e => {
+                                                                        setEditForm(f => {
+                                                                            const arr = f.completedLessons.includes(lesson._id)
+                                                                                ? f.completedLessons.filter(id => id !== lesson._id)
+                                                                                : [...f.completedLessons, lesson._id];
+                                                                            return { ...f, completedLessons: arr };
+                                                                        });
+                                                                    }}
+                                                                />
+                                                                <span className="text-blue-200">{lesson.title}</span>
+                                                                {lesson.topics && lesson.topics.length > 0 && (
+                                                                    <div className="ml-4 flex flex-wrap gap-2">
+                                                                        {lesson.topics.map(topic => (
+                                                                            <label key={topic._id} className="flex items-center gap-1 text-xs cursor-pointer select-none">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={editForm.completedTopics.includes(topic._id)}
+                                                                                    onChange={e => {
+                                                                                        setEditForm(f => {
+                                                                                            const arr = f.completedTopics.includes(topic._id)
+                                                                                                ? f.completedTopics.filter(id => id !== topic._id)
+                                                                                                : [...f.completedTopics, topic._id];
+                                                                                            return { ...f, completedTopics: arr };
+                                                                                        });
+                                                                                    }}
+                                                                                />
+                                                                                <span className="text-pink-200">{topic.title}</span>
+                                                                            </label>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </label>
+                                                        ))}
                                                     </div>
-                                                )
-                                            }}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="mt-6">
+                                    <label className="block text-purple-200 mb-1 flex items-center gap-2 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!editForm.markAsCompleted}
+                                            onChange={e => setEditForm(f => ({ ...f, markAsCompleted: e.target.checked }))}
+                                            className="mr-2"
                                         />
-                                        <div className="text-xs text-purple-200 mt-1">You can select multiple users. Already assigned users are pre-selected.</div>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
-                                            <label className="block text-purple-200 mb-1">Start Date</label>
-                                            <input type="date" name="startDate" value={editForm.startDate} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="block text-purple-200 mb-1">End Date</label>
-                                            <input type="date" name="endDate" value={editForm.endDate} onChange={handleEditFormChange} required className="w-full px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400" />
-                                        </div>
-                                    </div>
-                                    {/* Mark completed modules, lessons, topics */}
-                                    {editSelectedCourseDetails && (
-                                        <div className="space-y-4">
-                                            <label className="block text-purple-200 mb-1 font-bold">Mark Completed Modules, Lessons, Topics</label>
-                                            <div className="space-y-2">
-                                                {editSelectedCourseDetails.modules?.map(module => (
-                                                    <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
-                                                        <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={editForm.completedModules.includes(module._id)}
-                                                                onChange={e => {
-                                                                    setEditForm(f => {
-                                                                        const arr = f.completedModules.includes(module._id)
-                                                                            ? f.completedModules.filter(id => id !== module._id)
-                                                                            : [...f.completedModules, module._id];
-                                                                        return { ...f, completedModules: arr };
-                                                                    });
-                                                                }}
-                                                            />
-                                                            <span className="font-bold text-pink-200">{module.moduleTitle}</span>
-                                                        </label>
-                                                        <div className="ml-6 space-y-1">
-                                                            {module.lessons?.map(lesson => (
-                                                                <label key={lesson._id} className="flex items-center gap-2 mb-1 cursor-pointer select-none">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={editForm.completedLessons.includes(lesson._id)}
-                                                                        onChange={e => {
-                                                                            setEditForm(f => {
-                                                                                const arr = f.completedLessons.includes(lesson._id)
-                                                                                    ? f.completedLessons.filter(id => id !== lesson._id)
-                                                                                    : [...f.completedLessons, lesson._id];
-                                                                                return { ...f, completedLessons: arr };
-                                                                            });
-                                                                        }}
-                                                                    />
-                                                                    <span className="text-blue-200">{lesson.title}</span>
-                                                                    {lesson.topics && lesson.topics.length > 0 && (
-                                                                        <div className="ml-4 flex flex-wrap gap-2">
-                                                                            {lesson.topics.map(topic => (
-                                                                                <label key={topic._id} className="flex items-center gap-1 text-xs cursor-pointer select-none">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        checked={editForm.completedTopics.includes(topic._id)}
-                                                                                        onChange={e => {
-                                                                                            setEditForm(f => {
-                                                                                                const arr = f.completedTopics.includes(topic._id)
-                                                                                                    ? f.completedTopics.filter(id => id !== topic._id)
-                                                                                                    : [...f.completedTopics, topic._id];
-                                                                                                return { ...f, completedTopics: arr };
-                                                                                            });
-                                                                                        }}
-                                                                                    />
-                                                                                    <span className="text-pink-200">{topic.title}</span>
-                                                                                </label>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
-                                                                </label>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="mt-6">
-                                        <label className="block text-purple-200 mb-1 flex items-center gap-2 cursor-pointer select-none">
-                                            <input
-                                                type="checkbox"
-                                                checked={!!editForm.markAsCompleted}
-                                                onChange={e => setEditForm(f => ({ ...f, markAsCompleted: e.target.checked }))}
-                                                className="mr-2"
-                                            />
-                                            Course Completed
-                                        </label>
-                                    </div>
+                                        Course Completed
+                                    </label>
                                 </div>
-                                <div className="flex justify-center mt-6">
-                                    <button type="submit" disabled={editModalLoading} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
-                                        {editModalLoading ? 'Saving...' : 'Update'}
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
+                            <div className="flex justify-center mt-6">
+                                <button type="submit" disabled={editModalLoading} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
+                                    {editModalLoading ? 'Saving...' : 'Update'}
+                                </button>
+                            </div>
+                        </form>
                         )}
                     </div>
                 </div>
-                , document.getElementById('modal-root'))}
-
-            {/* Certificate Issued/Not Issued Modal */}
-            {certModalBatch && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-[2px] animate-fadeIn">
-                    <div className="relative w-full max-w-2xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/98 rounded-3xl shadow-2xl border border-purple-400/30 flex flex-col max-h-[90vh] overflow-hidden ring-2 ring-pink-400/10 animate-modalPop">
-                        {/* Accent Header Bar */}
-                        <div className="h-3 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
-                        {/* Close Button */}
-                        <button
-                            className="absolute top-5 right-5 text-purple-200 m-0 p-0 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full shadow-lg backdrop-blur-md flex items-center justify-center"
-                            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            onClick={() => setCertModalBatch(null)}
-                        >
-                            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </button>
-                        <div className="flex-1 overflow-y-auto px-8 pb-8 pt-4 custom-scrollbar">
-                            <div className="text-2xl font-extrabold text-white mb-4 flex items-center gap-2">
-                                Certificate Status for <span className="text-pink-300">{certModalBatch.batch.batchName}</span>
-                            </div>
-                            <div className="flex flex-col md:flex-row gap-8">
-                                {/* Issued */}
-                                <div className="flex-1 min-w-[180px]">
-                                    <div className="font-bold text-green-300 mb-2 text-lg">Issued</div>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar rounded bg-green-900/10 p-2">
-                                        <table className="w-full text-xs md:text-sm">
-                                            <thead><tr><th className="text-left px-3 py-2 font-bold text-base">Name</th><th className="text-left px-3 py-2 font-bold text-base">Email</th></tr></thead>
-                                            <tbody>
-                                                {(certModalBatch.certStats.issuedTo || []).length === 0 ? (
-                                                    <tr><td colSpan={2} className="text-purple-300 px-3 py-2">None</td></tr>
-                                                ) : (
-                                                    certModalBatch.certStats.issuedTo.map(u => (
-                                                        <tr key={u._id} className="border-b border-purple-400/10 last:border-0">
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.name}</td>
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.email}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                {/* Not Issued */}
-                                <div className="flex-1 min-w-[180px]">
-                                    <div className="font-bold text-pink-300 mb-2 text-lg">Not Issued</div>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar rounded bg-pink-900/10 p-2">
-                                        <table className="w-full text-xs md:text-sm">
-                                            <thead><tr><th className="text-left px-3 py-2 font-bold text-base">Name</th><th className="text-left px-3 py-2 font-bold text-base">Email</th></tr></thead>
-                                            <tbody>
-                                                {(certModalBatch.certStats.notIssuedTo || []).length === 0 ? (
-                                                    <tr><td colSpan={2} className="text-purple-300 px-3 py-2">None</td></tr>
-                                                ) : (
-                                                    certModalBatch.certStats.notIssuedTo.map(u => (
-                                                        <tr key={u._id} className="border-b border-purple-400/10 last:border-0">
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.name}</td>
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.email}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <style>{`
-                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                        .animate-fadeIn { animation: fadeIn 0.3s cubic-bezier(0.4,0,0.2,1); }
-                        @keyframes modalPop { 0% { transform: scale(0.95) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-                        .animate-modalPop { animation: modalPop 0.4s cubic-bezier(0.4,0,0.2,1); }
-                        .custom-scrollbar::-webkit-scrollbar { width: 8px; background: transparent; }
-                        .custom-scrollbar::-webkit-scrollbar-thumb { background: #a78bfa55; border-radius: 8px; }
-                    `}</style>
-                </div>
-            )}
+            , document.getElementById('modal-root'))}
         </div>
     );
 };
@@ -2052,5 +1774,5 @@ export default BatchAdmin; <style>{`
     -webkit-text-fill-color: #fff !important;
     transition: background-color 9999s ease-in-out 0s;
   }
-`}</style>
+`}</style> 
 

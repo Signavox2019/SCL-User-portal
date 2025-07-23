@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart } from '@mui/icons-material';
@@ -87,13 +87,6 @@ const BatchAdmin = () => {
     const [batchCertificateStatsError, setBatchCertificateStatsError] = useState('');
     const [sendingCertificateBatchId, setSendingCertificateBatchId] = useState(null);
     const [certificatesSentBatches, setCertificatesSentBatches] = useState([]);
-    const [certTooltipBatchId, setCertTooltipBatchId] = useState(null); // batchId or null
-    const certTooltipRef = useRef();
-    const [certModalBatch, setCertModalBatch] = useState(null); // batch object or null
-    // Add missing state for view modal certificate stats
-    const [viewBatchCertificateStats, setViewBatchCertificateStats] = useState(null);
-    const [viewBatchCertificateStatsLoading, setViewBatchCertificateStatsLoading] = useState(false);
-    const [viewBatchCertificateStatsError, setViewBatchCertificateStatsError] = useState('');
     useEffect(() => {
         const fetchBatchCertStats = async () => {
             setBatchCertificateStatsLoading(true);
@@ -256,41 +249,31 @@ const BatchAdmin = () => {
 
     // Handler to open view modal (updated to fetch full details with new API response)
     const [viewModalLoading, setViewModalLoading] = useState(false); // Add loading state for view modal
-    const [viewModalError, setViewModalError] = useState('');
     const openViewModal = async (batch) => {
         setViewModalLoading(true);
         setViewModalOpen(true);
         setViewBatchCertificateStats(null);
         setViewBatchCertificateStatsLoading(true);
         setViewBatchCertificateStatsError('');
-        setViewModalError('');
         try {
             const token = getToken();
             const res = await axios.get(`${BaseUrl}/batches/${batch._id || batch.batchId || batch.id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (!res.data || !res.data.batch) {
-                setViewModalError('Batch details not found.');
-                setViewBatch(null);
-            } else {
-                setViewBatch({
-                    ...res.data.batch,
-                    _apiMessage: res.data.message,
-                    _progress: res.data.progress,
-                });
-            }
+            setViewBatch({
+                ...res.data.batch,
+                _apiMessage: res.data.message,
+                _progress: res.data.progress,
+            });
             // Fetch certificate stats for this batch
-            try {
-                const certRes = await axios.get(`${BaseUrl}/batches/batch-certificates/stats/${batch._id || batch.batchId || batch.id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setViewBatchCertificateStats(certRes.data);
-            } catch (certErr) {
-                setViewBatchCertificateStatsError(certErr.response?.data?.message || 'Failed to fetch certificate stats');
-            }
+            const certRes = await axios.get(`${BaseUrl}/batches/batch-certificates/stats/${batch._id || batch.batchId || batch.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setViewBatchCertificateStats(certRes.data);
         } catch (err) {
-            setViewModalError(err.response?.data?.message || 'Failed to fetch batch details');
-            setViewBatch(null);
+            toast.error('Failed to fetch batch details');
+            setViewModalOpen(false);
+            setViewBatchCertificateStatsError(err.response?.data?.message || 'Failed to fetch certificate stats');
         } finally {
             setViewModalLoading(false);
             setViewBatchCertificateStatsLoading(false);
@@ -1284,19 +1267,15 @@ const BatchAdmin = () => {
                                                     </div>
                                                     <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
                                                 </div>
-                                                {/* Certificate count display with creative tooltip, only if certificates have been sent */}
+                                                {/* Certificate count display */}
                                                 {(() => {
                                                     const certStats = batchCertificateStats[batch._id];
                                                     if (
                                                         (batch.courseCompleted === true || batch.courseCompleted === 'true' || batch.isCourseCompleted === true || batch.isCourseCompleted === 'true') &&
-                                                        batch.users && batch.users.length > 0 && certStats && certStats.issuedCount > 0
+                                                        batch.users && batch.users.length > 0 && certStats
                                                     ) {
                                                         return (
-                                                            <span
-                                                                className="text-xs font-semibold text-green-200 cursor-pointer underline decoration-dotted decoration-2 px-1 py-0.5 rounded hover:bg-green-900/20 transition"
-                                                                onClick={() => setCertModalBatch({ batch, certStats })}
-                                                                title="View issued and not issued users"
-                                                            >
+                                                            <span className="text-xs font-semibold text-green-200">
                                                                 Certificates: {certStats.issuedCount || 0}/{certStats.totalUsers || batch.users.length} sent
                                                             </span>
                                                         );
@@ -1427,18 +1406,13 @@ const BatchAdmin = () => {
                             style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={closeViewModal}
                         >
-                            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <CloseIcon className="text-xl flex items-center justify-center w-full h-full" />
                         </button>
                         <div className="flex-1 overflow-y-auto px-8 pb-8 pt-4 custom-scrollbar">
                             {viewModalLoading ? (
                                 <div className="flex flex-col items-center justify-center h-96">
                                     <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-400 mb-4"></div>
                                     <div className="text-lg text-purple-200 font-bold">Loading batch details...</div>
-                                </div>
-                            ) : viewModalError ? (
-                                <div className="flex flex-col items-center justify-center h-96">
-                                    <div className="text-lg text-red-400 font-bold mb-4">{viewModalError}</div>
-                                    <button onClick={closeViewModal} className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-transform mt-4">Close</button>
                                 </div>
                             ) : viewBatch && (
                                 <div className="space-y-8">
@@ -1584,7 +1558,7 @@ const BatchAdmin = () => {
                                                             <tr key={u._id || idx} className="border-b border-purple-400/10 hover:bg-[#312e81]/40 transition">
                                                                 <td className="py-2 px-2 font-bold text-pink-100">{u.name}</td>
                                                                 <td className="py-2 px-2">{u.email}</td>
-                                                                <td className="py-2 px-2">{u.name}</td>
+                                                                <td className="py-2 px-2">{u._id}</td>
                                                                 <td className="py-2 px-2">{u.role}</td>
                                                                 <td className="py-2 px-2">
                                                                     {u.isApproved ? <span className="px-2 py-0.5 rounded-full bg-green-500/30 text-green-100 font-bold">Yes</span> : <span className="px-2 py-0.5 rounded-full bg-pink-500/30 text-pink-100 font-bold">No</span>}
@@ -1958,81 +1932,6 @@ const BatchAdmin = () => {
                     </div>
                 </div>
                 , document.getElementById('modal-root'))}
-
-            {/* Certificate Issued/Not Issued Modal */}
-            {certModalBatch && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-[2px] animate-fadeIn">
-                    <div className="relative w-full max-w-2xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/98 rounded-3xl shadow-2xl border border-purple-400/30 flex flex-col max-h-[90vh] overflow-hidden ring-2 ring-pink-400/10 animate-modalPop">
-                        {/* Accent Header Bar */}
-                        <div className="h-3 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
-                        {/* Close Button */}
-                        <button
-                            className="absolute top-5 right-5 text-purple-200 m-0 p-0 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full shadow-lg backdrop-blur-md flex items-center justify-center"
-                            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            onClick={() => setCertModalBatch(null)}
-                        >
-                            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </button>
-                        <div className="flex-1 overflow-y-auto px-8 pb-8 pt-4 custom-scrollbar">
-                            <div className="text-2xl font-extrabold text-white mb-4 flex items-center gap-2">
-                                Certificate Status for <span className="text-pink-300">{certModalBatch.batch.batchName}</span>
-                            </div>
-                            <div className="flex flex-col md:flex-row gap-8">
-                                {/* Issued */}
-                                <div className="flex-1 min-w-[180px]">
-                                    <div className="font-bold text-green-300 mb-2 text-lg">Issued</div>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar rounded bg-green-900/10 p-2">
-                                        <table className="w-full text-xs md:text-sm">
-                                            <thead><tr><th className="text-left px-3 py-2 font-bold text-base">Name</th><th className="text-left px-3 py-2 font-bold text-base">Email</th></tr></thead>
-                                            <tbody>
-                                                {(certModalBatch.certStats.issuedTo || []).length === 0 ? (
-                                                    <tr><td colSpan={2} className="text-purple-300 px-3 py-2">None</td></tr>
-                                                ) : (
-                                                    certModalBatch.certStats.issuedTo.map(u => (
-                                                        <tr key={u._id} className="border-b border-purple-400/10 last:border-0">
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.name}</td>
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.email}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                {/* Not Issued */}
-                                <div className="flex-1 min-w-[180px]">
-                                    <div className="font-bold text-pink-300 mb-2 text-lg">Not Issued</div>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar rounded bg-pink-900/10 p-2">
-                                        <table className="w-full text-xs md:text-sm">
-                                            <thead><tr><th className="text-left px-3 py-2 font-bold text-base">Name</th><th className="text-left px-3 py-2 font-bold text-base">Email</th></tr></thead>
-                                            <tbody>
-                                                {(certModalBatch.certStats.notIssuedTo || []).length === 0 ? (
-                                                    <tr><td colSpan={2} className="text-purple-300 px-3 py-2">None</td></tr>
-                                                ) : (
-                                                    certModalBatch.certStats.notIssuedTo.map(u => (
-                                                        <tr key={u._id} className="border-b border-purple-400/10 last:border-0">
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.name}</td>
-                                                            <td className="px-3 py-2 align-middle text-left whitespace-nowrap">{u.email}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <style>{`
-                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                        .animate-fadeIn { animation: fadeIn 0.3s cubic-bezier(0.4,0,0.2,1); }
-                        @keyframes modalPop { 0% { transform: scale(0.95) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-                        .animate-modalPop { animation: modalPop 0.4s cubic-bezier(0.4,0,0.2,1); }
-                        .custom-scrollbar::-webkit-scrollbar { width: 8px; background: transparent; }
-                        .custom-scrollbar::-webkit-scrollbar-thumb { background: #a78bfa55; border-radius: 8px; }
-                    `}</style>
-                </div>
-            )}
         </div>
     );
 };

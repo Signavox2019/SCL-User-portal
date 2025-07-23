@@ -20,6 +20,7 @@ import BatchAdmin from './pages/BatchAdmin';
 import Enrollments from './pages/Enrollments.jsx';
 import Users from './pages/Users.jsx';
 import Professors from './pages/Professors.jsx';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const theme = createTheme({
   palette: {
@@ -40,6 +41,17 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
 
   const handleSplashComplete = () => {
     setShowSplash(false);
+    // After splash, redirect to the correct dashboard based on user role
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user && user.role === 'admin') {
+        navigate('/admin-dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   return (
@@ -73,6 +85,16 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             <ProtectedRoute>
               <DashboardLayout>
                 <DashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <AdminDashboardPage />
               </DashboardLayout>
             </ProtectedRoute>
           }

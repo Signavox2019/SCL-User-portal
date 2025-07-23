@@ -56,7 +56,6 @@ const filterOptions = {
     { label: 'Waiting', value: 'waiting' }
   ],
   currentYear: [
-    { label: 'All Years', value: '' },
     { label: '1st Year', value: '1st Year' },
     { label: '2nd Year', value: '2nd Year' },
     { label: '3rd Year', value: '3rd Year' },
@@ -64,7 +63,6 @@ const filterOptions = {
     { label: 'Graduated', value: 'Graduated' }
   ],
   degree: [
-    { label: 'All Degrees', value: '' },
     { label: 'Bachelors', value: 'Bachelors' },
     { label: 'Masters', value: 'Masters' },
     { label: 'PhD', value: 'PhD' }
@@ -397,8 +395,16 @@ const Users = () => {
   return (
     <>
       <div className="space-y-10 pb-10 mt-5 py-5">
+        {/* Loader (Dashboard style) */}
+        {loading && (
+          <div className="flex justify-center items-center h-96 w-full">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+          </div>
+        )}
+        {!loading && (
+        <>
         {/* Header */}
-        <div className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-2xl p-8 shadow-2xl backdrop-blur-xl border border-white/10 flex items-center justify-between gap-6 -mt-8">
+        <div className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-2xl p-8 shadow-2xl backdrop-blur-xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-6 -mt-8 mb-8">
           <div className="flex items-center gap-6">
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 shadow-lg">
               <GroupIcon className="text-white text-4xl drop-shadow-lg" />
@@ -417,92 +423,171 @@ const Users = () => {
           </button>
         </div>
         {/* Metric Cards & Charts */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-          {/* Users: Total Users & Role Distribution */}
-          <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-blue-400/30 to-blue-700/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
-              <GroupIcon className="text-2xl text-blue-100 drop-shadow-lg" />
-            </div>
-            <div className="z-10 flex flex-col items-center mt-10">
-              <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                {userStatsLoading ? <CircularProgress size={28} style={{ color: '#a78bfa' }} /> : userStats?.totalUsers || 0}
+        <div className="flex flex-col gap-2 w-full mb-2">
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full ">
+            {/* Users: Total Users & Role Distribution */}
+            <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-blue-400/30 to-blue-700/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
+                <GroupIcon className="text-2xl text-blue-100 drop-shadow-lg" />
               </div>
-              <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-blue-100/90">Total Users</div>
-              <div className="flex gap-8 mt-2 w-full justify-center">
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-purple-100/90 font-semibold">Interns</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                    {userStatsLoading ? <CircularProgress size={22} style={{ color: '#fbbf24' }} /> : userStats?.counts?.interns || 0}
-                  </span>
+              <div className="z-10 flex flex-col items-center mt-10">
+                <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                  {userStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-purple-400"></div> : userStats?.totalUsers || 0}
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-purple-100/90 font-semibold">Admins</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-pink-300">
-                    {userStatsLoading ? <CircularProgress size={22} style={{ color: '#f472b6' }} /> : userStats?.counts?.admins || 0}
-                  </span>
+                <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-blue-100/90">Total Users</div>
+                <div className="flex gap-8 mt-2 w-full justify-center">
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-purple-100/90 font-semibold">Interns</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
+                      {userStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-yellow-400"></div> : userStats?.counts?.interns || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-purple-100/90 font-semibold">Admins</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-pink-300">
+                      {userStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-pink-400"></div> : userStats?.counts?.admins || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Approval Status: Approved, Pending & Rejected */}
+            <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
+                <HowToRegIcon className="text-2xl text-green-100 drop-shadow-lg" />
+              </div>
+              <div className="z-10 flex flex-col items-center mt-10">
+                <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                  {userStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-green-400"></div> : (userStats?.counts?.approvedUsers || 0) + (userStats?.counts?.pendingApprovals || 0) + (userStats?.counts?.rejectedUsers || 0)}
+                </div>
+                <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-green-100/90">Total Registrations</div>
+                <div className="flex gap-4 mt-2 w-full justify-center">
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-green-100/90 font-semibold">Approved</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-green-300">
+                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-green-400"></div> : userStats?.counts?.approvedUsers || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-yellow-100/90 font-semibold">Pending</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
+                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-yellow-400"></div> : userStats?.counts?.pendingApprovals || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-red-100/90 font-semibold">Rejected</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-red-300">
+                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-red-400"></div> : userStats?.counts?.rejectedUsers || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Professors: Total, Active, Inactive */}
+            <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-purple-400/30 to-purple-700/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
+                <SchoolIcon className="text-2xl text-purple-100 drop-shadow-lg" />
+              </div>
+              <div className="z-10 flex flex-col items-center mt-10">
+                <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
+                  {professorStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-purple-400"></div> : professorStats?.totalProfessors ?? '-'}
+                </div>
+                <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-purple-100/90">Total Professors</div>
+                <div className="flex gap-8 mt-2 w-full justify-center">
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-green-100/90 font-semibold">Active</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-green-300">
+                      {professorStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-green-400"></div> : professorStats?.activeProfessors ?? '-'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-yellow-100/90 font-semibold">Inactive</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
+                      {professorStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-yellow-400"></div> : professorStats?.inactiveProfessors ?? '-'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          {/* Approval Status: Approved, Pending & Rejected */}
-          <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
-              <HowToRegIcon className="text-2xl text-green-100 drop-shadow-lg" />
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-24 mt-8 w-full">
+            {/* User Roles Pie Chart */}
+            <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 min-w-[340px] max-w-[440px] w-full  transition-all duration-300">
+              <div className="flex items-center gap-4 w-full mb-6 mt-0 pt-0">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-purple-400 shadow-lg">
+                  <PieChartIcon className="text-white text-3xl drop-shadow-lg" />
+                </div>
+                <div>
+                  <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-2">User Roles Distribution</div>
+                  <div className="text-sm text-purple-100/80 mt-1">Breakdown of user roles</div>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={userPieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {userPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={userRoleColors[index % userRoleColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const { name, value } = payload[0].payload;
+                        return (
+                          <div className="bg-black/60 text-gray-200 text-base rounded-lg shadow-lg px-3 py-2 border border-gray-200">
+                            <div className="text-base font-semibold mb-1/2 tracking-wide">{name}</div>
+                            <div className="text-lg font-bold text-gray-200">{value} users</div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-            <div className="z-10 flex flex-col items-center mt-10">
-              <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                {userStatsLoading ? 
-                  <CircularProgress size={28} style={{ color: '#10b981' }} /> : 
-                  (userStats?.counts?.approvedUsers || 0) + (userStats?.counts?.pendingApprovals || 0) + (userStats?.counts?.rejectedUsers || 0)
-                }
-              </div>
-              <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-green-100/90">Total Registrations</div>
-              <div className="flex gap-4 mt-2 w-full justify-center">
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-green-100/90 font-semibold">Approved</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-green-300">
-                    {userStatsLoading ? <CircularProgress size={20} style={{ color: '#10b981' }} /> : userStats?.counts?.approvedUsers || 0}
-                  </span>
+
+            {/* Approval Status Bar Chart */}
+            <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 min-w-[300px] max-w-[800px] w-full lg:col-span-2  transition-all duration-300">
+              <div className="mb-6 flex items-center gap-4 w-full">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-purple-400 shadow-lg">
+                  <BarChartIcon className="text-white text-3xl drop-shadow-lg" />
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-yellow-100/90 font-semibold">Pending</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                    {userStatsLoading ? <CircularProgress size={20} style={{ color: '#fbbf24' }} /> : userStats?.counts?.pendingApprovals || 0}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-red-100/90 font-semibold">Rejected</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-red-300">
-                    {userStatsLoading ? <CircularProgress size={20} style={{ color: '#ef4444' }} /> : userStats?.counts?.rejectedUsers || 0}
-                  </span>
+                <div>
+                  <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-2">Approval Status</div>
+                  <div className="text-sm text-green-100/80 mt-1">Approved vs Pending vs Rejected</div>
                 </div>
               </div>
-            </div>
-          </div>
-          {/* Professors: Total, Active, Inactive */}
-          <div className="relative flex flex-col items-center justify-center rounded-2xl p-6 shadow-2xl bg-gradient-to-br from-purple-400/30 to-purple-700/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-b-lg bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
-              <SchoolIcon className="text-2xl text-purple-100 drop-shadow-lg" />
-            </div>
-            <div className="z-10 flex flex-col items-center mt-10">
-              <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                {professorStatsLoading ? <CircularProgress size={28} style={{ color: '#a78bfa' }} /> : professorStats?.totalProfessors ?? '-'}
-              </div>
-              <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-purple-100/90">Total Professors</div>
-              <div className="flex gap-8 mt-2 w-full justify-center">
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-green-100/90 font-semibold">Active</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-green-300">
-                    {professorStatsLoading ? <CircularProgress size={22} style={{ color: '#10b981' }} /> : professorStats?.activeProfessors ?? '-'}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-yellow-100/90 font-semibold">Inactive</span>
-                  <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                    {professorStatsLoading ? <CircularProgress size={22} style={{ color: '#fbbf24' }} /> : professorStats?.inactiveProfessors ?? '-'}
-                  </span>
-                </div>
-              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={approvalBarData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
+                  <XAxis dataKey="name" stroke="#c4b5fd" />
+                  <YAxis stroke="#c4b5fd" allowDecimals={false} />
+                  <Tooltip 
+                    contentStyle={{ background: '#312e81', border: 'none', color: '#fff' }}
+                    formatter={(value) => [parseInt(value) || 0, 'Users']}
+                  />
+                  <Bar dataKey="value" label={{ position: 'top', fill: '#fff', fontWeight: 700 }}>
+                    {approvalBarData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-bar-${index}`} 
+                        fill={entry.name === 'Approved' ? '#10b981' : entry.name === 'Pending' ? '#f59e0b' : '#ef4444'}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -514,94 +599,15 @@ const Users = () => {
           @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
           .animate-spin-slow { animation: spin-slow 8s linear infinite; }
         `}</style>
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-          {/* User Roles Pie Chart */}
-          <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 min-w-[320px]">
-            <div className="flex items-center gap-4 w-full mb-6 mt-0 pt-0">
-              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 shadow-lg">
-                <PieChartIcon className="text-white text-3xl drop-shadow-lg" />
-              </div>
-              <div>
-                <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-2">User Roles Distribution</div>
-                <div className="text-sm text-purple-100/80 mt-1">Breakdown of user roles</div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={userPieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {userPieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={userRoleColors[index % userRoleColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const { name, value } = payload[0].payload;
-                      return (
-                        <div className="bg-black/60 text-gray-200 text-base rounded-lg shadow-lg px-3 py-2 border border-gray-200">
-                          <div className="text-base font-semibold mb-1/2 tracking-wide">{name}</div>
-                          <div className="text-lg font-bold text-gray-200">{value} users</div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Approval Status Bar Chart */}
-          <div className="bg-white/10 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 min-w-[320px]">
-            <div className="mb-6 flex items-center gap-4 w-full">
-              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 via-pink-400 to-purple-400 shadow-lg">
-                <BarChartIcon className="text-white text-3xl drop-shadow-lg" />
-              </div>
-              <div>
-                <div className="text-2xl font-extrabold text-white tracking-wide drop-shadow-lg mb-2">Approval Status</div>
-                <div className="text-sm text-green-100/80 mt-1">Approved vs Pending vs Rejected</div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={approvalBarData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
-                <XAxis dataKey="name" stroke="#c4b5fd" />
-                <YAxis stroke="#c4b5fd" allowDecimals={false} />
-                <Tooltip 
-                  contentStyle={{ background: '#312e81', border: 'none', color: '#fff' }}
-                  formatter={(value) => [parseInt(value) || 0, 'Users']}
-                />
-                <Bar dataKey="value" label={{ position: 'top', fill: '#fff', fontWeight: 700 }}>
-                  {approvalBarData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-bar-${index}`} 
-                      fill={entry.name === 'Approved' ? '#10b981' : entry.name === 'Pending' ? '#f59e0b' : '#ef4444'}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
         {/* Search & Filter Section + Users Table (Unified Card) */}
-        <div className="bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+        <div className="bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10 mt-10">
+          <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between mb-6">
             {/* Search Bar */}
-            <div className="relative w-full lg:w-96">
+            <div className="relative w-full lg:w-[480px] xl:w-[600px] max-w-full transition-all duration-300">
               <input
                 type="text"
                 placeholder="Search users by name, email, college..."
-                className="w-full py-3 pl-12 pr-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 text-white placeholder-purple-200/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 shadow-lg"
+                className="w-full py-3 pl-12 pr-4 rounded-2xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 text-white placeholder-purple-200/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 shadow-lg text-base md:text-lg"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -609,7 +615,7 @@ const Users = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+            <div className="flex flex-wrap gap-4 w-full lg:w-auto">
               {/* Role Filter */}
               <div className="relative min-w-[140px]">
                 <select
@@ -641,43 +647,11 @@ const Users = () => {
                 </select>
                 <FilterListIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-300 pointer-events-none" />
               </div>
-
-              {/* Year Filter */}
-              <div className="relative min-w-[140px]">
-                <select
-                  className="appearance-none w-full py-3 px-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 shadow-lg custom-select"
-                  value={filters.currentYear}
-                  onChange={e => setFilters(prev => ({ ...prev, currentYear: e.target.value }))}
-                >
-                  {filterOptions.currentYear.map(opt => (
-                    <option key={opt.value} value={opt.value} className="text-black bg-white">
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <FilterListIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-300 pointer-events-none" />
-              </div>
-
-              {/* Degree Filter */}
-              <div className="relative min-w-[140px]">
-                <select
-                  className="appearance-none w-full py-3 px-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 shadow-lg custom-select"
-                  value={filters.degree}
-                  onChange={e => setFilters(prev => ({ ...prev, degree: e.target.value }))}
-                >
-                  {filterOptions.degree.map(opt => (
-                    <option key={opt.value} value={opt.value} className="text-black bg-white">
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <FilterListIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-300 pointer-events-none" />
-              </div>
             </div>
           </div>
 
           {/* Users Table (now inside the card) */}
-          <div className="rounded-2xl shadow-2xl border border-white/20 bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/95 w-full max-w-full mt-6">
+          <div className="rounded-2xl shadow-2xl border border-white/20 bg-gradient-to-br from-[#312e81]/95 to-[#0a081e]/95 w-full max-w-full mt-6 overflow-x-auto">
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <CircularProgress size={60} thickness={5} style={{ color: '#a78bfa' }} />
@@ -696,63 +670,61 @@ const Users = () => {
                 <p className="text-purple-200/80">Try adjusting your search or filters.</p>
               </div>
             ) : (
-              <>
-                <div className="w-full">
-                  <table className="w-full min-w-0 text-sm text-left text-purple-100 table-auto">
-                    <thead className="sticky top-0 z-10 bg-gradient-to-r from-purple-900/80 to-blue-900/80">
-                      <tr>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">Name</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">Email</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">Phone</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">College</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">Department</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider">Status</th>
-                        <th className="px-2 py-2 font-bold uppercase tracking-wider text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedUsers.map((u) => (
-                        <tr key={u._id} className="hover:bg-gradient-to-r hover:from-purple-900/40 hover:to-blue-900/40 transition-all duration-200 border-b border-purple-900/40 last:border-b-0">
-                          <td className="px-2 py-2 break-words whitespace-pre-line" title={u.name} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.name}</td>
-                          <td className="px-2 py-2 break-words whitespace-pre-line" title={u.email} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.email}</td>
-                          <td className="px-2 py-2 break-words whitespace-pre-line" title={u.phone} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.phone}</td>
-                          <td className="px-2 py-2 break-words whitespace-pre-line" title={u.collegeName} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.collegeName}</td>
-                          <td className="px-2 py-2 break-words whitespace-pre-line" title={u.department} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.department}</td>
-                          <td className="px-2 py-2 text-left">
-                            <button
-                              className={`px-3 py-1 rounded-full font-bold capitalize ${getStatusColorClass(u.approveStatus)} hover:scale-105 transition`}
-                              onClick={() => setStatusModal({ open: true, user: u, loading: false, error: null, newStatus: u.approveStatus })}
-                            >
-                              {u.approveStatus}
+              <div className="overflow-x-auto w-full">
+                <table className="w-full min-w-[900px] text-sm text-left text-purple-100 table-auto">
+                  <thead className="sticky top-0 z-20 bg-gradient-to-r from-purple-900/90 to-blue-900/90">
+                    <tr>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">Name</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">Email</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">Phone</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">College</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">Department</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base">Status</th>
+                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-base text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedUsers.map((u) => (
+                      <tr key={u._id} className="hover:bg-gradient-to-r hover:from-purple-900/40 hover:to-blue-900/40 transition-all duration-200 border-b border-purple-900/40 last:border-b-0">
+                        <td className="px-4 py-3 break-words whitespace-pre-line" title={u.name} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.name}</td>
+                        <td className="px-4 py-3 break-words whitespace-pre-line" title={u.email} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.email}</td>
+                        <td className="px-4 py-3 break-words whitespace-pre-line" title={u.phone} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.phone}</td>
+                        <td className="px-4 py-3 break-words whitespace-pre-line" title={u.collegeName} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.collegeName}</td>
+                        <td className="px-4 py-3 break-words whitespace-pre-line" title={u.department} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{u.department}</td>
+                        <td className="px-4 py-3 text-left">
+                          <button
+                            className={`px-3 py-1 rounded-full font-bold capitalize ${getStatusColorClass(u.approveStatus)} hover:scale-105 transition`}
+                            onClick={() => setStatusModal({ open: true, user: u, loading: false, error: null, newStatus: u.approveStatus })}
+                          >
+                            {u.approveStatus}
+                          </button>
+                        </td>
+                        {/* Action column: View and Delete icons */}
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex gap-2 justify-center items-center">
+                            <button title="View" onClick={() => handleViewUser(u._id)} className="p-1.5 rounded-full bg-blue-500/80 hover:bg-blue-600 text-white shadow-md transition-transform hover:scale-110">
+                              <VisibilityIcon fontSize="small" />
                             </button>
-                          </td>
-                          {/* Action column: View and Delete icons */}
-                          <td className="px-2 py-2 text-center">
-                            <div className="flex gap-2 justify-center items-center">
-                              <button title="View" onClick={() => handleViewUser(u._id)} className="p-1 rounded-full bg-blue-500/80 hover:bg-blue-600 text-white">
-                                <VisibilityIcon fontSize="small" />
-                              </button>
-                              <button title="Edit" onClick={() => handleEditUserClick(u)} className="p-1 rounded-full bg-purple-500/80 hover:bg-purple-600 text-white">
-                                <EditIcon fontSize="small" />
-                              </button>
-                              <button title="Delete" disabled={deleting[u._id]} onClick={() => setDeleteConfirm({ open: true, user: u })} className="p-1 rounded-full bg-pink-500/80 hover:bg-pink-600 text-white">
-                                <DeleteIcon fontSize="small" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+                            <button title="Edit" onClick={() => handleEditUserClick(u)} className="p-1.5 rounded-full bg-purple-500/80 hover:bg-purple-600 text-white shadow-md transition-transform hover:scale-110">
+                              <EditIcon fontSize="small" />
+                            </button>
+                            <button title="Delete" disabled={deleting[u._id]} onClick={() => setDeleteConfirm({ open: true, user: u })} className="p-1.5 rounded-full bg-pink-500/80 hover:bg-pink-600 text-white shadow-md transition-transform hover:scale-110">
+                              <DeleteIcon fontSize="small" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
           {/* Pagination and Results Count (below table, inside card, outside table) */}
           {filteredUsers.length > 0 && (
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-4 py-4 bg-transparent relative z-0">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 py-4 bg-transparent relative z-0 mt-4">
               <div className="flex-1" />
-              <div className="flex items-center gap-6 justify-end w-full">
+              <div className="flex flex-wrap items-center gap-6 justify-end w-full">
                 {/* Rows per page dropdown */}
                 <div className="flex items-center gap-2">
                   <span className="text-purple-200/80 text-sm">Rows per page:</span>
@@ -809,28 +781,6 @@ const Users = () => {
                   Showing {filteredUsers.length === 0 ? 0 : ((page - 1) * rowsPerPage + 1)}-
                   {Math.min(page * rowsPerPage, filteredUsers.length)} of {filteredUsers.length} users
                 </span>
-                {/* Pagination controls */}
-                {/* <Pagination
-                  count={totalPages}
-                  page={page}
-                  onChange={(_, value) => setPage(value)}
-                  color="primary"
-                  shape="rounded"
-                  size="small"
-                  showFirstButton={false}
-                  showLastButton={false}
-                  sx={{
-                    '& .MuiPaginationItem-root': {
-                      color: '#fff',
-                      background: '#181a20',
-                      borderRadius: '8px',
-                      '&.Mui-selected': {
-                        background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 100%)',
-                        color: '#fff',
-                      },
-                    },
-                  }}
-                /> */}
               </div>
             </div>
           )}
@@ -1084,14 +1034,30 @@ const Users = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-purple-200 mb-1">Has Experience?</label>
-                      <select
-                        value={formData.hasExperience ? 'yes' : 'no'}
-                        onChange={e => setFormData(prev => ({ ...prev, hasExperience: e.target.value === 'yes' }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40"
-                      >
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
+                      <div className="flex gap-4 items-center">
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="hasExperience"
+                            value="yes"
+                            checked={formData.hasExperience === true}
+                            onChange={() => setFormData(prev => ({ ...prev, hasExperience: true }))}
+                            className="form-radio text-pink-500"
+                          />
+                          <span>Yes</span>
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="hasExperience"
+                            value="no"
+                            checked={formData.hasExperience === false}
+                            onChange={() => setFormData(prev => ({ ...prev, hasExperience: false }))}
+                            className="form-radio text-pink-500"
+                          />
+                          <span>No</span>
+                        </label>
+                      </div>
                     </div>
                     <div />
                     {formData.hasExperience && (
@@ -1437,10 +1403,30 @@ const Users = () => {
                   </div>
                   <div>
                     <label className="block text-purple-200 mb-1 font-semibold">Has Experience?</label>
-                    <select value={editForm.hasExperience ? 'yes' : 'no'} onChange={e => setEditForm(f => ({ ...f, hasExperience: e.target.value === 'yes' }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40">
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
-                    </select>
+                    <div className="flex gap-4 items-center">
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="editHasExperience"
+                          value="yes"
+                          checked={editForm.hasExperience === true}
+                          onChange={() => setEditForm(f => ({ ...f, hasExperience: true }))}
+                          className="form-radio text-pink-500"
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="editHasExperience"
+                          value="no"
+                          checked={editForm.hasExperience === false}
+                          onChange={() => setEditForm(f => ({ ...f, hasExperience: false }))}
+                          className="form-radio text-pink-500"
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
                   </div>
                   {editForm.hasExperience && (
                     <>
@@ -1496,6 +1482,8 @@ const Users = () => {
             </div>
           </div>,
           document.getElementById('modal-root')
+        )}
+        </>
         )}
       </div>
     </>

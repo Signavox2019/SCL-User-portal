@@ -4,6 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import BaseUrl from '../Api.jsx';
 
 const PUBLIC_PATHS = ['/', '/login', '/forgotpassword'];
+const ADMIN_PATHS = ['/admin-dashboard'];
 
 const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
@@ -11,14 +12,21 @@ const ProtectedRoute = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  });
 
-  // Check token validity on every page load and route change
   useEffect(() => {
     const checkTokenValidity = async () => {
       const currentToken = localStorage.getItem('token');
       setToken(currentToken);
+      let userData = null;
 
-      // If on a public path and has valid token, redirect to dashboard
+      // If on a public path and has valid token, redirect to dashboard or admin-dashboard
       if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
@@ -29,15 +37,18 @@ const ProtectedRoute = ({ children }) => {
             },
           });
           const data = await res.json();
-          
           if (res.ok && data.valid) {
-            // Token is valid, redirect to dashboard
             localStorage.setItem('user', JSON.stringify(data.user));
-            navigate('/dashboard', { replace: true });
+            setUser(data.user);
+            // Redirect based on role
+            if (data.user.role === 'admin') {
+              navigate('/admin-dashboard', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
             setLoading(false);
             return;
           } else {
-            // Token is invalid, clear storage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setIsValid(false);
@@ -45,7 +56,6 @@ const ProtectedRoute = ({ children }) => {
             return;
           }
         } catch (err) {
-          console.error('Token validation error:', err);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsValid(false);
@@ -74,33 +84,48 @@ const ProtectedRoute = ({ children }) => {
             },
           });
           const data = await res.json();
-          
           if (res.ok && data.valid) {
-            // Token is valid, stay on current page
             localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+            // If trying to access /admin-dashboard and not admin, redirect
+            if (ADMIN_PATHS.includes(location.pathname) && data.user.role !== 'admin') {
+              navigate('/dashboard', { replace: true });
+              setIsValid(false);
+              setLoading(false);
+              return;
+            }
+            // If admin, and not on /admin-dashboard, redirect to /admin-dashboard
+            if (data.user.role === 'admin' && location.pathname === '/dashboard') {
+              navigate('/admin-dashboard', { replace: true });
+              setIsValid(false);
+              setLoading(false);
+              return;
+            }
+            // If not admin and trying to access /admin-dashboard, redirect
+            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin') {
+              navigate('/dashboard', { replace: true });
+              setIsValid(false);
+              setLoading(false);
+              return;
+            }
             setIsValid(true);
           } else {
-            // Token is invalid, clear storage and redirect to login
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setIsValid(false);
             navigate('/login', { replace: true });
           }
         } catch (err) {
-          console.error('Token validation error:', err);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsValid(false);
           navigate('/login', { replace: true });
         }
       } else if (!currentToken && PUBLIC_PATHS.includes(location.pathname)) {
-        // No token, but on public path - allow access
         setIsValid(true);
       }
-      
       setLoading(false);
     };
-
     setLoading(true);
     checkTokenValidity();
   }, [location.pathname, navigate]);
@@ -108,17 +133,15 @@ const ProtectedRoute = ({ children }) => {
   if (loading) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-white/80">
-        <CircularProgress size={48} color="primary" />
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
       </div>
     );
   }
 
-  // For public routes, don't render children (let App.jsx handle them)
   if (PUBLIC_PATHS.includes(location.pathname)) {
     return null;
   }
 
-  // For protected routes, render children if token is valid
   return isValid ? children : null;
 };
 
