@@ -498,7 +498,7 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       })
         .then(res => {
-          setBatches(res.data.data || []);
+          setBatches(res.data.batches || []);
         })
         .catch(err => {
           setBatchFormError('Failed to fetch batches');
@@ -1347,7 +1347,7 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
                         {batchForm.batchIds.length === 0
                           ? 'Select batches...'
                           : batches
-                              .filter(b => batchForm.batchIds.includes(b.batchId))
+                              .filter(b => batchForm.batchIds.includes(b._id))
                               .map(b => b.batchName)
                               .join(', ')
                         }
@@ -1360,11 +1360,11 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
                           <div className="p-3 text-center text-gray-400">No batches found</div>
                         ) : (
                           batches.map(batch => (
-                            <label key={batch.batchId} className="flex items-center px-4 py-2 hover:bg-purple-100 cursor-pointer">
+                            <label key={batch._id} className="flex items-center px-4 py-2 hover:bg-purple-100 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={batchForm.batchIds.includes(batch.batchId)}
-                                onChange={() => handleBatchCheckboxChange(batch.batchId)}
+                                checked={batchForm.batchIds.includes(batch._id)}
+                                onChange={() => handleBatchCheckboxChange(batch._id)}
                                 className="form-checkbox h-4 w-4 text-pink-500 rounded mr-3"
                               />
                               <span className="truncate">{batch.batchName}</span>

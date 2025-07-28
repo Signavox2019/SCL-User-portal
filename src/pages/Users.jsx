@@ -221,10 +221,10 @@ const Users = () => {
   // Filtered and searched users
   const filteredUsers = users.filter(u => {
     const matchesSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.collegeName && u.collegeName.toLowerCase().includes(search.toLowerCase())) ||
-      (u.department && u.department.toLowerCase().includes(search.toLowerCase()));
+      (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (u.collegeName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (u.department || '').toLowerCase().includes(search.toLowerCase());
   
     const matchesRole = filters.role ? u.role === filters.role : true;
     const matchesStatus = filters.approveStatus ? u.approveStatus === filters.approveStatus : true;
@@ -1102,7 +1102,7 @@ const Users = () => {
                 <div className="mt-8 flex justify-end gap-4">
                   <button
                     onClick={() => { setAddModal({ open: false, loading: false, error: null }); setFormData(initialFormData); }}
-                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                    className="px-8 py-3 rounded-xl bg-transparent border text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
                     disabled={addModal.loading}
                   >
                     Cancel
@@ -1447,7 +1447,7 @@ const Users = () => {
                 </div>
                 {editModal.error && <div className="mt-4 text-red-400 font-bold">{editModal.error}</div>}
                 <div className="mt-6 flex justify-end gap-3">
-                  <button type="button" className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 hover:from-purple-500 hover:to-pink-500 transition-all duration-300" onClick={() => setEditModal({ open: false, user: null, loading: false, error: null })}>
+                  <button type="button" className="px-5 py-2 rounded-lg bg-transparent border text-white font-bold shadow-lg hover:scale-105 hover:from-purple-500 hover:to-pink-500 transition-all duration-300" onClick={() => setEditModal({ open: false, user: null, loading: false, error: null })}>
                     Cancel
                   </button>
                   <button type="submit" disabled={editModal.loading} className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 hover:from-pink-600 hover:to-purple-600 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed">

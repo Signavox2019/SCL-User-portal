@@ -51,8 +51,22 @@ const Landing = () => {
     { icon: <Work className="text-4xl text-purple-300" />, title: 'Internship + Job Support' },
   ];
 
+  // Add new name fields and title at the top of the form
+  const nameFields = [
+    { placeholder: 'Title', type: 'select', icon: <HowToReg />, required: true, options: [
+      { value: 'Mr', label: 'Mr' },
+      { value: 'Ms', label: 'Ms' },
+      { value: 'Mrs', label: 'Mrs' },
+      { value: 'Dr', label: 'Dr' },
+      { value: 'Prof', label: 'Prof' },
+    ] },
+    { placeholder: 'First Name', type: 'text', icon: <Person />, required: true },
+    { placeholder: 'Middle Name', type: 'text', icon: <Person />, required: false },
+    { placeholder: 'Last Name', type: 'text', icon: <Person />, required: true },
+  ];
+
+  // Remove 'Full Name' from formFields
   const formFields = [
-    { placeholder: 'Full Name', type: 'text', icon: <Person />, required: true },
     { placeholder: 'Email Address', type: 'email', icon: <Email />, required: true },
     { placeholder: 'Phone Number', type: 'tel', icon: <Phone />, required: true },
   ];
@@ -62,8 +76,8 @@ const Landing = () => {
     { placeholder: 'University Name', type: 'select', icon: <School />, required: true, options: universityOptions },
     { placeholder: 'College/University', type: 'text', icon: <SchoolOutline />, required: true },
     { placeholder: 'Degree Type', type: 'select', icon: <Business />, required: true, options: [
-      { value: 'Bachelors', label: 'Bachelors' },
-      { value: 'Masters', label: 'Masters' },
+      { value: 'Graduate', label: 'Graduate' },
+      { value: 'Post Graduate', label: 'Post Graduate' },
       { value: 'PhD', label: 'PhD' },
     ] },
     { placeholder: 'Department', type: 'select', icon: <AccountTree />, required: true, options: [
@@ -77,7 +91,7 @@ const Landing = () => {
     { placeholder: 'Specialization', type: 'text', icon: <MenuBook />, required: true },
     { placeholder: 'CGPA Score', type: 'number', icon: <Grade />, required: true, min: 0, max: 10, step: 0.1 },
     {
-      placeholder: 'Current Year', type: 'select', icon: <CalendarToday />, required: true, options: [
+      placeholder: 'Year', type: 'select', icon: <CalendarToday />, required: true, options: [
         { value: '1st Year', label: '1st Year' },
         { value: '2nd Year', label: '2nd Year' },
         { value: '3rd Year', label: '3rd Year' },
@@ -114,9 +128,11 @@ const Landing = () => {
     try {
       // Build payload
       const payload = {
-        name: formData['Full Name'] || '',
+        title: formData['Title'] || '',
+        firstName: formData['First Name'] || '',
+        middleName: formData['Middle Name'] || '',
+        lastName: formData['Last Name'] || '',
         email: formData['Email Address'] || '',
-        role: 'intern', // Set as intern by default
         phone: formData['Phone Number'] || '',
         collegeName: formData['College/University'] || '',
         department: formData['Department'] === 'Others' ? customDepartment : (formData['Department'] || ''),
@@ -159,6 +175,44 @@ const Landing = () => {
 
   // Helper to determine if message is success
   const isSuccess = modalMessage && modalMessage.toLowerCase().includes('success');
+
+  // 1. Define a common sx style for all fields
+  const commonFieldSx = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '14px',
+      border: 'none',
+      transition: 'all 0.4s',
+      fontSize: '1rem',
+      fontFamily: 'Spoof Trial, sans-serif',
+      minHeight: '48px',
+      boxShadow: '0 2px 12px 0 rgba(49,17,136,0.07)',
+      '&:hover': {
+        backgroundColor: 'rgba(255,255,255,1)',
+        border: 'none',
+        boxShadow: '0 4px 18px 0 rgba(168,85,247,0.10)',
+        transform: 'translateY(-2px) scale(1.01)',
+      },
+      '&.Mui-focused': {
+        border: 'none',
+        boxShadow: '0 0 15px rgba(49, 17, 136, 0.18)',
+        backgroundColor: 'rgba(255,255,255,1)',
+      }
+    },
+    '& .MuiInputLabel-root': {
+      color: '#6b7280',
+      fontSize: '0.95rem',
+      fontFamily: 'Spoof Trial, sans-serif',
+      fontWeight: 500,
+      letterSpacing: 0.2,
+    },
+    '& .MuiInputBase-input': {
+      fontFamily: 'Spoof Trial, sans-serif',
+      fontSize: '1rem',
+      padding: '10px 14px',
+    }
+  };
 
   return (
     <>
@@ -242,7 +296,7 @@ const Landing = () => {
         </div>
 
         {/* Right Section - Registration Form */}
-        <Card className="w-full md:w-[35%] max-w-full h-[100vh] md:h-screen shadow-2xl relative rounded-l-3xl md:rounded-none bg-gradient-to-br from-white via-purple-50 to-white flex items-center justify-center border-l-0 md:border-l-8 border-purple-200/40 md:shadow-[0_8px_32px_0_rgba(49,17,136,0.15)] transition-all duration-500">
+        <Card className="w-full md:w-[35%] max-w-full h-[100vh] md:h-screen shadow-2xl relative rounded-3xl bg-gradient-to-br from-[#f3e8ff] via-white to-[#e0e7ff] flex items-center justify-center border-l-0 md:border-l-8 border-purple-200/40 md:shadow-[0_8px_32px_0_rgba(49,17,136,0.15)] transition-all duration-500">
           <CardContent className="h-full w-full relative z-10 flex flex-col p-2 xs:p-4 sm:p-6 md:p-8">
             {/* Modal for registration messages */}
             <Dialog
@@ -380,6 +434,49 @@ const Landing = () => {
               </motion.div>
 
               <div className="space-y-2 xs:space-y-4">
+                {/* Name Fields Column */}
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5, duration: 0.6 }}
+                  className="flex flex-col gap-2"
+                >
+                  {nameFields.map((field, idx) => (
+                    <div className="flex-1 min-w-0" key={field.placeholder}>
+                      {field.type === 'select' ? (
+                        <FormControl fullWidth required={field.required}>
+                          <Select
+                            displayEmpty
+                            name={field.placeholder}
+                            value={formData[field.placeholder] || ''}
+                            onChange={handleInputChange}
+                            sx={commonFieldSx}
+                            renderValue={(selected) => selected || field.placeholder}
+                          >
+                            <MenuItem value="" disabled>{field.placeholder}</MenuItem>
+                            {field.options && field.options.map((option) => (
+                              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          required={field.required}
+                          variant="outlined"
+                          label={field.placeholder}
+                          type={field.type}
+                          size="medium"
+                          name={field.placeholder}
+                          value={formData[field.placeholder] || ''}
+                          onChange={handleInputChange}
+                          sx={commonFieldSx}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </motion.div>
+
                 {formFields.map((field, index) => (
                   <motion.div
                     key={index}
@@ -397,32 +494,7 @@ const Landing = () => {
                             name={field.placeholder}
                             value={formData[field.placeholder] || ''}
                             onChange={handleInputChange}
-                            startAdornment={
-                              <InputAdornment position="start">
-                                <motion.div transition={{ duration: 0.5 }} className="text-[#311188] ml-2">
-                                  {field.icon}
-                                </motion.div>
-                              </InputAdornment>
-                            }
-                            sx={{
-                              backgroundColor: 'rgba(255,255,255,0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderRadius: '12px',
-                              border: '2px solid transparent',
-                              transition: 'all 0.4s ease',
-                              fontSize: '0.95rem',
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              minHeight: '40px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255,255,255,1)',
-                                boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                border: '2px solid rgba(49, 17, 136, 0.3)'
-                              },
-                              '&.Mui-focused': {
-                                border: '2px solid rgba(49, 17, 136, 0.6)',
-                                boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                              }
-                            }}
+                            sx={commonFieldSx}
                             renderValue={(selected) => selected || field.placeholder}
                           >
                             <MenuItem value="" disabled>{field.placeholder}</MenuItem>
@@ -443,51 +515,7 @@ const Landing = () => {
                           name={field.placeholder}
                           value={formData[field.placeholder] || ''}
                           onChange={handleInputChange}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <motion.div
-                                  transition={{ duration: 0.5 }}
-                                  className="text-[#311188] ml-2"
-                                >
-                                  {field.icon}
-                                </motion.div>
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              backgroundColor: 'rgba(255,255,255,0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderRadius: '12px',
-                              border: '2px solid transparent',
-                              transition: 'all 0.4s ease',
-                              fontSize: '0.95rem',
-                              padding: '6px 0',
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              minHeight: '40px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255,255,255,1)',
-                                transform: 'translateY(-2px)',
-                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                // border: '2px solid rgba(49, 17, 136, 0.3)'
-                              },
-                              '&.Mui-focused': {
-                                // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                              }
-                            },
-                            '& .MuiInputLabel-root': {
-                              color: '#6b7280',
-                              fontSize: '0.85rem',
-                              fontFamily: 'Spoof Trial, sans-serif'
-                            },
-                            '& .MuiInputBase-input': {
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              fontSize: '0.95rem',
-                              padding: '6px 12px'
-                            }
-                          }}
+                          sx={commonFieldSx}
                         />
                       )}
                     </>
@@ -501,7 +529,7 @@ const Landing = () => {
                   transition={{ delay: 1.2, duration: 0.6 }}
                   className="space-y-2 xs:space-y-4"
                 >
-                  <Typography variant="h6" className="text-[#311188] font-semibold mt-2 xs:mt-4 mb-2 xs:mb-3 font-spoof text-base xs:text-lg mt-4 pb-2">
+                  <Typography variant="h6" className="font-medium text-[#311188]">
                     College Details
                   </Typography>
                   {collegeFields.map((field, index) => (
@@ -538,42 +566,7 @@ const Landing = () => {
                                 label="University Name"
                                 variant="outlined"
                                 required={field.required && formData['University Name'] !== 'Others'}
-                                InputProps={{
-                                  ...params.InputProps,
-                                  startAdornment: (
-                                    <InputAdornment position="start">
-                                      <span className="text-[#311188] ml-2">{field.icon}</span>
-                                    </InputAdornment>
-                                  ),
-                                }}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    backgroundColor: 'rgba(255,255,255,0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '12px',
-                                    border: '2px solid transparent',
-                                    transition: 'all 0.4s ease',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 0',
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    minHeight: '40px',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(255,255,255,1)',
-                                      transform: 'translateY(-2px)',
-                                    },
-                                    '&.Mui-focused': {}
-                                  },
-                                  '& .MuiInputLabel-root': {
-                                    color: '#6b7280',
-                                    fontSize: '0.85rem',
-                                    fontFamily: 'Spoof Trial, sans-serif'
-                                  },
-                                  '& .MuiInputBase-input': {
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 12px'
-                                  }
-                                }}
+                                sx={commonFieldSx}
                               />
                             )}
                           />
@@ -585,34 +578,7 @@ const Landing = () => {
                                 label="Enter your University Name"
                                 value={customUniversity}
                                 onChange={e => setCustomUniversity(e.target.value)}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    backgroundColor: 'rgba(255,255,255,0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '12px',
-                                    border: '2px solid transparent',
-                                    transition: 'all 0.4s ease',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 0',
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    minHeight: '40px',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(255,255,255,1)',
-                                      transform: 'translateY(-2px)',
-                                    },
-                                    '&.Mui-focused': {}
-                                  },
-                                  '& .MuiInputLabel-root': {
-                                    color: '#6b7280',
-                                    fontSize: '0.85rem',
-                                    fontFamily: 'Spoof Trial, sans-serif'
-                                  },
-                                  '& .MuiInputBase-input': {
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 12px'
-                                  }
-                                }}
+                                sx={commonFieldSx}
                               />
                             </div>
                           )}
@@ -625,30 +591,7 @@ const Landing = () => {
                               name={field.placeholder}
                               value={formData[field.placeholder] || ''}
                               onChange={handleInputChange}
-                              startAdornment={
-                                <InputAdornment position="start">
-                                  <span className="text-[#311188] ml-2">{field.icon}</span>
-                                </InputAdornment>
-                              }
-                              sx={{
-                                backgroundColor: 'rgba(255,255,255,0.95)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: '12px',
-                                border: '2px solid transparent',
-                                transition: 'all 0.4s ease',
-                                fontSize: '0.95rem',
-                                fontFamily: 'Spoof Trial, sans-serif',
-                                minHeight: '40px',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255,255,255,1)',
-                                  // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                  // border: '2px solid rgba(49, 17, 136, 0.3)'
-                                },
-                                '&.Mui-focused': {
-                                  // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                  // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                                }
-                              }}
+                              sx={commonFieldSx}
                               renderValue={(selected) => selected || field.placeholder}
                             >
                               <MenuItem value="" disabled>{field.placeholder}</MenuItem>
@@ -666,34 +609,7 @@ const Landing = () => {
                                 label="Enter your Department"
                                 value={customDepartment}
                                 onChange={e => setCustomDepartment(e.target.value)}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    backgroundColor: 'rgba(255,255,255,0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '12px',
-                                    border: '2px solid transparent',
-                                    transition: 'all 0.4s ease',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 0',
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    minHeight: '40px',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(255,255,255,1)',
-                                      transform: 'translateY(-2px)',
-                                    },
-                                    '&.Mui-focused': {}
-                                  },
-                                  '& .MuiInputLabel-root': {
-                                    color: '#6b7280',
-                                    fontSize: '0.85rem',
-                                    fontFamily: 'Spoof Trial, sans-serif'
-                                  },
-                                  '& .MuiInputBase-input': {
-                                    fontFamily: 'Spoof Trial, sans-serif',
-                                    fontSize: '0.95rem',
-                                    padding: '6px 12px'
-                                  }
-                                }}
+                                sx={commonFieldSx}
                               />
                             </div>
                           )}
@@ -726,41 +642,7 @@ const Landing = () => {
                               max: cgpaType === 'CGPA' ? 10 : 100,
                               step: cgpaType === 'CGPA' ? 0.1 : 0.1,
                             }}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <span className="text-[#311188] ml-2">{field.icon}</span>
-                                </InputAdornment>
-                              ),
-                            }}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                backgroundColor: 'rgba(255,255,255,0.95)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: '12px',
-                                border: '2px solid transparent',
-                                transition: 'all 0.4s ease',
-                                fontSize: '0.95rem',
-                                padding: '6px 0',
-                                fontFamily: 'Spoof Trial, sans-serif',
-                                minHeight: '40px',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255,255,255,1)',
-                                  transform: 'translateY(-2px)',
-                                },
-                                '&.Mui-focused': {}
-                              },
-                              '& .MuiInputLabel-root': {
-                                color: '#6b7280',
-                                fontSize: '0.85rem',
-                                fontFamily: 'Spoof Trial, sans-serif'
-                              },
-                              '& .MuiInputBase-input': {
-                                fontFamily: 'Spoof Trial, sans-serif',
-                                fontSize: '0.95rem',
-                                padding: '6px 12px'
-                              }
-                            }}
+                            sx={commonFieldSx}
                           />
                         </div>
                       ) : field.type === 'select' ? (
@@ -770,32 +652,7 @@ const Landing = () => {
                             name={field.placeholder}
                             value={formData[field.placeholder] || ''}
                             onChange={handleInputChange}
-                            startAdornment={
-                              <InputAdornment position="start">
-                                <motion.div transition={{ duration: 0.5 }} className="text-[#311188] ml-2">
-                                  {field.icon}
-                                </motion.div>
-                              </InputAdornment>
-                            }
-                            sx={{
-                              backgroundColor: 'rgba(255,255,255,0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderRadius: '12px',
-                              border: '2px solid transparent',
-                              transition: 'all 0.4s ease',
-                              fontSize: '0.95rem',
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              minHeight: '40px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255,255,255,1)',
-                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                // border: '2px solid rgba(49, 17, 136, 0.3)'
-                              },
-                              '&.Mui-focused': {
-                                // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                              }
-                            }}
+                            sx={commonFieldSx}
                             renderValue={(selected) => selected || field.placeholder}
                           >
                             <MenuItem value="" disabled>{field.placeholder}</MenuItem>
@@ -821,51 +678,7 @@ const Landing = () => {
                             max: field.max,
                             step: field.step || 0.1,
                           }}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <motion.div
-                                  transition={{ duration: 0.5 }}
-                                  className="text-[#311188] ml-2"
-                                >
-                                  {field.icon}
-                                </motion.div>
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              backgroundColor: 'rgba(255,255,255,0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderRadius: '12px',
-                              border: '2px solid transparent',
-                              transition: 'all 0.4s ease',
-                              fontSize: '0.95rem',
-                              padding: '6px 0',
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              minHeight: '40px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255,255,255,1)',
-                                transform: 'translateY(-2px)',
-                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                // border: '2px solid rgba(49, 17, 136, 0.3)'
-                              },
-                              '&.Mui-focused': {
-                                // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                              }
-                            },
-                            '& .MuiInputLabel-root': {
-                              color: '#6b7280',
-                              fontSize: '0.85rem',
-                              fontFamily: 'Spoof Trial, sans-serif'
-                            },
-                            '& .MuiInputBase-input': {
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              fontSize: '0.95rem',
-                              padding: '6px 12px'
-                            }
-                          }}
+                          sx={commonFieldSx}
                         />
                       ) : (
                         <TextField
@@ -879,51 +692,7 @@ const Landing = () => {
                           name={field.placeholder}
                           value={formData[field.placeholder] || ''}
                           onChange={handleInputChange}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <motion.div
-                                  transition={{ duration: 0.5 }}
-                                  className="text-[#311188] ml-2"
-                                >
-                                  {field.icon}
-                                </motion.div>
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              backgroundColor: 'rgba(255,255,255,0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderRadius: '12px',
-                              border: '2px solid transparent',
-                              transition: 'all 0.4s ease',
-                              fontSize: '0.95rem',
-                              padding: '6px 0',
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              minHeight: '40px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(255,255,255,1)',
-                                transform: 'translateY(-2px)',
-                                // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                // border: '2px solid rgba(49, 17, 136, 0.3)'
-                              },
-                              '&.Mui-focused': {
-                                // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                              }
-                            },
-                            '& .MuiInputLabel-root': {
-                              color: '#6b7280',
-                              fontSize: '0.85rem',
-                              fontFamily: 'Spoof Trial, sans-serif'
-                            },
-                            '& .MuiInputBase-input': {
-                              fontFamily: 'Spoof Trial, sans-serif',
-                              fontSize: '0.95rem',
-                              padding: '6px 12px'
-                            }
-                          }}
+                          sx={commonFieldSx}
                         />
                       )}
                     </div>
@@ -947,48 +716,7 @@ const Landing = () => {
                     name="Resume"
                     value={formData['Resume'] || ''}
                     onChange={handleInputChange}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <motion.div transition={{ duration: 0.5 }} className="text-[#311188] ml-2">
-                            <AutoAwesome />
-                          </motion.div>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'rgba(255,255,255,0.95)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: '12px',
-                        border: '2px solid transparent',
-                        transition: 'all 0.4s ease',
-                        fontSize: '0.95rem',
-                        padding: '6px 0',
-                        fontFamily: 'Spoof Trial, sans-serif',
-                        minHeight: '40px',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255,255,255,1)',
-                          transform: 'translateY(-2px)',
-                          // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                          // border: '2px solid rgba(49, 17, 136, 0.3)'
-                        },
-                        '&.Mui-focused': {
-                          // border: '2px solid rgba(49, 17, 136, 0.6)',
-                          // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: '#6b7280',
-                        fontSize: '0.85rem',
-                        fontFamily: 'Spoof Trial, sans-serif'
-                      },
-                      '& .MuiInputBase-input': {
-                        fontFamily: 'Spoof Trial, sans-serif',
-                        fontSize: '0.95rem',
-                        padding: '6px 12px'
-                      }
-                    }}
+                    sx={commonFieldSx}
                   />
                 </motion.div>
 
@@ -1068,35 +796,7 @@ const Landing = () => {
                                   </InputAdornment>
                                 ),
                               }}
-                              sx={{
-                                '& .MuiOutlinedInput-root': {
-                                  backgroundColor: 'rgba(255,255,255,0.95)',
-                                  borderRadius: '12px',
-                                  border: '2px solid transparent',
-                                  transition: 'all 0.4s ease',
-                                  fontSize: '0.95rem',
-                                  padding: '6px 0',
-                                  fontFamily: 'Spoof Trial, sans-serif',
-                                  minHeight: '40px',
-                                  '&:hover': {
-                                    backgroundColor: 'rgba(255,255,255,1)',
-                                    transform: 'translateY(-2px)',
-                                    // boxShadow: '0 6px 20px rgba(49, 17, 136, 0.15)',
-                                    // border: '2px solid rgba(49, 17, 136, 0.3)'
-                                  },
-                                  '&.Mui-focused': {
-                                    // border: '2px solid rgba(49, 17, 136, 0.6)',
-                                    // boxShadow: '0 0 15px rgba(49, 17, 136, 0.25)'
-                                  }
-                                },
-                                '& .MuiInputBase-input': {
-                                  fontFamily: 'Spoof Trial, sans-serif',
-                                  fontSize: '0.95rem',
-                                  padding: '6px 12px'
-                                }
-                              }}
-                              value={formData[field.placeholder] || ''}
-                              onChange={handleInputChange}
+                              sx={commonFieldSx}
                             />
                           </div>
                         ))}
@@ -1195,6 +895,12 @@ const Landing = () => {
               ease: "linear"
             }}
             className="absolute bottom-10 xs:bottom-20 left-4 xs:left-10 w-10 xs:w-16 h-10 xs:h-16 bg-gradient-to-br from-[#311188]/20 to-[#0A081E]/20 rounded-full blur-xl"
+          />
+          {/* 5. Add a soft animated background element for extra creativity */}
+          <motion.div
+            animate={{ rotate: 360, scale: [1, 1.08, 1] }}
+            transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+            className="absolute -z-10 top-0 left-0 w-full h-full bg-gradient-to-br from-[#a855f7]/10 via-[#f3e8ff]/30 to-[#311188]/10 blur-2xl opacity-80 rounded-3xl"
           />
         </Card>
       </div>

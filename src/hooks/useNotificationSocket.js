@@ -1,10 +1,11 @@
 // src/hooks/useNotificationSocket.js
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import BaseUrl from '../Api'
 
 // 🔧 Helper to get clean server URL (no /api)
 const getServerUrl = () => {
-  const apiUrl = 'http://localhost:5000/api';
+  const apiUrl = BaseUrl;
   return apiUrl.replace('/api', '');
 };
 
