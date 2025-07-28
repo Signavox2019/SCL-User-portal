@@ -112,6 +112,24 @@ const useNotificationSocket = (userId, onNotification) => {
       }
     });
 
+    // 📩 Handle individual notification events
+    socket.on('notification', (data) => {
+      console.log('📩 [useNotificationSocket] notification received:', data);
+      if (typeof onNotification === 'function') {
+        // Handle both single notification and array of notifications
+        if (Array.isArray(data)) {
+          data.forEach(notification => {
+            console.log('📩 Processing individual notification:', notification);
+            onNotification(notification);
+          });
+        } else {
+          onNotification(data);
+        }
+      } else {
+        console.warn('⚠️ onNotification is not a function');
+      }
+    });
+
     socket.on('notificationError', (error) => {
       console.error('❌ Notification error:', error);
     });
@@ -124,6 +142,16 @@ const useNotificationSocket = (userId, onNotification) => {
     // 🔍 Debug all events
     socket.onAny((eventName, ...args) => {
       console.log(`🔍 Socket event received: ${eventName}`, args);
+      
+      // Special handling for notification events
+      if (eventName === 'notification') {
+        console.log('🔔 [onAny] Processing notification event:', args);
+        if (args && args.length > 0 && typeof onNotification === 'function') {
+          const notificationData = args[0];
+          console.log('🔔 [onAny] Calling onNotification with:', notificationData);
+          onNotification(notificationData);
+        }
+      }
     });
 
     // 🧹 Cleanup
