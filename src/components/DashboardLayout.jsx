@@ -12,7 +12,8 @@ import {
   AccountCircle as AccountCircleIcon,
   Group as UsersIcon,
   School as BatchIcon,
-  Person as ProfessorsIcon
+  Person as ProfessorsIcon,
+  Support as TicketsIcon
 } from '@mui/icons-material';
 
 import Layout from './Layout'; // adjust path as needed
@@ -51,12 +52,26 @@ const DashboardLayout = ({ children }) => {
     });
   }, []);
 
+  // Listen for profile updates from other components
+  useEffect(() => {
+    const handleUserProfileUpdate = (event) => {
+      setUser(event.detail);
+    };
+
+    window.addEventListener('userProfileUpdated', handleUserProfileUpdate);
+
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleUserProfileUpdate);
+    };
+  }, []);
+
   let navItems = [
     { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
     { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
     { label: 'Professors', icon: <ProfessorsIcon fontSize="medium" />, path: '/professors' },
     { label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' },
     { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
+    { label: 'Tickets', icon: <TicketsIcon fontSize="medium" />, path: '/tickets' },
   ];
   if (user?.role === 'admin') {
     navItems = [
@@ -155,9 +170,12 @@ const DashboardLayout = ({ children }) => {
             )}
           </div>
           {/* Nav Items */}
-          <nav className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-400/40 scrollbar-track-transparent" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+          <nav className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-400/40 scrollbar-track-transparent" style={{ maxHeight: 'calc(100vh - 120px)' }}>
             {navItems.map((item) => {
-              const active = location.pathname.startsWith(item.path);
+              const isDashboard = item.path === '/dashboard';
+              const active = isDashboard
+                ? location.pathname === '/dashboard' || location.pathname === '/admin-dashboard'
+                : location.pathname.startsWith(item.path);
               return (
                 <Link
                   key={item.label}
@@ -176,7 +194,7 @@ const DashboardLayout = ({ children }) => {
                       {item.label}
                     </span>
                   )}
-                  {active && <span className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />}
+                  {active && sidebarOpen && <span className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />}
                 </Link>
               );
             })}
@@ -232,7 +250,15 @@ const DashboardLayout = ({ children }) => {
                 aria-haspopup="true"
                 aria-expanded={open ? 'true' : undefined}
               >
-                <AccountCircleIcon className="text-cyan-200" />
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-purple-300/30 shadow-md"
+                  />
+                ) : (
+                  <AccountCircleIcon className="text-cyan-200" style={{ fontSize: '2rem' }} />
+                )}
               </button>
               <Menu
                 id="profile-menu"

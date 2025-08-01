@@ -19,15 +19,26 @@ const ProtectedRoute = ({ children }) => {
       return null;
     }
   });
+  const [hasValidated, setHasValidated] = useState(false);
 
   useEffect(() => {
     const checkTokenValidity = async () => {
       const currentToken = localStorage.getItem('token');
       setToken(currentToken);
-      let userData = null;
 
       // If on a public path and has valid token, redirect to dashboard or admin-dashboard
       if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
+        if (hasValidated && user) {
+          // Use cached user data if already validated
+          if (user.role === 'admin') {
+            navigate('/admin-dashboard', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          setLoading(false);
+          return;
+        }
+        
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -40,6 +51,7 @@ const ProtectedRoute = ({ children }) => {
           if (res.ok && data.valid) {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
+            setHasValidated(true);
             // Redirect based on role
             if (data.user.role === 'admin') {
               navigate('/admin-dashboard', { replace: true });
@@ -75,6 +87,34 @@ const ProtectedRoute = ({ children }) => {
 
       // If token exists and on protected route, validate it
       if (currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        // If we have already validated and user data, use cached data for role checks
+        if (hasValidated && user) {
+          // If trying to access /admin-dashboard and not admin, redirect
+          if (ADMIN_PATHS.includes(location.pathname) && user.role !== 'admin') {
+            navigate('/dashboard', { replace: true });
+            setIsValid(false);
+            setLoading(false);
+            return;
+          }
+          // If admin, and not on /admin-dashboard, redirect to /admin-dashboard
+          if (user.role === 'admin' && location.pathname === '/dashboard') {
+            navigate('/admin-dashboard', { replace: true });
+            setIsValid(false);
+            setLoading(false);
+            return;
+          }
+          // If not admin and trying to access /admin-dashboard, redirect
+          if (location.pathname === '/admin-dashboard' && user.role !== 'admin') {
+            navigate('/dashboard', { replace: true });
+            setIsValid(false);
+            setLoading(false);
+            return;
+          }
+          setIsValid(true);
+          setLoading(false);
+          return;
+        }
+        
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -87,6 +127,7 @@ const ProtectedRoute = ({ children }) => {
           if (res.ok && data.valid) {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
+            setHasValidated(true);
             // If trying to access /admin-dashboard and not admin, redirect
             if (ADMIN_PATHS.includes(location.pathname) && data.user.role !== 'admin') {
               navigate('/dashboard', { replace: true });
@@ -126,9 +167,18 @@ const ProtectedRoute = ({ children }) => {
       }
       setLoading(false);
     };
-    setLoading(true);
+    
+    // Only show loading on initial load, not on navigation between protected routes
+    if (hasValidated && isValid) {
+      // If we're already validated and just navigating between protected routes, don't show loading
+      setLoading(false);
+    } else if (!hasValidated) {
+      // Only set loading to true if we haven't validated yet
+      setLoading(true);
+    }
+    
     checkTokenValidity();
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, hasValidated, user]);
 
   if (loading) {
     return (

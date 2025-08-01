@@ -671,7 +671,9 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
         >
           <div style={{
             fontSize: '16px',
-            filter: socketStatus === 'connected' ? 'drop-shadow(0 2px 4px rgba(34, 197, 94, 0.3))' : 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))'
+            filter: socketStatus === 'connected' ? 'drop-shadow(0 2px 4px rgba(34, 197, 94, 0.3))' : 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))',
+            animation: unreadCount > 0 ? 'bellRing 1s ease-in-out infinite' : 'none',
+            transformOrigin: 'top center'
           }}>
             🔔
           </div>
@@ -1470,6 +1472,39 @@ const NotificationBell = ({ userId, sidebarOpen = false }) => {
           to {
             opacity: 1;
             transform: translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes bellRing {
+          0%, 100% {
+            transform: rotate(0deg);
+          }
+          10% {
+            transform: rotate(8deg);
+          }
+          20% {
+            transform: rotate(-8deg);
+          }
+          30% {
+            transform: rotate(6deg);
+          }
+          40% {
+            transform: rotate(-6deg);
+          }
+          50% {
+            transform: rotate(4deg);
+          }
+          60% {
+            transform: rotate(-4deg);
+          }
+          70% {
+            transform: rotate(2deg);
+          }
+          80% {
+            transform: rotate(-2deg);
+          }
+          90% {
+            transform: rotate(1deg);
           }
         }
         

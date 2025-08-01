@@ -138,14 +138,14 @@ const Login = ({ onLoginSuccess }) => {
               <Typography variant="body2" className="text-[#fff] text-xs font-spoof">
                 © 2025 Signavox. All rights Reserved
               </Typography>
-              <div className="flex items-center space-x-1 xs:space-x-2">
-                <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                <span className="underline cursor-pointer">Privacy Policy</span>
-                <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                <span className="underline cursor-pointer">Terms of Use</span>
-                <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                <span className="underline cursor-pointer">Cookies Policy</span>
-              </div>
+                             <div className="flex items-center space-x-1 xs:space-x-2">
+                 <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                 <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/privacy-policy')}>Privacy Policy</span>
+                 <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                 <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/terms-of-use')}>Terms of Use</span>
+                 <span className="text-purple-300/60 font-spoof mx-1">|</span>
+                 <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/cookie-policy')}>Cookies Policy</span>
+               </div>
             </div>
           </div>
         </div>

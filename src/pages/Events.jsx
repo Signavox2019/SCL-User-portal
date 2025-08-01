@@ -274,6 +274,12 @@ const Events = () => {
   // Main render
   return (
     <>
+      {loading ? (
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+        </div>
+      ) : (
+      <>
       {typeof document !== 'undefined' && ReactDOM.createPortal(
         <ToastContainer
           position="top-right"
@@ -385,7 +391,7 @@ const Events = () => {
         {/* Events List */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {loading ? (
-            <div className="col-span-full flex justify-center items-center h-64">
+            <div className="col-span-full flex justify-center items-center h-96">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
             </div>
           ) : error ? (
@@ -632,6 +638,8 @@ const Events = () => {
           document.getElementById('modal-root')
         )}
       </div>
+      </>
+      )}
     </>
   );
 };

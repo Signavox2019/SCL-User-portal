@@ -30,6 +30,7 @@ import {
   Close as CloseIcon,
   Add as AddIcon,
   Info as InfoIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { ToastContainer, toast } from 'react-toastify';
@@ -152,20 +153,12 @@ const Users = () => {
     hrName: 'HR Manager',
     employeeAddress: '',
     stipend: '₹ 7,000',
-    amount: {
-      courseAmount: '',
-      paidAmount: '',
-      balanceAmount: ''
-    },
   };
   const [formData, setFormData] = useState(initialFormData);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [editModal, setEditModal] = useState({ open: false, user: null, loading: false, error: null });
   const [editForm, setEditForm] = useState(initialFormData);
-
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const isAdmin = currentUser.role === 'admin';
 
   // Toast helper
   const showToast = (message, type = 'success') => {
@@ -367,11 +360,6 @@ const Users = () => {
           end: formData.shiftTimings.end,
         },
         workingDays: formData.workingDays,
-        amount: {
-          courseAmount: Number(formData.amount?.courseAmount) || 0,
-          paidAmount: Number(formData.amount?.paidAmount) || 0,
-          balanceAmount: Number(formData.amount?.balanceAmount) || 0,
-        },
       };
       const res = await axios.post(
         `${BaseUrl}/auth/register`,
@@ -395,29 +383,7 @@ const Users = () => {
 
   // Add this function to handle edit icon click
   const handleEditUserClick = (user) => {
-    // Parse the name into separate fields
-    const nameParts = (user.name || '').split(' ');
-    const editUserData = {
-      ...user,
-      password: '', // Don't prefill password
-      title: user.title || 'Mr',
-      firstName: nameParts[0] || '',
-      middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
-      lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
-      shiftTimings: user.shiftTimings || { start: '09:30', end: '18:30' },
-      workingDays: user.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      organizationName: user.organizationName || 'Signavox Technologies',
-      placeOfWork: user.placeOfWork || 'Signavox Technologies',
-      hrName: user.hrName || 'HR Manager',
-      employeeAddress: user.employeeAddress || '',
-      stipend: user.stipend || '₹ 7,000',
-      amount: {
-        courseAmount: user.amount?.courseAmount ?? '',
-        paidAmount: user.amount?.paidAmount ?? '',
-        balanceAmount: user.amount?.balanceAmount ?? '',
-      },
-    };
-    setEditForm(editUserData);
+    setEditForm({ ...user, password: '' }); // Don't prefill password
     setEditModal({ open: true, user, loading: false, error: null });
   };
 
@@ -427,40 +393,12 @@ const Users = () => {
     setEditModal((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const token = localStorage.getItem('token');
-      // Combine name fields
-      const fullName = [editForm.firstName, editForm.middleName, editForm.lastName].filter(Boolean).join(' ');
-      // Prepare request body with all fields
+      // Remove password from request body
+      const {
+        name, email, phone, role, collegeName, department, university, degree, specialization, cgpa, currentYear, isGraduated, yearOfPassing, hasExperience, previousCompany, position, yearsOfExperience
+      } = editForm;
       const reqBody = {
-        name: fullName,
-        email: editForm.email,
-        phone: editForm.phone,
-        role: editForm.role,
-        title: editForm.title,
-        collegeName: editForm.collegeName,
-        department: editForm.department,
-        university: editForm.university,
-        degree: editForm.degree,
-        specialization: editForm.specialization,
-        cgpa: editForm.cgpa,
-        currentYear: editForm.currentYear,
-        isGraduated: editForm.isGraduated,
-        yearOfPassing: editForm.yearOfPassing,
-        hasExperience: editForm.hasExperience,
-        previousCompany: editForm.previousCompany,
-        position: editForm.position,
-        yearsOfExperience: editForm.yearsOfExperience,
-        organizationName: editForm.organizationName,
-        placeOfWork: editForm.placeOfWork,
-        shiftTimings: editForm.shiftTimings,
-        workingDays: editForm.workingDays,
-        hrName: editForm.hrName,
-        employeeAddress: editForm.employeeAddress,
-        stipend: editForm.stipend,
-        amount: {
-          courseAmount: Number(editForm.amount?.courseAmount) || 0,
-          paidAmount: Number(editForm.amount?.paidAmount) || 0,
-          balanceAmount: Number(editForm.amount?.balanceAmount) || 0,
-        },
+        name, email, phone, role, collegeName, department, university, degree, specialization, cgpa, currentYear, isGraduated, yearOfPassing, hasExperience, previousCompany, position, yearsOfExperience
       };
       const res = await axios.put(
         `${BaseUrl}/users/admin/update-user/${editModal.user._id}`,
@@ -654,8 +592,8 @@ const Users = () => {
                   <div className="text-sm text-green-100/80 mt-1">Approved vs Pending vs Rejected</div>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={approvalBarData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={approvalBarData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
                   <XAxis dataKey="name" stroke="#c4b5fd" />
                   <YAxis stroke="#c4b5fd" allowDecimals={false} />
@@ -683,80 +621,6 @@ const Users = () => {
           .animate-bounce-slow { animation: bounce-slow 2.5s infinite; }
           @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
           .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-          
-          /* Enhanced Modal Animations */
-          @keyframes modalSlideIn {
-            0% { transform: translateY(50px) scale(0.95); opacity: 0; }
-            100% { transform: translateY(0) scale(1); opacity: 1; }
-          }
-          .animate-modalSlideIn { animation: modalSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-          
-          @keyframes cardHover {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-4px); }
-          }
-          .hover\\:card-hover:hover { animation: cardHover 0.3s ease-out forwards; }
-          
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-          .animate-shimmer { animation: shimmer 2s infinite; }
-          
-          /* Glassmorphism Effects */
-          .glass-effect {
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-          }
-          
-          /* Gradient Text */
-          .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-          
-          /* Custom Scrollbar */
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            background: transparent;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #a78bfa 0%, #f472b6 100%);
-            border-radius: 8px;
-            border: 2px solid transparent;
-            background-clip: content-box;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-          }
-          
-          /* Status Badge Animations */
-          @keyframes statusPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(168, 139, 250, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(168, 139, 250, 0); }
-          }
-          .status-pulse { animation: statusPulse 2s infinite; }
-          
-          /* Card Hover Effects */
-          .card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-          }
-          
-          /* Icon Animations */
-          @keyframes iconFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-          }
-          .icon-float { animation: iconFloat 3s ease-in-out infinite; }
         `}</style>
         {/* Search & Filter Section + Users Table (Unified Card) */}
         <div className="bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-6 shadow-2xl backdrop-blur-xl border border-white/10 mt-10">
@@ -946,67 +810,15 @@ const Users = () => {
         </div>
         {/* Status Confirmation Modal */}
         {statusConfirm.open && (
-          <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn p-4">
-            <div className="bg-gradient-to-br from-green-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl shadow-2xl border border-white/10 p-6 max-w-md w-full mx-4">
-              <div className="flex flex-col items-center text-center">
-                {/* Status Icon */}
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${statusConfirm.action === 'accept' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                  {statusConfirm.action === 'accept' ? (
-                    <CheckCircleIcon className="text-green-400 text-3xl" />
-                  ) : (
-                    <ThumbDownIcon className="text-red-400 text-3xl" />
-                  )}
-                </div>
-                
-                {/* Modal Title */}
-                <h2 className="text-xl font-bold text-white mb-3">
-                  {statusConfirm.action === 'accept' ? 'Approve User' : 'Reject User'}
-                </h2>
-                
-                {/* Modal Content */}
-                <div className="w-full">
-                  <p className="text-purple-200 mb-6 leading-relaxed">
-                    Are you sure you want to{' '}
-                    <span className="font-bold text-pink-300">
-                      {statusConfirm.action === 'accept' ? 'approve' : 'reject'}
-                    </span>{' '}
-                    the user{' '}
-                    <span className="font-bold text-pink-300 break-words">
-                      {statusConfirm.user?.name || statusConfirm.user?.email}
-                    </span>?
-                  </p>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                  <button 
-                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 text-sm" 
-                    onClick={() => setStatusConfirm({ open: false, user: null, action: null })}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className={`flex-1 px-4 py-2 rounded-lg text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed text-sm ${
-                      statusConfirm.action === 'accept' 
-                        ? 'bg-gradient-to-br from-green-500 to-purple-500' 
-                        : 'bg-gradient-to-br from-red-500 to-pink-500'
-                    }`}
-                    onClick={async () => { 
-                      await handleStatusChange(statusConfirm.user._id, statusConfirm.action === 'accept'); 
-                      setStatusConfirm({ open: false, user: null, action: null }); 
-                    }} 
-                    disabled={actionLoading[statusConfirm.user?._id]}
-                  >
-                    {actionLoading[statusConfirm.user?._id] ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        {statusConfirm.action === 'accept' ? 'Approving...' : 'Rejecting...'}
-                      </span>
-                    ) : (
-                      statusConfirm.action === 'accept' ? 'Approve' : 'Reject'
-                    )}
-                  </button>
-                </div>
+          <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="bg-gradient-to-br from-green-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl shadow-2xl border border-white/10 p-8 max-w-sm w-full">
+              <h2 className="text-xl font-bold text-white mb-4">{statusConfirm.action === 'accept' ? 'Approve User' : 'Reject User'}</h2>
+              <p className="text-purple-200 mb-6">
+                Are you sure you want to <span className="font-bold text-pink-300">{statusConfirm.action === 'accept' ? 'approve' : 'reject'}</span> the user <span className="font-bold text-pink-300">{statusConfirm.user?.name || statusConfirm.user?.email}</span>?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setStatusConfirm({ open: false, user: null, action: null })}>Cancel</button>
+                <button className="px-7 py-2 rounded-lg bg-gradient-to-br from-green-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed" onClick={async () => { await handleStatusChange(statusConfirm.user._id, statusConfirm.action === 'accept'); setStatusConfirm({ open: false, user: null, action: null }); }} disabled={actionLoading[statusConfirm.user?._id]}>{actionLoading[statusConfirm.user?._id] ? (statusConfirm.action === 'accept' ? 'Approving...' : 'Rejecting...') : (statusConfirm.action === 'accept' ? 'Approve' : 'Reject')}</button>
               </div>
             </div>
             <style>{`
@@ -1311,66 +1123,6 @@ const Users = () => {
                       </div>
                     </div>
                   </div>
-                  {isAdmin && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-200 mb-2">Course Payment</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-purple-200 mb-1">Course Amount</label>
-                          <input
-                            type="number"
-                            name="courseAmount"
-                            value={formData.amount.courseAmount}
-                            onChange={e => {
-                              const value = e.target.value;
-                              setFormData(f => {
-                                const newAmount = {
-                                  ...f.amount,
-                                  courseAmount: value,
-                                };
-                                const course = Number(newAmount.courseAmount) || 0;
-                                const paid = Number(newAmount.paidAmount) || 0;
-                                newAmount.balanceAmount = course - paid;
-                                return { ...f, amount: newAmount };
-                              });
-                            }}
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Paid Amount</label>
-                          <input
-                            type="number"
-                            name="paidAmount"
-                            value={formData.amount.paidAmount}
-                            onChange={e => {
-                              const value = e.target.value;
-                              setFormData(f => {
-                                const newAmount = {
-                                  ...f.amount,
-                                  paidAmount: value,
-                                };
-                                const course = Number(newAmount.courseAmount) || 0;
-                                const paid = Number(newAmount.paidAmount) || 0;
-                                newAmount.balanceAmount = course - paid;
-                                return { ...f, amount: newAmount };
-                              });
-                            }}
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Balance Amount</label>
-                          <input
-                            type="number"
-                            value={formData.amount.balanceAmount}
-                            readOnly
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   {addModal.error && (
                     <div className="mt-4 text-red-400 font-bold">{addModal.error}</div>
                   )}
@@ -1407,53 +1159,13 @@ const Users = () => {
         )}
         {/* Delete Confirmation Modal */}
         {deleteConfirm.open && (
-          <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn p-4">
-            <div className="bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl shadow-2xl border border-white/10 p-6 max-w-md w-full mx-4">
-              <div className="flex flex-col items-center text-center">
-                {/* Warning Icon */}
-                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-                  <DeleteIcon className="text-red-400 text-3xl" />
-                </div>
-                
-                {/* Modal Title */}
-                <h2 className="text-xl font-bold text-white mb-3">Delete User</h2>
-                
-                {/* Modal Content */}
-                <div className="w-full">
-                  <p className="text-purple-200 mb-6 leading-relaxed">
-                    Are you sure you want to delete the user{' '}
-                    <span className="font-bold text-pink-300 break-words">
-                      {deleteConfirm.user?.name || deleteConfirm.user?.email}
-                    </span>?
-                  </p>
-                  <p className="text-red-300 text-sm mb-6 font-medium">
-                    This action cannot be undone.
-                  </p>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                  <button 
-                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 text-sm" 
-                    onClick={() => setDeleteConfirm({ open: false, user: null })}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed text-sm" 
-                    onClick={async () => { await handleDeleteUser(deleteConfirm.user._id); }} 
-                    disabled={deleting[deleteConfirm.user?._id]}
-                  >
-                    {deleting[deleteConfirm.user?._id] ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Deleting...
-                      </span>
-                    ) : (
-                      'Delete User'
-                    )}
-                  </button>
-                </div>
+          <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl shadow-2xl border border-white/10 p-8 max-w-sm w-full">
+              <h2 className="text-xl font-bold text-white mb-4">Delete User</h2>
+              <p className="text-purple-200 mb-6">Are you sure you want to delete the user <span className="font-bold text-pink-300">{deleteConfirm.user?.name || deleteConfirm.user?.email}</span>? This action cannot be undone.</p>
+              <div className="flex justify-end gap-3">
+                <button className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setDeleteConfirm({ open: false, user: null })}>Cancel</button>
+                <button className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed" onClick={async () => { await handleDeleteUser(deleteConfirm.user._id); }} disabled={deleting[deleteConfirm.user?._id]}>{deleting[deleteConfirm.user?._id] ? 'Deleting...' : 'Delete'}</button>
               </div>
             </div>
             <style>{`
@@ -1469,312 +1181,133 @@ const Users = () => {
         )}
         {/* View User Modal */}
         {viewModal.open && ReactDOM.createPortal(
-          <div 
-            className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-md transition-all duration-300 animate-fadeIn p-4"
-            onClick={closeViewModal}
-          >
-            <div 
-              className="relative w-full max-w-4xl mx-auto min-w-[320px] bg-gradient-to-br from-[#1a1a2e]/95 via-[#16213e]/95 to-[#0f3460]/95 rounded-3xl shadow-2xl border border-purple-400/20 flex flex-col max-h-[90vh] overflow-hidden animate-modalSlideIn font-sans"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Animated Header Bar */}
-              <div className="h-1 w-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-t-3xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-              </div>
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="relative w-full max-w-2xl mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[85vh] overflow-hidden animate-modalPop font-sans">
+              {/* Accent Header Bar */}
+              <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
               
               {/* Close Button */}
               <button
-                className="absolute top-6 right-6 text-purple-200 hover:text-pink-400 transition-all duration-300 z-10 bg-white/10 rounded-full p-2 shadow-lg backdrop-blur-md hover:bg-white/20 hover:scale-110"
+                className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
                 onClick={closeViewModal}
               >
                 <CloseIcon fontSize="large" />
               </button>
 
               {/* Modal Content */}
-              <div className="flex-1 overflow-y-auto px-8 pb-8 pt-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar">
                 {viewModal.loading ? (
                   <div className="flex justify-center items-center h-64">
-                    <div className="flex flex-col items-center gap-6">
-                      <div className="relative">
-                        <CircularProgress size={80} thickness={4} style={{ color: '#a78bfa' }} />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 animate-pulse"></div>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-purple-200 font-medium text-lg mb-2">Loading user details...</p>
-                        <p className="text-purple-300 text-sm">Please wait while we fetch the information</p>
-                      </div>
-                    </div>
+                    <CircularProgress size={60} thickness={5} style={{ color: '#a78bfa' }} />
                   </div>
                 ) : viewModal.error ? (
-                  <div className="text-center text-red-400 font-bold py-10 flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                      <ErrorIcon className="text-3xl" />
-                    </div>
-                    <p className="text-lg">{viewModal.error}</p>
+                  <div className="text-center text-red-400 font-bold py-10 flex flex-col items-center gap-2">
+                    <ErrorIcon className="text-4xl" />
+                    {viewModal.error}
                   </div>
                 ) : viewModal.user && (
                   <div className="flex flex-col w-full gap-8 font-sans">
-                    {/* Hero Profile Section */}
-                    <div className="relative bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-8 border border-white/10 backdrop-blur-sm">
-                      {/* <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-t-2xl"></div> */}
-                      
-                      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
-                        {/* Profile Avatar */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-full border-4 border-gradient-to-r from-pink-400 to-purple-400 shadow-2xl bg-gradient-to-br from-purple-600/40 to-pink-600/40 flex items-center justify-center overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full"></div>
-                            <PersonIcon style={{ fontSize: '4rem' }} className="text-white relative z-10" />
-                          </div>
-                                                     {/* Status Badge */}
-                           <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold capitalize shadow-lg status-pulse ${getStatusColorClass(viewModal.user.approveStatus)}`}>
-                             {viewModal.user.approveStatus}
-                           </div>
-                        </div>
-                        
-                        {/* User Info */}
-                        <div className="flex-1 flex flex-col gap-4">
-                          <div>
-                            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-2 tracking-wide">{viewModal.user.name}</h2>
-                            <p className="text-xl text-purple-200 font-medium">{viewModal.user.role?.charAt(0).toUpperCase() + viewModal.user.role?.slice(1) || 'User'}</p>
-                          </div>
-                          
-                          {/* Contact Info Cards */}
-                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm card-hover hover:bg-white/10 transition-all duration-300">
-                               <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center icon-float">
-                                 <EmailIcon className="text-pink-400 text-xl" />
-                               </div>
-                               <div>
-                                 <p className="text-xs text-purple-300 uppercase tracking-wide">Email</p>
-                                 <p className="text-white font-medium">{viewModal.user.email}</p>
-                               </div>
-                             </div>
-                             
-                             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm card-hover hover:bg-white/10 transition-all duration-300">
-                               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center icon-float">
-                                 <PhoneIcon className="text-blue-400 text-xl" />
-                               </div>
-                               <div>
-                                 <p className="text-xs text-purple-300 uppercase tracking-wide">Phone</p>
-                                 <p className="text-white font-medium">{viewModal.user.phone || 'Not provided'}</p>
-                               </div>
-                             </div>
-                           </div>
-                        </div>
+                    {/* Header Section */}
+                    <div className="flex flex-col items-center justify-center gap-2 py-6 bg-gradient-to-r from-purple-900/80 via-pink-900/60 to-blue-900/80 rounded-2xl shadow-lg mb-2">
+                      <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 shadow-xl mb-2">
+                        <PersonIcon style={{ fontSize: '3.5rem' }} className="text-white drop-shadow-lg" />
+                      </div>
+                      <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1 flex items-center gap-2">
+                        {viewModal.user.name}
+                        <span className={`ml-2 px-3 py-1 rounded-full text-base font-bold capitalize shadow-md ${getStatusColorClass(viewModal.user.role)}`}>{viewModal.user.role}</span>
+                      </h2>
+                      <div className="flex flex-wrap gap-4 items-center justify-center mt-1">
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold capitalize ${getStatusColorClass(viewModal.user.approveStatus)}`}>{viewModal.user.approveStatus}</span>
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-blue-500/20 text-blue-200 border border-blue-400/30">{viewModal.user.title}</span>
                       </div>
                     </div>
-
-                    {/* Information Sections Grid */}
-                    <div className="flex flex-col gap-6">
-                      {/* Education Section */}
-                      <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-blue-500/15 hover:to-purple-500/15 transition-all duration-300">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                            <SchoolIcon className="text-blue-400 text-2xl" />
-                          </div>
-                          <h3 className="text-2xl font-bold text-white">Education</h3>
+                    {/* Contact Section */}
+                    <div className="flex flex-col md:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-2xl p-6 shadow-md">
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-purple-100 text-lg font-semibold">
+                          <EmailIcon className="text-pink-300" />
+                          <span>{viewModal.user.email}</span>
                         </div>
-                        
-                                                 <div className="space-y-4">
-                           <div className="flex flex-wrap gap-4">
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 card-hover hover:bg-white/10 transition-all duration-300 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">College</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.collegeName || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">University</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.university || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Department</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.department || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Degree</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.degree || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Specialization</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.specialization || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Current Year</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.currentYear || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">CGPA</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.cgpa || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Graduation Status</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.isGraduated ? 'Graduated' : 'Not Graduated'}</p>
-                             </div>
-                             {viewModal.user.yearOfPassing && (
-                               <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                                 <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Year of Passing</p>
-                                 <p className="text-white font-medium break-words">{viewModal.user.yearOfPassing}</p>
-                               </div>
-                             )}
-                           </div>
-                         </div>
+                        <div className="flex items-center gap-2 text-purple-100 text-lg font-semibold">
+                          <PhoneIcon className="text-pink-300" />
+                          <span>{viewModal.user.phone || 'Not provided'}</span>
+                        </div>
                       </div>
-
-                      {/* Organization Section */}
-                      <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-green-500/15 hover:to-blue-500/15 transition-all duration-300">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <BusinessIcon className="text-green-400 text-2xl" />
-                          </div>
-                          <h3 className="text-2xl font-bold text-white">Organization</h3>
-                        </div>
-                        
-                                                 <div className="space-y-4">
-                           <div className="flex flex-wrap gap-4">
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Organization Name</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.organizationName || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Place of Work</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.placeOfWork || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Shift Timings</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.shiftTimings?.default || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">HR Name</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.hrName || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Stipend</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.stipend || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Working Days</p>
-                               <p className="text-white font-medium break-words">{Array.isArray(viewModal.user.workingDays) ? viewModal.user.workingDays.join(', ') : 'Not provided'}</p>
-                             </div>
-                             {viewModal.user.offerLetter && (
-                               <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
-                                 <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Offer Letter</p>
-                                 <a href={viewModal.user.offerLetter} target="_blank" rel="noopener noreferrer" className="text-blue-300 underline font-bold hover:text-blue-400 transition inline-flex items-center gap-2">
-                                   Download PDF
-                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                   </svg>
-                                 </a>
-                               </div>
-                             )}
-                           </div>
-                         </div>
+                      <div className="flex-1 flex flex-col gap-2 items-end md:items-end">
+                        <span className="text-purple-200 text-sm">Registered On:</span>
+                        <span className="text-lg font-bold text-white">{new Date(viewModal.user.registeredAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                       </div>
                     </div>
-
-                    {/* Experience Section */}
-                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-orange-500/15 hover:to-red-500/15 transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                          <WorkIcon className="text-orange-400 text-2xl" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Experience</h3>
+                    {/* Organization Details */}
+                    <div className="bg-gradient-to-br from-blue-900/30 via-purple-900/30 to-pink-900/30 rounded-2xl p-6 shadow-md">
+                      <div className="flex items-center gap-3 mb-4">
+                        <BusinessIcon className="text-yellow-400 text-2xl" />
+                        <h3 className="text-xl font-bold text-purple-200 tracking-wide">Organization Details</h3>
                       </div>
-                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 w-full">
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Organization:</span><span className="text-purple-100">{viewModal.user.organizationName || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Place of Work:</span><span className="text-purple-100">{viewModal.user.placeOfWork || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Shift Timings:</span><span className="text-purple-100">{viewModal.user.shiftTimings?.default || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Working Days:</span><span className="text-purple-100">{Array.isArray(viewModal.user.workingDays) ? viewModal.user.workingDays.join(', ') : 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">HR Name:</span><span className="text-purple-100">{viewModal.user.hrName || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Stipend:</span><span className="text-purple-100">{viewModal.user.stipend || 'Not provided'}</span></div>
+                        {viewModal.user.offerLetter && (
+                          <div className="flex items-center gap-2 text-white font-medium md:col-span-2">
+                            <span className="opacity-80">Offer Letter:</span>
+                            <a href={viewModal.user.offerLetter} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold rounded-lg shadow hover:scale-105 transition-all duration-200">
+                              <DescriptionIcon className="text-white" /> Download PDF
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Education Details */}
+                    <div className="bg-gradient-to-br from-purple-900/30 via-blue-900/30 to-pink-900/30 rounded-2xl p-6 shadow-md">
+                      <div className="flex items-center gap-3 mb-4">
+                        <SchoolIcon className="text-yellow-400 text-2xl" />
+                        <h3 className="text-xl font-bold text-purple-200 tracking-wide">Education Details</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 w-full">
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">College:</span><span className="text-purple-100">{viewModal.user.collegeName || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">University:</span><span className="text-purple-100">{viewModal.user.university || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Department:</span><span className="text-purple-100">{viewModal.user.department || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Degree:</span><span className="text-purple-100">{viewModal.user.degree || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Specialization:</span><span className="text-purple-100">{viewModal.user.specialization || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Current Year:</span><span className="text-purple-100">{viewModal.user.currentYear || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">CGPA:</span><span className="text-purple-100">{viewModal.user.cgpa || 'Not provided'}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Graduation Status:</span><span className="text-purple-100">{viewModal.user.isGraduated ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 border border-green-400/30 font-bold ml-1">Graduated</span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 font-bold ml-1">Not Graduated</span>
+                        )}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Year of Passing:</span><span className="text-purple-100">{viewModal.user.yearOfPassing || 'Not provided'}</span></div>
+                      </div>
+                    </div>
+                    {/* Experience Details */}
+                    <div className="bg-gradient-to-br from-pink-900/30 via-purple-900/30 to-blue-900/30 rounded-2xl p-6 shadow-md">
+                      <div className="flex items-center gap-3 mb-4">
+                        <WorkIcon className="text-green-400 text-2xl" />
+                        <h3 className="text-xl font-bold text-purple-200 tracking-wide">Experience Details</h3>
+                      </div>
                       {viewModal.user.hasExperience ? (
-                        <div className="flex flex-wrap gap-4">
-                          <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                            <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Company</p>
-                            <p className="text-white font-medium break-words">{viewModal.user.previousCompany}</p>
-                          </div>
-                          <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                            <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Position</p>
-                            <p className="text-white font-medium break-words">{viewModal.user.position}</p>
-                          </div>
-                          <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                            <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Years of Experience</p>
-                            <p className="text-white font-medium break-words">{viewModal.user.yearsOfExperience} years</p>
-                          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 w-full">
+                          <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Company:</span><span className="text-purple-100">{viewModal.user.previousCompany}</span></div>
+                          <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Position:</span><span className="text-purple-100">{viewModal.user.position}</span></div>
+                          <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Years of Experience:</span><span className="text-purple-100">{viewModal.user.yearsOfExperience} years</span></div>
                         </div>
                       ) : (
-                        <div className="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
-                          <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
-                            <WorkIcon className="text-orange-400 text-2xl" />
-                          </div>
-                          <p className="text-purple-200 text-lg font-medium">No prior experience</p>
-                          <p className="text-purple-300 text-sm mt-1">This user is a fresh graduate or student</p>
-                        </div>
+                        <p className="text-purple-200">No prior experience</p>
                       )}
                     </div>
-
-                    {/* Registration Info */}
-                    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-purple-500/15 hover:to-pink-500/15 transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                          <InfoIcon className="text-purple-400 text-2xl" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Registration Details</h3>
+                    {/* Status & Registration Section */}
+                    <div className="bg-gradient-to-br from-blue-900/30 via-purple-900/30 to-pink-900/30 rounded-2xl p-6 shadow-md">
+                      <div className="flex items-center gap-3 mb-4">
+                        <InfoIcon className="text-blue-400 text-2xl" />
+                        <h3 className="text-xl font-bold text-purple-200 tracking-wide">Status & Registration</h3>
                       </div>
-                      
-                                             <div className="flex flex-wrap gap-4">
-                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                           <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Account Status</p>
-                           <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold capitalize ${getStatusColorClass(viewModal.user.approveStatus)}`}>
-                             {viewModal.user.approveStatus}
-                           </span>
-                         </div>
-                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                           <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Registered On</p>
-                           <p className="text-white font-medium break-words">{new Date(viewModal.user.registeredAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                         </div>
-                       </div>
-                    </div>
-                    {/* Course Payment Section - Creative & Professional */}
-                    <div className="relative bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl p-8 border border-white/10 shadow-2xl backdrop-blur-xl card-hover hover:from-pink-500/30 hover:to-purple-500/30 transition-all duration-300 overflow-hidden mt-6">
-                      {/* Animated Accent Icon */}
-                      <div className="absolute -top-8 right-8 w-24 h-24 bg-gradient-to-br from-pink-400/40 via-purple-400/40 to-blue-400/40 rounded-full blur-2xl animate-pulse-slow z-0" />
-                      <div className="flex items-center gap-4 mb-8 relative z-10">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center shadow-lg animate-bounce-slow">
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 16v-4m8-4h-4m-8 0H4" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-3xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg mb-1">Course Payment</h3>
-                          <p className="text-purple-100/80 text-base">Detailed payment breakdown for this user</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                        {/* Course Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-pink-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-pink-300 uppercase tracking-wider mb-2">Total Amount</span>
-                          <span className="text-3xl font-extrabold text-pink-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.courseAmount ? `₹${Number(viewModal.user.amount.courseAmount).toLocaleString()}` : 'N/A'}</span>
-                        </div>
-                        {/* Paid Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-blue-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Paid</span>
-                          <span className="text-3xl font-extrabold text-blue-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.paidAmount ? `₹${Number(viewModal.user.amount.paidAmount).toLocaleString()}` : 'N/A'}</span>
-                          {/* Progress Bar */}
-                          <div className="w-full mt-4">
-                            <div className="h-2 rounded-full bg-blue-900/30 overflow-hidden">
-                              <div
-                                className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-500"
-                                style={{ width: `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.courseAmount || 1))) * 100))}%` }}
-                              />
-                            </div>
-                            <div className="text-xs text-blue-200 mt-1 text-right">
-                              {viewModal.user?.amount?.courseAmount ? `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.courseAmount || 1))) * 100))}% Paid` : ''}
-                            </div>
-                          </div>
-                        </div>
-                        {/* Balance Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-purple-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Balance</span>
-                          <span className="text-3xl font-extrabold text-purple-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.balanceAmount !== undefined ? `₹${Number(viewModal.user.amount.balanceAmount).toLocaleString()}` : 'N/A'}</span>
-                          {Number(viewModal.user?.amount?.balanceAmount) === 0 && (
-                            <span className="mt-2 px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold animate-pulse">Fully Paid</span>
-                          )}
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 w-full">
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Account Status:</span><span className={`inline-block px-3 py-1 rounded-full text-sm font-bold capitalize ${getStatusColorClass(viewModal.user.approveStatus)}`}>{viewModal.user.approveStatus}</span></div>
+                        <div className="flex items-center gap-2 text-white font-medium"><span className="opacity-80">Registered On:</span><span className="text-purple-100">{new Date(viewModal.user.registeredAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
                       </div>
                     </div>
                   </div>
@@ -1795,304 +1328,147 @@ const Users = () => {
                 <CloseIcon fontSize="large" />
               </button>
               <form className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar" onSubmit={handleEditUserSubmit}>
-                <h2 className="text-3xl font-bold text-white mb-4">Edit User</h2>
-                
-                {/* Personal Details */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-purple-200 mb-4">Personal Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-purple-200 mb-1">Title</label>
-                      <select value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required>
-                        {['Mr', 'Mrs', 'Ms', 'Dr', 'Prof'].map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">First Name</label>
-                      <input type="text" value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Middle Name</label>
-                      <input type="text" value={editForm.middleName} onChange={e => setEditForm(f => ({ ...f, middleName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Last Name</label>
-                      <input type="text" value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Email</label>
-                      <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Phone</label>
-                      <input type="tel" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Role</label>
-                      <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required>
-                        {['intern', 'admin', 'support'].map(opt => (
-                          <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
-                        ))}
-                      </select>
-                    </div>
+                <h2 className="text-3xl font-bold text-white mb-4 ">Edit User</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Name</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} required className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                   </div>
-                </div>
-
-                {/* Education Details */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-purple-200 mb-4">Education</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-purple-200 mb-1">College Name</label>
-                      <select
-                        value={editForm.collegeName}
-                        onChange={e => setEditForm(f => ({ ...f, collegeName: e.target.value }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        required
-                      >
-                        <option value="">Select College</option>
-                        {universityOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Department</label>
-                      <select
-                        value={editForm.department}
-                        onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        required
-                      >
-                        <option value="">Select Department</option>
-                        {departmentOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">University</label>
-                      <input type="text" value={editForm.university} onChange={e => setEditForm(f => ({ ...f, university: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Degree</label>
-                      <select
-                        value={editForm.degree}
-                        onChange={e => setEditForm(f => ({ ...f, degree: e.target.value }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        required
-                      >
-                        <option value="">Select Degree</option>
-                        {degreeOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Specialization</label>
-                      <input type="text" value={editForm.specialization} onChange={e => setEditForm(f => ({ ...f, specialization: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">CGPA</label>
-                      <input type="text" value={editForm.cgpa} onChange={e => setEditForm(f => ({ ...f, cgpa: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Current Year</label>
-                      <select
-                        value={editForm.currentYear}
-                        onChange={e => setEditForm(f => ({ ...f, currentYear: e.target.value }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        required
-                      >
-                        <option value="">Select Year</option>
-                        {yearOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Is Graduated?</label>
-                      <select value={editForm.isGraduated ? 'yes' : 'no'} onChange={e => setEditForm(f => ({ ...f, isGraduated: e.target.value === 'yes' }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10">
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Year of Passing</label>
-                      <input type="text" value={editForm.yearOfPassing} onChange={e => setEditForm(f => ({ ...f, yearOfPassing: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Email</label>
+                    <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} required className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                   </div>
-                </div>
-
-                {/* Experience Details */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-purple-200 mb-4">Experience</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-purple-200 mb-1">Has Experience?</label>
-                      <div className="flex gap-4 items-center">
-                        <label className="flex items-center gap-1">
-                          <input
-                            type="radio"
-                            name="editHasExperience"
-                            value="yes"
-                            checked={editForm.hasExperience === true}
-                            onChange={() => setEditForm(f => ({ ...f, hasExperience: true }))}
-                            className="form-radio text-pink-500"
-                          />
-                          <span>Yes</span>
-                        </label>
-                        <label className="flex items-center gap-1">
-                          <input
-                            type="radio"
-                            name="editHasExperience"
-                            value="no"
-                            checked={editForm.hasExperience === false}
-                            onChange={() => setEditForm(f => ({ ...f, hasExperience: false }))}
-                            className="form-radio text-pink-500"
-                          />
-                          <span>No</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div />
-                    {editForm.hasExperience && (
-                      <>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Previous Company</label>
-                          <input type="text" value={editForm.previousCompany} onChange={e => setEditForm(f => ({ ...f, previousCompany: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                        </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Position</label>
-                          <input type="text" value={editForm.position} onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                        </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Years of Experience</label>
-                          <input type="text" value={editForm.yearsOfExperience} onChange={e => setEditForm(f => ({ ...f, yearsOfExperience: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                        </div>
-                      </>
-                    )}
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Phone</label>
+                    <input type="text" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                   </div>
-                </div>
-
-                {/* Organization Details */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-purple-200 mb-4">Organization Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-purple-200 mb-1">Organization Name</label>
-                      <input type="text" value={editForm.organizationName} onChange={e => setEditForm(f => ({ ...f, organizationName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Place of Work</label>
-                      <input type="text" value={editForm.placeOfWork} onChange={e => setEditForm(f => ({ ...f, placeOfWork: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Shift Start Time</label>
-                      <input type="time" value={editForm.shiftTimings?.start || '09:30'} onChange={e => setEditForm(f => ({ ...f, shiftTimings: { ...f.shiftTimings, start: e.target.value } }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Shift End Time</label>
-                      <input type="time" value={editForm.shiftTimings?.end || '18:30'} onChange={e => setEditForm(f => ({ ...f, shiftTimings: { ...f.shiftTimings, end: e.target.value } }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-purple-200 mb-1">Working Days</label>
-                      <div className="flex flex-wrap gap-4">
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
-                          <label key={day} className="flex items-center gap-2 text-purple-100">
-                            <input
-                              type="checkbox"
-                              checked={editForm.workingDays?.includes(day) || false}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  setEditForm(f => ({ ...f, workingDays: [...(f.workingDays || []), day] }));
-                                } else {
-                                  setEditForm(f => ({ ...f, workingDays: (f.workingDays || []).filter(d => d !== day) }));
-                                }
-                              }}
-                              className="form-checkbox text-pink-500"
-                            />
-                            {day}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">HR Name</label>
-                      <input type="text" value={editForm.hrName} onChange={e => setEditForm(f => ({ ...f, hrName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Employee Address</label>
-                      <input type="text" value={editForm.employeeAddress} onChange={e => setEditForm(f => ({ ...f, employeeAddress: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
-                    <div>
-                      <label className="block text-purple-200 mb-1">Stipend</label>
-                      <input type="text" value={editForm.stipend} onChange={e => setEditForm(f => ({ ...f, stipend: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                    </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Role</label>
+                    <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40">
+                      <option value="intern">Intern</option>
+                      <option value="admin">Admin</option>
+                      <option value="support">Support</option>
+                    </select>
                   </div>
-                </div>
-                {isAdmin && (
-                  <div className="mb-4">
-                    <h3 className="text-xl font-semibold text-purple-200 mb-2">Course Payment</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-purple-200 mb-1">Course Amount</label>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">College Name</label>
+                    <select
+                      value={editForm.collegeName}
+                      onChange={e => setEditForm(f => ({ ...f, collegeName: e.target.value }))}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                    >
+                      <option value="">Select College</option>
+                      {universityOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Department</label>
+                    <select
+                      value={editForm.department}
+                      onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                    >
+                      <option value="">Select Department</option>
+                      {departmentOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">University</label>
+                    <input type="text" value={editForm.university} onChange={e => setEditForm(f => ({ ...f, university: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Degree</label>
+                    <select
+                      value={editForm.degree}
+                      onChange={e => setEditForm(f => ({ ...f, degree: e.target.value }))}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                    >
+                      <option value="">Select Degree</option>
+                      {degreeOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Current Year</label>
+                    <select
+                      value={editForm.currentYear}
+                      onChange={e => setEditForm(f => ({ ...f, currentYear: e.target.value }))}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                    >
+                      <option value="">Select Year</option>
+                      {yearOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Specialization</label>
+                    <input type="text" value={editForm.specialization} onChange={e => setEditForm(f => ({ ...f, specialization: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">CGPA</label>
+                    <input type="text" value={editForm.cgpa} onChange={e => setEditForm(f => ({ ...f, cgpa: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Year of Passing</label>
+                    <input type="text" value={editForm.yearOfPassing} onChange={e => setEditForm(f => ({ ...f, yearOfPassing: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Is Graduated?</label>
+                    <select value={editForm.isGraduated ? 'yes' : 'no'} onChange={e => setEditForm(f => ({ ...f, isGraduated: e.target.value === 'yes' }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40">
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-purple-200 mb-1 font-semibold">Has Experience?</label>
+                    <div className="flex gap-4 items-center">
+                      <label className="flex items-center gap-1">
                         <input
-                          type="number"
-                          name="courseAmount"
-                          value={editForm.amount?.courseAmount || ''}
-                          onChange={e => {
-                            const value = e.target.value;
-                            setEditForm(f => {
-                              const newAmount = {
-                                ...f.amount,
-                                courseAmount: value,
-                              };
-                              const course = Number(newAmount.courseAmount) || 0;
-                              const paid = Number(newAmount.paidAmount) || 0;
-                              newAmount.balanceAmount = course - paid;
-                              return { ...f, amount: newAmount };
-                            });
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                          type="radio"
+                          name="editHasExperience"
+                          value="yes"
+                          checked={editForm.hasExperience === true}
+                          onChange={() => setEditForm(f => ({ ...f, hasExperience: true }))}
+                          className="form-radio text-pink-500"
                         />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="editHasExperience"
+                          value="no"
+                          checked={editForm.hasExperience === false}
+                          onChange={() => setEditForm(f => ({ ...f, hasExperience: false }))}
+                          className="form-radio text-pink-500"
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
+                  </div>
+                  {editForm.hasExperience && (
+                    <>
+                      <div>
+                        <label className="block text-purple-200 mb-1 font-semibold">Previous Company</label>
+                        <input type="text" value={editForm.previousCompany} onChange={e => setEditForm(f => ({ ...f, previousCompany: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                       </div>
                       <div>
-                        <label className="block text-purple-200 mb-1">Paid Amount</label>
-                        <input
-                          type="number"
-                          name="paidAmount"
-                          value={editForm.amount?.paidAmount || ''}
-                          onChange={e => {
-                            const value = e.target.value;
-                            setEditForm(f => {
-                              const newAmount = {
-                                ...f.amount,
-                                paidAmount: value,
-                              };
-                              const course = Number(newAmount.courseAmount) || 0;
-                              const paid = Number(newAmount.paidAmount) || 0;
-                              newAmount.balanceAmount = course - paid;
-                              return { ...f, amount: newAmount };
-                            });
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        />
+                        <label className="block text-purple-200 mb-1 font-semibold">Position</label>
+                        <input type="text" value={editForm.position} onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                       </div>
                       <div>
-                        <label className="block text-purple-200 mb-1">Balance Amount</label>
-                        <input
-                          type="number"
-                          value={editForm.amount?.balanceAmount || ''}
-                          readOnly
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed"
-                        />
+                        <label className="block text-purple-200 mb-1 font-semibold">Years of Experience</label>
+                        <input type="text" value={editForm.yearsOfExperience} onChange={e => setEditForm(f => ({ ...f, yearsOfExperience: e.target.value }))} className="w-full py-2 px-3 rounded-lg bg-purple-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
                       </div>
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
                 {editModal.error && <div className="mt-4 text-red-400 font-bold">{editModal.error}</div>}
                 <div className="mt-6 flex justify-end gap-3">
                   <button type="button" className="px-5 py-2 rounded-lg bg-transparent border text-white font-bold shadow-lg hover:scale-105 hover:from-purple-500 hover:to-pink-500 transition-all duration-300" onClick={() => setEditModal({ open: false, user: null, loading: false, error: null })}>

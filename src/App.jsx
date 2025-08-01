@@ -21,6 +21,11 @@ import Enrollments from './pages/Enrollments.jsx';
 import Users from './pages/Users.jsx';
 import Professors from './pages/Professors.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import Tickets from './pages/Tickets';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
+import TermsOfUse from './pages/TermsOfUse';
+import Profile from './pages/Profile';
 
 const theme = createTheme({
   palette: {
@@ -179,6 +184,29 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/tickets"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Tickets />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Profile />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
       </Routes>
     </>
   );

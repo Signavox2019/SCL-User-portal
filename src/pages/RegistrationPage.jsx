@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import BaseUrl from '../Api.jsx';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import universityOptions from '../assets/University_list.js';
 import { Autocomplete, createFilterOptions } from '@mui/material';
 
@@ -33,6 +33,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 // const universityOptions = universityList.split('\n').filter(Boolean);
 
 const Landing = () => {
+  const navigate = useNavigate();
   const [hasExperience, setHasExperience] = useState('no');
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -141,7 +142,7 @@ const Landing = () => {
         specialization: formData['Specialization'] || '',
         cgpa: formData['CGPA Score'] || '',
         cgpaType,
-        currentYear: formData['Current Year'] || '',
+        currentYear: formData['Year'] || '',
         isGraduated: formData['isGraduated'] || false,
         yearOfPassing: formData['Year of Passing'] || '',
         hasExperience: hasExperience === 'yes',
@@ -284,11 +285,11 @@ const Landing = () => {
                 </Typography>
                 <div className="flex items-center space-x-1 xs:space-x-2">
                   <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                  <span className="underline cursor-pointer">Privacy Policy</span>
+                  <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/privacy-policy')}>Privacy Policy</span>
                   <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                  <span className="underline cursor-pointer">Terms of Use</span>
+                  <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/terms-of-use')}>Terms of Use</span>
                   <span className="text-purple-300/60 font-spoof mx-1">|</span>
-                  <span className="underline cursor-pointer">Cookies Policy</span>
+                  <span className="underline cursor-pointer hover:text-purple-200 transition-colors" onClick={() => navigate('/cookie-policy')}>Cookies Policy</span>
                 </div>
               </div>
             </div>

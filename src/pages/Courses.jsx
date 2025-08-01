@@ -38,7 +38,7 @@ const Courses = ({ user: userProp }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState({ category: '', level: '' });
+  const [filter, setFilter] = useState({ type: '', level: '' });
   const isLoggedIn = !!user;
   const isAdmin = user && user.role === 'admin';
   const navigate = useNavigate();
@@ -76,9 +76,9 @@ const Courses = ({ user: userProp }) => {
     const matchesSearch =
       course.title.toLowerCase().includes(search.toLowerCase()) ||
       course.description.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = filter.category ? course.category === filter.category : true;
+    const matchesType = filter.type ? course.type === filter.type : true;
     const matchesLevel = filter.level ? course.level === filter.level : true;
-    return matchesSearch && matchesCategory && matchesLevel;
+    return matchesSearch && matchesType && matchesLevel;
   });
 
   // Toast
@@ -168,7 +168,13 @@ const Courses = ({ user: userProp }) => {
 
   // Main render
   return (
-    <div className="space-y-10 pb-10">
+    <>
+      {loading ? (
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+        </div>
+      ) : (
+      <div className="space-y-10 pb-10">
       {/* Header */}
       <div className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-2xl p-8 shadow-2xl backdrop-blur-xl border border-white/10 flex items-center gap-6">
         <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 shadow-lg">
@@ -207,10 +213,10 @@ const Courses = ({ user: userProp }) => {
           <div className="relative min-w-[160px]">
             <select
               className="appearance-none w-full py-3 px-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-pink-400/40 shadow-lg custom-select"
-              value={filter.category}
-              onChange={e => setFilter(f => ({ ...f, category: e.target.value }))}
+              value={filter.type}
+              onChange={e => setFilter(f => ({ ...f, type: e.target.value }))}
             >
-              <option value="">All Categories</option>
+              <option value="">All Types</option>
               {typeOptions.map(opt => <option key={opt} value={opt} className="text-black bg-white hover:bg-purple-100">{opt}</option>)}
             </select>
             <FilterListIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-300 pointer-events-none" />
@@ -240,11 +246,7 @@ const Courses = ({ user: userProp }) => {
       `}</style>
       {/* Courses List */}
       <div className="flex flex-col gap-5 w-full">
-        {loading ? (
-          <div className="flex justify-center items-center h-64 w-full">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="text-center text-red-400 font-bold py-10 w-full">{error}</div>
         ) : filteredCourses.length === 0 ? (
           <div className="text-center py-16 w-full">
@@ -373,7 +375,9 @@ const Courses = ({ user: userProp }) => {
           document.getElementById('modal-root')
         )
       )}
-    </div>
+      </div>
+      )}
+    </>
   );
 };
 
@@ -385,8 +389,11 @@ const getUser = () => {
   }
 };
 
-export default (props) => (
-  <ProtectedRoute>
-    <Courses {...props} />
-  </ProtectedRoute>
-); 
+// export default (props) => (
+//   <ProtectedRoute>
+//     <Courses {...props} />
+//   </ProtectedRoute>
+// ); 
+
+
+export default Courses;
