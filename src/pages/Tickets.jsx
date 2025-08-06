@@ -318,23 +318,34 @@ const Tickets = () => {
     // Handle update ticket status (support only)
     const handleUpdateStatus = async (e) => {
         e.preventDefault();
+        setUpdateModal(prev => ({ ...prev, loading: true }));
         try {
             const token = validateToken();
-            if (!token) return;
+            if (!token) {
+                setUpdateModal(prev => ({ ...prev, loading: false }));
+                return;
+            }
             const res = await axios.put(
                 `${BaseUrl}/tickets/${updateModal.ticket._id}`,
                 { status: updateModal.status },
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
             showToast(res.data.message || 'Status updated successfully!', 'success');
-            setUpdateModal({ open: false, ticket: null, status: '' });
-            fetchTickets();
+            setUpdateModal({ open: false, ticket: null, status: '', loading: false });
+            // Update the ticket in state instead of refetching all
+            setTickets(prev => prev.map(t =>
+                t._id === updateModal.ticket._id
+                    ? { ...t, status: updateModal.status }
+                    : t
+            ));
         } catch (err) {
             if (err.response?.status === 401) {
                 showToast('Session expired. Please login again.', 'error');
             } else {
                 showToast(err.response?.data?.message || 'Failed to update status', 'error');
             }
+        } finally {
+            setUpdateModal(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -405,11 +416,18 @@ const Tickets = () => {
         // eslint-disable-next-line
     }, [isAdmin, isSupport]);
 
+    // Fetch tickets only on mount
     useEffect(() => {
         fetchTickets();
+        // eslint-disable-next-line
+    }, []);
+
+    // Fetch support members only if admin, and only when isAdmin changes
+    useEffect(() => {
         if (isAdmin) {
             fetchSupportMembers();
         }
+        // eslint-disable-next-line
     }, [isAdmin]);
 
     // Sort tickets by createdAt descending (newest first)
@@ -1485,7 +1503,16 @@ const Tickets = () => {
                                 </div>
                                 <div className="mt-6 flex justify-end gap-3">
                                     <button type="button" className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setUpdateModal({ open: false, ticket: null, status: '' })}>Cancel</button>
-                                    <button type="submit" className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300">Update Status</button>
+                                    <button type="submit" className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 justify-center" disabled={updateModal.loading}>
+                                        {updateModal.loading ? (
+                                            <>
+                                                <CircularProgress size={20} style={{ color: 'white' }} />
+                                                Updating...
+                                            </>
+                                        ) : (
+                                            <>Update Status</>
+                                        )}
+                                    </button>
                                 </div>
                             </form>
                         </div>

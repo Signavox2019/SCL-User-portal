@@ -68,7 +68,8 @@ const DashboardLayout = ({ children }) => {
   let navItems = [
     { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
     { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
-    { label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' },
+    // Only show Progress if not support
+    ...(user?.role !== 'support' ? [{ label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' }] : []),
     { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
     { label: 'Tickets', icon: <TicketsIcon fontSize="medium" />, path: '/tickets' },
   ];

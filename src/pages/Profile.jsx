@@ -3,6 +3,14 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import BaseUrl from '../Api';
 import universityList from '../assets/University_list.js';
+
+// Dropdown options for degree and department
+const degreeOptions = [
+  'B.Tech', 'B.E.', 'M.Tech', 'M.E.', 'PhD', 'B.Sc', 'M.Sc', 'BCA', 'MCA'
+];
+const departmentOptions = [
+  'Computer Science', 'Information Technology', 'Electronics & Communication', 'Electrical & Electronics', 'Mechanical Engineering', 'Civil Engineering'
+];
 import {
   Person as PersonIcon,
   School as SchoolIcon,
@@ -431,8 +439,8 @@ const Profile = () => {
             placeholder={placeholder || `Enter ${label.toLowerCase()}`}
           />
         ) : (
-          <div className="px-4 py-3 bg-white/5 border border-purple-300/20 rounded-xl text-white font-medium backdrop-blur-sm">
-            {displayValue || 'Not specified'}
+          <div className="px-4 py-3 bg-white/5 border border-purple-300/20 rounded-xl text-white font-medium backdrop-blur-sm break-words overflow-hidden">
+            <span className="break-all">{displayValue || 'Not specified'}</span>
           </div>
         )}
       </div>
@@ -739,9 +747,9 @@ const Profile = () => {
                 <h1 className="text-2xl font-bold text-white">
                   {formData.firstName} {formData.middleName} {formData.lastName}
                 </h1>
-                <p className="text-lg text-purple-200 flex items-center justify-center gap-2">
-                  <EmailIcon className="text-purple-200" />
-                  {formData.email}
+                <p className="text-lg text-purple-200 flex items-center justify-center gap-2 text-center break-words">
+                  <EmailIcon className="text-purple-200 flex-shrink-0" />
+                  <span className="break-all">{formData.email}</span>
                 </p>
                 {formData.phone && (
                   <p className="text-purple-300 flex items-center justify-center gap-2">
@@ -833,9 +841,9 @@ const Profile = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {renderFormField('College Name', 'collegeName', 'text', 'Enter your college name', false, <AccountBalanceIcon />)}
-                {renderFormField('Department', 'department', 'text', 'Enter your department', false, <SchoolIcon />)}
+                {renderSelectField('Department', 'department', departmentOptions, false, <SchoolIcon />)}
                 {renderSelectField('University', 'university', universityList, false, <AccountBalanceIcon />)}
-                {renderFormField('Degree', 'degree', 'text', 'Enter your degree', false, <GradeIcon />)}
+                {renderSelectField('Degree', 'degree', degreeOptions, false, <GradeIcon />)}
                 {renderFormField('Specialization', 'specialization', 'text', 'Enter your specialization', false, <SchoolIcon />)}
                 {renderFormField('CGPA', 'cgpa', 'text', 'Enter your CGPA', false, <GradeIcon />)}
                 {renderSelectField('Current Year', 'currentYear', ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'], false, <CalendarIcon />)}

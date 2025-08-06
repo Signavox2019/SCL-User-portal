@@ -38,6 +38,28 @@ const Login = ({ onLoginSuccess }) => {
         isSuccess = true;
         toastMsg = 'Login successful! Redirecting...';
         localStorage.setItem('token', data.token);
+        
+        // If user data is included in login response, store it immediately
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          // If user data is not included, fetch it immediately
+          try {
+            const userRes = await fetch(`${BaseUrl}/auth/validate`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`,
+              },
+            });
+            const userData = await userRes.json();
+            if (userRes.ok && userData.valid && userData.user) {
+              localStorage.setItem('user', JSON.stringify(userData.user));
+            }
+          } catch (userErr) {
+            console.error('Failed to fetch user data after login:', userErr);
+          }
+        }
       } else {
         toastMsg = data.message || 'Login failed.';
       }

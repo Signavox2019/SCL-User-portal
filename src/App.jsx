@@ -38,10 +38,13 @@ const theme = createTheme({
 function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
   const navigate = useNavigate();
 
+
+
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
     setShowSplash(true);
-    navigate('/'); // Always go to root to trigger splash
+    // Navigate to root to trigger splash screen
+    navigate('/', { replace: true });
   };
 
   const handleSplashComplete = () => {
@@ -49,12 +52,13 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
     // After splash, redirect to the correct dashboard based on user role
     try {
       const user = JSON.parse(localStorage.getItem('user'));
-      if (user && user.role === 'admin') {
+      if (user && (user.role === 'admin' || user.role === 'support')) {
         navigate('/admin-dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }
-    } catch {
+    } catch (error) {
+      console.error('Error parsing user data in splash complete:', error);
       navigate('/dashboard', { replace: true });
     }
   };
@@ -213,8 +217,18 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
 }
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showSplash, setShowSplash] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    // Check if user is already logged in on app startup
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  });
+  const [showSplash, setShowSplash] = useState(() => {
+    // If user is already logged in on startup, show splash
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  });
 
   useEffect(() => {
     if (isLoggedIn) {

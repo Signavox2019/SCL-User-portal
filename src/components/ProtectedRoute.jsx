@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import BaseUrl from '../Api.jsx';
@@ -9,8 +9,19 @@ const ADMIN_PATHS = ['/admin-dashboard'];
 const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
-  const [isValid, setIsValid] = useState(false);
+  const redirectedRef = useRef(false); // Prevent multiple redirects
+  const [loading, setLoading] = useState(() => {
+    // If we have both token and user data, don't show loading initially
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !(token && user);
+  });
+  const [isValid, setIsValid] = useState(() => {
+    // If we have both token and user data, consider it valid immediately
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  });
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(() => {
     try {
@@ -19,26 +30,61 @@ const ProtectedRoute = ({ children }) => {
       return null;
     }
   });
-  const [hasValidated, setHasValidated] = useState(false);
+  const [hasValidated, setHasValidated] = useState(() => {
+    // If we have both token and user data, consider it already validated
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  });
+
+  useEffect(() => {
+    redirectedRef.current = false; // Reset on pathname change
+  }, [location.pathname]);
 
   useEffect(() => {
     const checkTokenValidity = async () => {
       const currentToken = localStorage.getItem('token');
       setToken(currentToken);
 
-      // If on a public path and has valid token, redirect to dashboard or admin-dashboard
+      if (redirectedRef.current) return;
+
+      // If we already have valid data and are on a protected route, just set loading to false
+      if (hasValidated && user && !PUBLIC_PATHS.includes(location.pathname)) {
+        setLoading(false);
+        return;
+      }
+
+      // If on a public path and has valid token, redirect to correct dashboard
       if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
-        if (hasValidated && user) {
-          // Use cached user data if already validated
-          if (user.role === 'admin') {
+        // First check if we have user data in localStorage
+        let currentUser = user;
+        if (!currentUser) {
+          try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              currentUser = JSON.parse(storedUser);
+              setUser(currentUser);
+            }
+          } catch (err) {
+            console.error('Error parsing stored user:', err);
+          }
+        }
+
+        if (hasValidated && currentUser) {
+          if ((currentUser.role === 'admin' || currentUser.role === 'support') && location.pathname !== '/admin-dashboard') {
+            redirectedRef.current = true;
             navigate('/admin-dashboard', { replace: true });
-          } else {
+            setLoading(false);
+            return;
+          } else if (currentUser.role !== 'admin' && currentUser.role !== 'support' && location.pathname !== '/dashboard') {
+            redirectedRef.current = true;
             navigate('/dashboard', { replace: true });
+            setLoading(false);
+            return;
           }
           setLoading(false);
           return;
         }
-        
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -52,11 +98,16 @@ const ProtectedRoute = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
-            // Redirect based on role
-            if (data.user.role === 'admin') {
+            if ((data.user.role === 'admin' || data.user.role === 'support') && location.pathname !== '/admin-dashboard') {
+              redirectedRef.current = true;
               navigate('/admin-dashboard', { replace: true });
-            } else {
+              setLoading(false);
+              return;
+            } else if (data.user.role !== 'admin' && data.user.role !== 'support' && location.pathname !== '/dashboard') {
+              redirectedRef.current = true;
               navigate('/dashboard', { replace: true });
+              setLoading(false);
+              return;
             }
             setLoading(false);
             return;
@@ -78,6 +129,7 @@ const ProtectedRoute = ({ children }) => {
 
       // If no token and trying to access protected route, redirect to login
       if (!currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        redirectedRef.current = true;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login', { replace: true });
@@ -87,25 +139,33 @@ const ProtectedRoute = ({ children }) => {
 
       // If token exists and on protected route, validate it
       if (currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
-        // If we have already validated and user data, use cached data for role checks
-        if (hasValidated && user) {
-          // If trying to access /admin-dashboard and not admin, redirect
-          if (ADMIN_PATHS.includes(location.pathname) && user.role !== 'admin') {
+        // First check if we have user data in localStorage
+        let currentUser = user;
+        if (!currentUser) {
+          try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              currentUser = JSON.parse(storedUser);
+              setUser(currentUser);
+            }
+          } catch (err) {
+            console.error('Error parsing stored user:', err);
+          }
+        }
+
+        if (hasValidated && currentUser) {
+          // Only allow admin/support on /admin-dashboard
+          if (location.pathname === '/admin-dashboard' && currentUser.role !== 'admin' && currentUser.role !== 'support') {
+            redirectedRef.current = true;
             navigate('/dashboard', { replace: true });
             setIsValid(false);
             setLoading(false);
             return;
           }
-          // If admin, and not on /admin-dashboard, redirect to /admin-dashboard
-          if (user.role === 'admin' && location.pathname === '/dashboard') {
+          // Only allow non-admin/support on /dashboard
+          if (location.pathname === '/dashboard' && (currentUser.role === 'admin' || currentUser.role === 'support')) {
+            redirectedRef.current = true;
             navigate('/admin-dashboard', { replace: true });
-            setIsValid(false);
-            setLoading(false);
-            return;
-          }
-          // If not admin and trying to access /admin-dashboard, redirect
-          if (location.pathname === '/admin-dashboard' && user.role !== 'admin') {
-            navigate('/dashboard', { replace: true });
             setIsValid(false);
             setLoading(false);
             return;
@@ -114,7 +174,6 @@ const ProtectedRoute = ({ children }) => {
           setLoading(false);
           return;
         }
-        
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -128,23 +187,18 @@ const ProtectedRoute = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
-            // If trying to access /admin-dashboard and not admin, redirect
-            if (ADMIN_PATHS.includes(location.pathname) && data.user.role !== 'admin') {
+            // Only allow admin/support on /admin-dashboard
+            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin' && data.user.role !== 'support') {
+              redirectedRef.current = true;
               navigate('/dashboard', { replace: true });
               setIsValid(false);
               setLoading(false);
               return;
             }
-            // If admin, and not on /admin-dashboard, redirect to /admin-dashboard
-            if (data.user.role === 'admin' && location.pathname === '/dashboard') {
+            // Only allow non-admin/support on /dashboard
+            if (location.pathname === '/dashboard' && (data.user.role === 'admin' || data.user.role === 'support')) {
+              redirectedRef.current = true;
               navigate('/admin-dashboard', { replace: true });
-              setIsValid(false);
-              setLoading(false);
-              return;
-            }
-            // If not admin and trying to access /admin-dashboard, redirect
-            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin') {
-              navigate('/dashboard', { replace: true });
               setIsValid(false);
               setLoading(false);
               return;
@@ -154,12 +208,14 @@ const ProtectedRoute = ({ children }) => {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setIsValid(false);
+            redirectedRef.current = true;
             navigate('/login', { replace: true });
           }
         } catch (err) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsValid(false);
+          redirectedRef.current = true;
           navigate('/login', { replace: true });
         }
       } else if (!currentToken && PUBLIC_PATHS.includes(location.pathname)) {
@@ -167,18 +223,9 @@ const ProtectedRoute = ({ children }) => {
       }
       setLoading(false);
     };
-    
-    // Only show loading on initial load, not on navigation between protected routes
-    if (hasValidated && isValid) {
-      // If we're already validated and just navigating between protected routes, don't show loading
-      setLoading(false);
-    } else if (!hasValidated) {
-      // Only set loading to true if we haven't validated yet
-      setLoading(true);
-    }
-    
+
     checkTokenValidity();
-  }, [location.pathname, navigate, hasValidated, user]);
+  }, [location.pathname, hasValidated, user, navigate]);
 
   if (loading) {
     return (
