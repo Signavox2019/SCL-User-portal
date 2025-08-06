@@ -127,6 +127,18 @@ const BatchAdmin = () => {
             });
             toast.success(res.data.message || 'Certificates sent!');
             setCertificatesSentBatches((prev) => [...prev, batchId]);
+            // Update batchCertificateStats for this batch to mark all as issued
+            setBatchCertificateStats(prev => {
+                const updated = { ...prev };
+                if (updated[batchId]) {
+                    updated[batchId] = {
+                        ...updated[batchId],
+                        issuedCount: updated[batchId].totalUsers,
+                        // Optionally update other fields if needed
+                    };
+                }
+                return updated;
+            });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to send certificates');
         } finally {
@@ -743,7 +755,7 @@ const BatchAdmin = () => {
                                     <div className="space-y-2">
                                         {selectedCourseDetails.modules?.map(module => (
                                             <div key={module._id} className="bg-[#312e81]/30 rounded-xl p-3 mb-2 border border-purple-400/20">
-                                                <div className="flex items-center gap-2 mb-2">
+                                                <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
                                                     <input
                                                         type="checkbox"
                                                         checked={form.completedModules.includes(module._id)}
@@ -757,11 +769,11 @@ const BatchAdmin = () => {
                                                         }}
                                                     />
                                                     <span className="font-bold text-pink-200">{module.moduleTitle}</span>
-                                                </div>
+                                                </label>
                                                 {/* Lessons */}
                                                 <div className="ml-6 space-y-1">
                                                     {module.lessons?.map(lesson => (
-                                                        <div key={lesson._id} className="flex items-center gap-2 mb-1">
+                                                        <label key={lesson._id} className="flex items-center gap-2 mb-1 cursor-pointer select-none">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={form.completedLessons.includes(lesson._id)}
@@ -779,7 +791,7 @@ const BatchAdmin = () => {
                                                             {lesson.topics && lesson.topics.length > 0 && (
                                                                 <div className="ml-4 flex flex-wrap gap-2">
                                                                     {lesson.topics.map(topic => (
-                                                                        <label key={topic._id} className="flex items-center gap-1 text-xs">
+                                                                        <label key={topic._id} className="flex items-center gap-1 text-xs cursor-pointer select-none">
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={form.completedTopics.includes(topic._id)}
@@ -797,7 +809,7 @@ const BatchAdmin = () => {
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                        </div>
+                                                        </label>
                                                     ))}
                                                 </div>
                                             </div>
@@ -1310,7 +1322,7 @@ const BatchAdmin = () => {
                                                         (batch.courseCompleted === true || batch.courseCompleted === 'true' || batch.isCourseCompleted === true || batch.isCourseCompleted === 'true') &&
                                                         batch.users && batch.users.length > 0 && certStats
                                                     ) {
-                                                        if (certStats.issuedCount === certStats.totalUsers && certStats.totalUsers > 0) {
+                                                        if ((certStats.issuedCount === certStats.totalUsers && certStats.totalUsers > 0) || certificatesSentBatches.includes(batch._id)) {
                                                             return (
                                                                 <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs font-bold shadow animate-pulse">
                                                                     <CheckCircleIcon style={{ fontSize: 14, color: '#fff' }} />
@@ -1322,6 +1334,7 @@ const BatchAdmin = () => {
                                                                 <button
                                                                     onClick={() => handleSendCertificates(batch._id)}
                                                                     disabled={sendingCertificateBatchId === batch._id}
+                                                                    type="button"
                                                                     className={`px-3 py-1 rounded-md font-bold text-xs flex items-center gap-1 bg-gradient-to-r from-emerald-400 via-pink-400 to-purple-500 text-white shadow-lg hover:scale-105 transition-transform duration-200 border-2 border-white/10 ${sendingCertificateBatchId === batch._id ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                                     title="Send Certificates to all users in this batch"
                                                                 >

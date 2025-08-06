@@ -95,6 +95,21 @@ const yearOptions = [
 ];
 
 const Users = () => {
+  // Add CSS for proper dropdown behavior
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      select {
+        direction: ltr !important;
+      }
+      select option {
+        direction: ltr !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -163,6 +178,7 @@ const Users = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [editModal, setEditModal] = useState({ open: false, user: null, loading: false, error: null });
   const [editForm, setEditForm] = useState(initialFormData);
+  const [loadingButtons, setLoadingButtons] = useState({}); // Track loading state for individual buttons
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = currentUser.role === 'admin';
@@ -346,7 +362,7 @@ const Users = () => {
         u._id === statusModal.user._id ? res.data.user : u
       ));
       
-      showToast(res.data.message || 'User status updated successfully');
+      showToast(res.data.message || 'User status updated successfully', 'success');
       setStatusModal({ open: false, user: null, loading: false, error: null, newStatus: '' });
     } catch (err) {
       setStatusModal(s => ({ ...s, loading: false, error: err.response?.data?.message || err.message }));
@@ -381,8 +397,7 @@ const Users = () => {
       setUsers(prev => [res.data.user, ...prev]);
       setFormData(initialFormData);
       setAddModal({ open: false, loading: false, error: null });
-      showToast(res.data.message || 'User added successfully');
-      fetchUsers();
+      showToast(res.data.message || 'User added successfully', 'success');
     } catch (err) {
       setAddModal(prev => ({ ...prev, loading: false, error: err.response?.data?.message || err.message }));
       showToast(err.response?.data?.message || err.message, 'error');
@@ -424,7 +439,10 @@ const Users = () => {
   // Add this function to handle edit form submit
   const handleEditUserSubmit = async (e) => {
     e.preventDefault();
+    const userId = editModal.user._id;
+    setLoadingButtons(prev => ({ ...prev, [userId]: true }));
     setEditModal((prev) => ({ ...prev, loading: true, error: null }));
+    
     try {
       const token = localStorage.getItem('token');
       // Combine name fields
@@ -462,23 +480,37 @@ const Users = () => {
           balanceAmount: Number(editForm.amount?.balanceAmount) || 0,
         },
       };
+      
       const res = await axios.put(
-        `${BaseUrl}/users/admin/update-user/${editModal.user._id}`,
+        `${BaseUrl}/users/admin/update-user/${userId}`,
         reqBody,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-      // Refetch all users to ensure UI is up to date
-      await fetchUsers();
+      
+      // Update the user in the local state instead of refetching all users
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user._id === userId 
+            ? { ...user, ...reqBody, name: fullName }
+            : user
+        )
+      );
+      
       setEditModal({ open: false, user: null, loading: false, error: null });
-      showToast(res.data.message || 'User updated successfully');
+      showToast(res.data.message || 'User updated successfully', 'success');
     } catch (err) {
       setEditModal((prev) => ({ ...prev, loading: false, error: err.response?.data?.message || err.message }));
       showToast(err.response?.data?.message || err.message, 'error');
+    } finally {
+      setLoadingButtons(prev => ({ ...prev, [userId]: false }));
     }
   };
 
   return (
     <>
+      {typeof document !== 'undefined' && ReactDOM.createPortal(
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover style={{ zIndex: 20000, position: 'fixed', top: 16, right: 16 }} />, document.body
+      )}
       <div className="space-y-10 pb-10 mt-5 py-5">
         {/* Loader (Dashboard style) */}
         {loading && (
@@ -518,20 +550,20 @@ const Users = () => {
               </div>
               <div className="z-10 flex flex-col items-center mt-10">
                 <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                  {userStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-purple-400"></div> : userStats?.totalUsers || 0}
+                  {userStats?.totalUsers ?? '-'}
                 </div>
                 <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-blue-100/90">Total Users</div>
                 <div className="flex gap-8 mt-2 w-full justify-center">
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-purple-100/90 font-semibold">Interns</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                      {userStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-yellow-400"></div> : userStats?.counts?.interns || 0}
+                      {userStats?.counts?.interns ?? '-'}
                     </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-purple-100/90 font-semibold">Admins</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-pink-300">
-                      {userStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-pink-400"></div> : userStats?.counts?.admins || 0}
+                      {userStats?.counts?.admins ?? '-'}
                     </span>
                   </div>
                 </div>
@@ -544,26 +576,26 @@ const Users = () => {
               </div>
               <div className="z-10 flex flex-col items-center mt-10">
                 <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                  {userStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-green-400"></div> : (userStats?.counts?.approvedUsers || 0) + (userStats?.counts?.pendingApprovals || 0) + (userStats?.counts?.rejectedUsers || 0)}
+                  {(userStats?.counts?.approvedUsers ?? 0) + (userStats?.counts?.pendingApprovals ?? 0) + (userStats?.counts?.rejectedUsers ?? 0) || '-'}
                 </div>
                 <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-green-100/90">Total Registrations</div>
                 <div className="flex gap-4 mt-2 w-full justify-center">
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-green-100/90 font-semibold">Approved</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-green-300">
-                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-green-400"></div> : userStats?.counts?.approvedUsers || 0}
+                      {userStats?.counts?.approvedUsers ?? '-'}
                     </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-yellow-100/90 font-semibold">Pending</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-yellow-400"></div> : userStats?.counts?.pendingApprovals || 0}
+                      {userStats?.counts?.pendingApprovals ?? '-'}
                     </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-red-100/90 font-semibold">Rejected</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-red-300">
-                      {userStatsLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-4 border-red-400"></div> : userStats?.counts?.rejectedUsers || 0}
+                      {userStats?.counts?.rejectedUsers ?? '-'}
                     </span>
                   </div>
                 </div>
@@ -576,20 +608,20 @@ const Users = () => {
               </div>
               <div className="z-10 flex flex-col items-center mt-10">
                 <div className="text-3xl font-extrabold drop-shadow-lg text-white tracking-wider">
-                  {professorStatsLoading ? <div className="animate-spin rounded-full h-7 w-7 border-b-4 border-purple-400"></div> : professorStats?.totalProfessors ?? '-'}
+                  {professorStats?.totalProfessors ?? '-'}
                 </div>
                 <div className="text-md sm:text-xl font-bold mt-1 tracking-wide uppercase text-purple-100/90">Total Professors</div>
                 <div className="flex gap-8 mt-2 w-full justify-center">
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-green-100/90 font-semibold">Active</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-green-300">
-                      {professorStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-green-400"></div> : professorStats?.activeProfessors ?? '-'}
+                      {professorStats?.activeProfessors ?? '-'}
                     </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-yellow-100/90 font-semibold">Inactive</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-yellow-300">
-                      {professorStatsLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-4 border-yellow-400"></div> : professorStats?.inactiveProfessors ?? '-'}
+                      {professorStats?.inactiveProfessors ?? '-'}
                     </span>
                   </div>
                 </div>
@@ -864,8 +896,17 @@ const Users = () => {
                             <button title="View" onClick={() => handleViewUser(u._id)} className="p-1.5 rounded-full bg-blue-500/80 hover:bg-blue-600 text-white shadow-md transition-transform hover:scale-110">
                               <VisibilityIcon fontSize="small" />
                             </button>
-                            <button title="Edit" onClick={() => handleEditUserClick(u)} className="p-1.5 rounded-full bg-purple-500/80 hover:bg-purple-600 text-white shadow-md transition-transform hover:scale-110">
-                              <EditIcon fontSize="small" />
+                            <button 
+                              title="Edit" 
+                              onClick={() => handleEditUserClick(u)} 
+                              disabled={loadingButtons[u._id]}
+                              className="p-1.5 rounded-full bg-purple-500/80 hover:bg-purple-600 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {loadingButtons[u._id] ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              ) : (
+                                <EditIcon fontSize="small" />
+                              )}
                             </button>
                             <button title="Delete" disabled={deleting[u._id]} onClick={() => setDeleteConfirm({ open: true, user: u })} className="p-1.5 rounded-full bg-pink-500/80 hover:bg-pink-600 text-white shadow-md transition-transform hover:scale-110">
                               <DeleteIcon fontSize="small" />
@@ -1140,17 +1181,7 @@ const Users = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-purple-200 mb-1">College Name</label>
-                        <select
-                          value={formData.collegeName}
-                          onChange={e => setFormData(f => ({ ...f, collegeName: e.target.value }))}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                          required
-                        >
-                          <option value="">Select College</option>
-                          {universityOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                        <input type="text" value={formData.collegeName} onChange={e => setFormData(f => ({ ...f, collegeName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
                       </div>
                       <div>
                         <label className="block text-purple-200 mb-1">Department</label>
@@ -1168,7 +1199,18 @@ const Users = () => {
                       </div>
                       <div>
                         <label className="block text-purple-200 mb-1">University</label>
-                        <input type="text" value={formData.university} onChange={e => setFormData(f => ({ ...f, university: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
+                        <select
+                          value={formData.university}
+                          onChange={e => setFormData(f => ({ ...f, university: e.target.value }))}
+                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                          style={{ direction: 'ltr' }}
+                          required
+                        >
+                          <option value="">Select University</option>
+                          {universityOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-purple-200 mb-1">Degree</label>
@@ -1846,17 +1888,7 @@ const Users = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-purple-200 mb-1">College Name</label>
-                      <select
-                        value={editForm.collegeName}
-                        onChange={e => setEditForm(f => ({ ...f, collegeName: e.target.value }))}
-                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        required
-                      >
-                        <option value="">Select College</option>
-                        {universityOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                      <input type="text" value={editForm.collegeName} onChange={e => setEditForm(f => ({ ...f, collegeName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
                     </div>
                     <div>
                       <label className="block text-purple-200 mb-1">Department</label>
@@ -1874,7 +1906,18 @@ const Users = () => {
                     </div>
                     <div>
                       <label className="block text-purple-200 mb-1">University</label>
-                      <input type="text" value={editForm.university} onChange={e => setEditForm(f => ({ ...f, university: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
+                      <select
+                        value={editForm.university}
+                        onChange={e => setEditForm(f => ({ ...f, university: e.target.value }))}
+                        className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                        style={{ direction: 'ltr' }}
+                        required
+                      >
+                        <option value="">Select University</option>
+                        {universityOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-purple-200 mb-1">Degree</label>

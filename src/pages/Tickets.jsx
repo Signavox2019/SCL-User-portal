@@ -137,7 +137,7 @@ const Tickets = () => {
             if (response.data && response.data.ticket) {
                 showToast(response.data.message || 'Ticket updated successfully!', 'success');
                 setEditModal({ open: false, loading: false, ticket: null, form: { title: '', description: '', file: null } });
-                fetchTickets();
+                setTickets(prev => prev.map(t => t._id === response.data.ticket._id ? response.data.ticket : t));
             }
         } catch (err) {
             showToast(err.response?.data?.message || 'Failed to update ticket', 'error');
@@ -185,17 +185,15 @@ const Tickets = () => {
                 }
             });
 
-            if (response.data.success) {
-                // showToast('Ticket created successfully!', 'success');
+            if (response.data.success && response.data.ticket) {
+                showToast('Ticket created successfully!', 'success');
                 setCreateModal({ open: false, loading: false });
                 setCreateForm({ title: '', description: '', file: null });
-                fetchTickets(); // Refresh the tickets list
+                setTickets(prev => [response.data.ticket, ...prev]);
             }
         } catch (err) {
             if (err.response?.status === 401) {
                 showToast('Session expired. Please login again.', 'error');
-                // Optionally redirect to login page
-                // window.location.href = '/login';
             } else {
                 showToast(err.response?.data?.message || 'Failed to create ticket', 'error');
             }
@@ -298,8 +296,16 @@ const Tickets = () => {
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
             showToast('Ticket forwarded successfully!', 'success');
-            setForwardModal({ open: false, ticket: null, supportUserId: '' });
-            fetchTickets();
+            setTimeout(() => {
+                setForwardModal({ open: false, ticket: null, supportUserId: '' });
+                setTickets(prev =>
+                    prev.map(t =>
+                        t._id === forwardModal.ticket._id
+                            ? { ...t, forwardedTo: supportMembers.find(s => s._id === forwardModal.supportUserId) }
+                            : t
+                    )
+                );
+            }, 500);
         } catch (err) {
             if (err.response?.status === 401) {
                 showToast('Session expired. Please login again.', 'error');
@@ -451,7 +457,7 @@ const Tickets = () => {
             await axios.delete(`${BaseUrl}/tickets/${deleteConfirm.ticket._id}`, { headers: { 'Authorization': `Bearer ${token}` } });
             showToast('Ticket deleted successfully', 'success');
             setDeleteConfirm({ open: false, ticket: null });
-            fetchTickets();
+            setTickets(prev => prev.filter(t => t._id !== deleteConfirm.ticket._id));
         } catch (err) {
             if (err.response?.status === 401) {
                 showToast('Session expired. Please login again.', 'error');
@@ -813,7 +819,8 @@ const Tickets = () => {
                                     <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal">Priority</th>
                                     {!isUser && <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal max-w-xs">Created By</th>}
                                     <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal max-w-xs">Handled By</th>
-                                    <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal">Created At</th>
+                                    {/* <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal max-w-xs">Forwarded To</th> */}
+                                    <th className="px-3 md:px-4 py-3 text-left text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal max-w-xs">Created At</th>
                                     <th className="px-3 md:px-4 py-3 text-center text-purple-200 font-bold text-xs md:text-sm break-words whitespace-normal">Actions</th>
                                 </tr>
                             </thead>
@@ -901,6 +908,16 @@ const Tickets = () => {
                                                     <span className="text-purple-200/50 text-xs md:text-sm">Unassigned</span>
                                                 )}
                                             </td>
+                                            {/* <td className="px-3 md:px-4 py-3 max-w-xs break-words whitespace-normal">
+                                                {ticket.forwardedTo ? (
+                                                    <div className="max-w-[120px] md:max-w-32">
+                                                        <p className="text-white font-medium text-xs md:text-sm line-clamp-1 truncate">{ticket.forwardedTo.firstName}</p>
+                                                        <p className="text-purple-200/70 text-xs truncate">{ticket.forwardedTo.email}</p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-purple-200/50 text-xs md:text-sm">Not forwarded</span>
+                                                )}
+                                            </td> */}
                                             <td className="px-3 md:px-4 py-3">
                                                 <span className="text-purple-200 text-xs md:text-sm">
                                                     {new Date(ticket.createdAt).toLocaleDateString()}
@@ -1292,6 +1309,40 @@ const Tickets = () => {
                                                         <div>
                                                             <p className="text-gray-300 font-semibold text-lg">Unassigned</p>
                                                             <p className="text-gray-400 text-sm">No support member assigned yet</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Forwarded To */}
+                                            <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-2xl p-6 border border-purple-800/30 backdrop-blur-sm">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                                                        <PersonIcon className="text-white text-lg" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-white">Forwarded To</h3>
+                                                        <p className="text-purple-200/70 text-sm">Support member ticket was forwarded to</p>
+                                                    </div>
+                                                </div>
+                                                {viewModal.ticket.forwardedTo ? (
+                                                    <div className="flex items-center gap-4 p-4 bg-purple-900/40 rounded-lg border border-purple-800/30">
+                                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                                                            <PersonIcon className="text-white text-xl" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white font-semibold text-lg">{viewModal.ticket.forwardedTo.firstName}</p>
+                                                            <p className="text-purple-200 text-sm">{viewModal.ticket.forwardedTo.email}</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-4 p-4 bg-gray-500/20 rounded-lg border border-gray-400/30">
+                                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-slate-500 flex items-center justify-center">
+                                                            <PersonIcon className="text-white text-xl" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-300 font-semibold text-lg">Not forwarded</p>
+                                                            <p className="text-gray-400 text-sm">No support member forwarded to yet</p>
                                                         </div>
                                                     </div>
                                                 )}
