@@ -103,7 +103,27 @@ const ProtectedRoute = ({ children }) => {
             if (res.status === 401 || res.status === 403) {
               clearUserDataAndRedirect('Token expired or invalid');
             } else {
-              clearUserDataAndRedirect(`Server error: ${res.status}`);
+              // For non-auth server errors, do not clear local data.
+              console.warn('Non-auth server error during validation:', res.status);
+              // If on a public path, still redirect to the best guess dashboard using stored user
+              let redirectUser = currentUser;
+              if (!redirectUser) {
+                try {
+                  const storedUser = localStorage.getItem('user');
+                  if (storedUser) redirectUser = JSON.parse(storedUser);
+                } catch (_) {}
+              }
+              if (redirectUser) {
+                redirectedRef.current = true;
+                if (redirectUser.role === 'admin' && location.pathname !== '/admin-dashboard') {
+                  navigate('/admin-dashboard', { replace: true });
+                } else if (redirectUser.role === 'support' && location.pathname !== '/support-dashboard') {
+                  navigate('/support-dashboard', { replace: true });
+                } else if (redirectUser.role !== 'admin' && redirectUser.role !== 'support' && location.pathname !== '/dashboard') {
+                  navigate('/dashboard', { replace: true });
+                }
+              }
+              setIsValid(true);
             }
             setLoading(false);
             return;
@@ -114,9 +134,14 @@ const ProtectedRoute = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
-            if ((data.user.role === 'admin' || data.user.role === 'support') && location.pathname !== '/admin-dashboard') {
+            if (data.user.role === 'admin' && location.pathname !== '/admin-dashboard') {
               redirectedRef.current = true;
               navigate('/admin-dashboard', { replace: true });
+              setLoading(false);
+              return;
+            } else if (data.user.role === 'support' && location.pathname !== '/support-dashboard') {
+              redirectedRef.current = true;
+              navigate('/support-dashboard', { replace: true });
               setLoading(false);
               return;
             } else if (data.user.role !== 'admin' && data.user.role !== 'support' && location.pathname !== '/dashboard') {
@@ -135,8 +160,25 @@ const ProtectedRoute = ({ children }) => {
           }
         } catch (err) {
           console.error('Token validation error:', err);
-          // Network error or other issues - clear data and redirect
-          clearUserDataAndRedirect('Network error during validation');
+          // Network error or other issues - treat as valid and best-effort redirect if on public path
+          try {
+            let redirectUser = currentUser;
+            if (!redirectUser) {
+              const storedUser = localStorage.getItem('user');
+              if (storedUser) redirectUser = JSON.parse(storedUser);
+            }
+            if (redirectUser) {
+              redirectedRef.current = true;
+              if (redirectUser.role === 'admin' && location.pathname !== '/admin-dashboard') {
+                navigate('/admin-dashboard', { replace: true });
+              } else if (redirectUser.role === 'support' && location.pathname !== '/support-dashboard') {
+                navigate('/support-dashboard', { replace: true });
+              } else if (redirectUser.role !== 'admin' && redirectUser.role !== 'support' && location.pathname !== '/dashboard') {
+                navigate('/dashboard', { replace: true });
+              }
+            }
+          } catch (_) {}
+          setIsValid(true);
           setLoading(false);
           return;
         }
@@ -160,7 +202,9 @@ const ProtectedRoute = ({ children }) => {
             if (res.status === 401 || res.status === 403) {
               clearUserDataAndRedirect('Token expired or invalid');
             } else {
-              clearUserDataAndRedirect(`Server error: ${res.status}`);
+              // For non-auth server errors, allow access without clearing
+              console.warn('Non-auth server error during validation on protected route:', res.status);
+              setIsValid(true);
             }
             setLoading(false);
             return;
@@ -171,18 +215,28 @@ const ProtectedRoute = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
-            // Only allow admin/support on /admin-dashboard
-            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin' && data.user.role !== 'support') {
+            // Only allow admin on /admin-dashboard
+            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin') {
               redirectedRef.current = true;
               navigate('/dashboard', { replace: true });
               setIsValid(false);
               setLoading(false);
               return;
             }
-            // Only allow non-admin/support on /dashboard
+            // Only allow support on /support-dashboard
+            if (location.pathname === '/support-dashboard' && data.user.role !== 'support') {
+              redirectedRef.current = true;
+              const target = data.user.role === 'admin' ? '/admin-dashboard' : '/dashboard';
+              navigate(target, { replace: true });
+              setIsValid(false);
+              setLoading(false);
+              return;
+            }
+            // Only allow non-admin/non-support on /dashboard
             if (location.pathname === '/dashboard' && (data.user.role === 'admin' || data.user.role === 'support')) {
               redirectedRef.current = true;
-              navigate('/admin-dashboard', { replace: true });
+              const target = data.user.role === 'admin' ? '/admin-dashboard' : '/support-dashboard';
+              navigate(target, { replace: true });
               setIsValid(false);
               setLoading(false);
               return;
@@ -196,8 +250,8 @@ const ProtectedRoute = ({ children }) => {
           }
         } catch (err) {
           console.error('Token validation error:', err);
-          // Network error or other issues - clear data and redirect
-          clearUserDataAndRedirect('Network error during validation');
+          // Network error or other issues - allow access without clearing
+          setIsValid(true);
           setLoading(false);
           return;
         }

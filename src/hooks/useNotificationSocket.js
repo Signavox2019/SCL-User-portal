@@ -52,8 +52,8 @@ const useNotificationSocket = (userId, onNotification) => {
     // ✅ On Connect
     socket.on('connect', () => {
       console.log('✅ Socket connected successfully');
-      console.log('🆔 Socket ID:', socket.id);
-      console.log('🔗 Connected to server:', socket.io.uri);
+      // console.log('🆔 Socket ID:', socket.id);
+      // console.log('🔗 Connected to server:', socket.io.uri);
 
       reconnectAttempts.current = 0;
 

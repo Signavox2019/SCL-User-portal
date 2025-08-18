@@ -67,7 +67,7 @@ const DashboardLayout = ({ children }) => {
   }, []);
 
   let navItems = [
-    { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: user?.role === 'admin' || user?.role === 'support' ? '/admin-dashboard' : '/dashboard' },
+    { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: user?.role === 'admin' ? '/admin-dashboard' : user?.role === 'support' ? '/support-dashboard' : '/dashboard' },
     { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
     // Only show Progress if not support
     ...(user?.role !== 'support' ? [{ label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' }] : []),

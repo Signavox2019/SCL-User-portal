@@ -21,6 +21,7 @@ import Enrollments from './pages/Enrollments.jsx';
 import Users from './pages/Users.jsx';
 import Professors from './pages/Professors.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import SupportDashboardPage from './pages/SupportDashboardPage.jsx';
 import Tickets from './pages/Tickets';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
@@ -52,8 +53,10 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
     // After splash, redirect to the correct dashboard based on user role
     try {
       const user = JSON.parse(localStorage.getItem('user'));
-      if (user && (user.role === 'admin' || user.role === 'support')) {
+      if (user && user.role === 'admin') {
         navigate('/admin-dashboard', { replace: true });
+      } else if (user && user.role === 'support') {
+        navigate('/support-dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }
@@ -82,8 +85,10 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
                   {(() => {
                     try {
                       const user = JSON.parse(localStorage.getItem('user'));
-                      if (user && (user.role === 'admin' || user.role === 'support')) {
+                      if (user && user.role === 'admin') {
                         return <AdminDashboardPage />;
+                      } else if (user && user.role === 'support') {
+                        return <SupportDashboardPage />;
                       } else {
                         return <DashboardPage />;
                       }
@@ -116,6 +121,16 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             <ProtectedRoute>
               <DashboardLayout>
                 <AdminDashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/support-dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <SupportDashboardPage />
               </DashboardLayout>
             </ProtectedRoute>
           }
