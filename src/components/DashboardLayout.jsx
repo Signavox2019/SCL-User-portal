@@ -24,6 +24,7 @@ import BaseUrl from '../Api';
 import NotificationBell from './NotificationBell';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import dashboardPreloader from '../services/DashboardPreloader';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,7 +67,7 @@ const DashboardLayout = ({ children }) => {
   }, []);
 
   let navItems = [
-    { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: '/dashboard' },
+    { label: 'Dashboard', icon: <DashboardIcon fontSize="medium" />, path: user?.role === 'admin' || user?.role === 'support' ? '/admin-dashboard' : '/dashboard' },
     { label: 'Courses', icon: <CoursesIcon fontSize="medium" />, path: '/courses' },
     // Only show Progress if not support
     ...(user?.role !== 'support' ? [{ label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' }] : []),
@@ -113,6 +114,8 @@ const DashboardLayout = ({ children }) => {
     setAnchorEl(null);
   };
   const handleLogout = () => {
+    // Clear preloader cache before logout
+    dashboardPreloader.clearCache();
     localStorage.clear();
     handleClose();
     navigate('/login', { replace: true });

@@ -31,11 +31,7 @@ import {
   Badge as BadgeIcon,
   Description as DescriptionIcon,
   Image as ImageIcon,
-  CameraAlt as CameraIcon,
-  Visibility as VisibilityIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  OpenInNew as OpenInNewIcon
+  CameraAlt as CameraIcon
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
@@ -47,10 +43,8 @@ const Profile = () => {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [offerLetterUrl, setOfferLetterUrl] = useState('');
-  const [generatingOfferLetter, setGeneratingOfferLetter] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const location = useLocation();
@@ -236,6 +230,12 @@ const Profile = () => {
     }
   };
 
+  const handleOpenInNewTab = () => {
+    if (offerLetterUrl) {
+      window.open(offerLetterUrl, '_blank');
+    }
+  };
+
   const getFieldDisplayName = (fieldName) => {
     const fieldMappings = {
       'title': 'Title',
@@ -307,67 +307,6 @@ const Profile = () => {
     }
 
     return missingFields;
-  };
-
-  const handleGenerateOfferLetter = () => {
-    const missingFields = checkRequiredFields();
-    
-    if (missingFields.length > 0) {
-      setShowGenerateModal(true);
-    } else {
-      setShowGenerateModal(true);
-    }
-  };
-
-  const handleConfirmGenerate = async () => {
-    setGeneratingOfferLetter(true);
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Generating offer letter with token:', token ? 'Token exists' : 'No token');
-      console.log('Current form data:', formData);
-      
-      // Use GET method for /users/my-offer-letter
-      const response = await axios.get(`${BaseUrl}/users/my-offer-letter`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Offer letter response:', response.data);
-      
-      setOfferLetterUrl(response.data.url);
-      setFormData(prev => ({
-        ...prev,
-        offerLetter: response.data.url
-      }));
-      setShowGenerateModal(false);
-      toast.success('Offer letter generated successfully!');
-    } catch (err) {
-      console.error('Error generating offer letter:', err);
-      console.error('Error response:', err.response?.data);
-      console.error('Error status:', err.response?.status);
-      
-      if (err.response?.status === 401) {
-        toast.error('Authentication failed. Please login again.');
-      } else if (err.response?.status === 400) {
-        toast.error(err.response?.data?.message || 'Invalid request. Please check your profile data.');
-      } else if (err.response?.status === 404) {
-        toast.error('Offer letter generation endpoint not found. Please contact support.');
-      } else if (err.response?.status === 500) {
-        toast.error('Server error. Please try again later.');
-      } else {
-        toast.error(`Failed to generate offer letter: ${err.response?.data?.message || err.message}`);
-      }
-    } finally {
-      setGeneratingOfferLetter(false);
-    }
-  };
-
-  const handleOpenInNewTab = () => {
-    if (offerLetterUrl) {
-      window.open(offerLetterUrl, '_blank');
-    }
   };
 
   if (loading) {
@@ -569,40 +508,6 @@ const Profile = () => {
     );
   };
 
-  const renderOfferLetterField = (label, name, disabled = false, icon = null, fullWidth = true) => {
-    const currentValue = formData[name] || '';
-    const hasOfferLetter = currentValue && currentValue !== 'Not specified';
-    
-    return (
-      <div className={`mb-4 ${!fullWidth ? 'md:w-1/2' : ''}`}>
-        <label className="block text-sm font-semibold text-purple-200 mb-2 flex items-center gap-2">
-          {icon && <span className="text-purple-300">{icon}</span>}
-          {label}
-        </label>
-        <div className="flex items-center gap-3">
-          {hasOfferLetter ? (
-            <button
-              onClick={handleViewOfferLetter}
-              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200"
-            >
-              <VisibilityIcon />
-              <span>View</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleGenerateOfferLetter}
-              disabled={generatingOfferLetter}
-              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <AddIcon />
-              <span>{generatingOfferLetter ? 'Generating...' : 'Generate'}</span>
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const renderWorkingDaysField = (label, name, disabled = false, icon = null, fullWidth = true) => {
     const currentValue = formData[name] || [];
     const workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -674,7 +579,44 @@ const Profile = () => {
     );
   };
 
-
+  const renderOfferLetterField = (label, name, disabled = false, icon = null, fullWidth = true) => {
+    const currentValue = formData[name] || '';
+    const hasOfferLetter = currentValue && currentValue !== 'Not specified';
+    
+    return (
+      <div className={`mb-4 ${!fullWidth ? 'md:w-1/2' : ''}`}>
+        <label className="block text-sm font-semibold text-purple-200 mb-2 flex items-center gap-2">
+          {icon && <span className="text-purple-300">{icon}</span>}
+          {label}
+        </label>
+        <div className="flex items-center gap-3">
+          {hasOfferLetter ? (
+            <button
+              onClick={handleViewOfferLetter}
+              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>View</span>
+            </button>
+          ) : (
+            <div className="w-full">
+              <div className="px-4 py-3 bg-white/5 border border-purple-300/20 rounded-xl text-purple-300 font-medium backdrop-blur-sm">
+                No offer letter generated
+              </div>
+              <div className="mt-2 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded-lg">
+                <p className="text-xs text-yellow-200 font-medium">
+                  💡 Note: Please ask admin to generate your offer letter
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderSectionCard = (title, icon, children) => (
     <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-purple-200/20 p-6 shadow-2xl hover:shadow-purple-500/20 transition-all duration-300">
@@ -902,99 +844,6 @@ const Profile = () => {
           </div>
         </div>
       </div>
-
-      {/* Generate Offer Letter Modal */}
-      {showGenerateModal && (
-        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
-          <div className="relative w-full max-w-md mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
-            {/* Accent Header Bar */}
-            <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
-            {/* Close Button */}
-            <button
-              onClick={() => setShowGenerateModal(false)}
-              className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
-            >
-              <CloseIcon fontSize="large" />
-            </button>
-            
-            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">Generate Offer Letter</h3>
-              </div>
-              
-              {checkRequiredFields().length > 0 ? (
-                <div className="space-y-6">
-                  <div className="text-purple-200">
-                    <p className="mb-4 text-lg">Please fill in all the required details in your profile before generating the offer letter.</p>
-                    <p className="text-sm text-purple-300 mb-3 font-semibold">Missing fields:</p>
-                    <ul className="text-sm text-purple-300 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                      {checkRequiredFields().map(field => (
-                        <li key={field} className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
-                          <span>{getFieldDisplayName(field)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setShowGenerateModal(false)}
-                      className="px-6 py-3 bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="text-purple-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold">All Required Fields Completed!</p>
-                        <p className="text-sm text-purple-300">Your profile is ready for offer letter generation.</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-purple-300 bg-white/5 p-3 rounded-lg border border-purple-300/20">
-                      <span className="font-semibold">Note:</span> You can only generate the offer letter once. Make sure all information is correct before proceeding.
-                    </p>
-                  </div>
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => setShowGenerateModal(false)}
-                      className="px-6 py-3 bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmGenerate}
-                      disabled={generatingOfferLetter}
-                      className="px-6 py-3 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {generatingOfferLetter ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <AddIcon />
-                          Generate
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* View Offer Letter Modal */}
       {showViewModal && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn" style={{ zIndex: 999999 }}>
@@ -1006,7 +855,9 @@ const Profile = () => {
               onClick={() => setShowViewModal(false)}
               className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
             >
-              <CloseIcon fontSize="large" />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
             
             <div className="flex-1 px-6 pb-6 pt-2">
@@ -1016,7 +867,9 @@ const Profile = () => {
                   onClick={handleOpenInNewTab}
                   className="px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2 mr-12"
                 >
-                  <OpenInNewIcon />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                   Open in New Tab
                 </button>
               </div>
@@ -1062,19 +915,6 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-                
-                {/* Print Button */}
-                {/* <div className="flex justify-center pt-4">
-                  <button
-                    onClick={() => window.print()}
-                    className="px-6 py-3 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print
-                  </button>
-                </div> */}
               </div>
             </div>
           </div>

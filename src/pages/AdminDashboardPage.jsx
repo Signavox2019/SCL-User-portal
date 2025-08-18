@@ -35,6 +35,7 @@ import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { useNavigate } from 'react-router-dom';
+import dashboardPreloader from '../services/DashboardPreloader';
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
@@ -99,36 +100,90 @@ const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
+        // Check for preloaded data first based on user role
+        const cacheKey = user?.role === 'support' ? 'supportDashboard' : 'adminDashboard';
+        const cachedData = dashboardPreloader.getCachedData(cacheKey);
+
+        if (cachedData) {
+          console.log(`🚀 Using preloaded ${cacheKey} data`);
+          setUserStats(cachedData.userStats);
+          setCourseStats(cachedData.courseStats);
+          setEnrollStats(cachedData.enrollStats);
+          setEventStats(cachedData.eventStats);
+          setBatchStats(cachedData.batchStats);
+          setProfessorStats(cachedData.professorStats);
+          setTicketStats(cachedData.ticketStats);
+
+          // For support users, also set assigned tickets and batches
+          if (user?.role === 'support' && cachedData.assignedTickets) {
+            setAssignedTickets(cachedData.assignedTickets);
+            setAssignedLoading(false);
+          }
+          if (user?.role === 'support' && cachedData.batches) {
+            setBatches(cachedData.batches);
+            setBatchesLoading(false);
+          }
+
+          setLoading(false);
+          return;
+        }
+
+        // Optimized loading: Load critical stats first, then others
         const token = localStorage.getItem('token');
-        const [userRes, courseRes, enrollRes, eventRes, batchRes, profRes, ticketRes] = await Promise.all([
+        
+        // Load critical stats first (user, course, enrollment)
+        const criticalStats = await Promise.all([
           axios.get(`${BaseUrl}/users/stats/metrics`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BaseUrl}/courses/stats/metrics`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BaseUrl}/enrollments/stats/metrics`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BaseUrl}/events/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BaseUrl}/batches/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BaseUrl}/professors/stats/metrics`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BaseUrl}/tickets/stats`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        setUserStats(userRes.data);
-        setCourseStats(courseRes.data);
-        setEnrollStats(enrollRes.data);
-        setEventStats(eventRes.data);
-        setBatchStats(batchRes.data);
-        setProfessorStats(profRes.data);
-        setTicketStats(ticketRes.data);
+        
+        // Set critical stats immediately
+        setUserStats(criticalStats[0].data);
+        setCourseStats(criticalStats[1].data);
+        setEnrollStats(criticalStats[2].data);
+        
+        // Stop loading spinner after critical stats are loaded
+        setLoading(false);
+        
+        // Load remaining stats in background
+        try {
+          const [eventRes, batchRes, profRes, ticketRes] = await Promise.all([
+            axios.get(`${BaseUrl}/events/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${BaseUrl}/batches/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${BaseUrl}/professors/stats/metrics`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${BaseUrl}/tickets/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+          ]);
+          
+          setEventStats(eventRes.data);
+          setBatchStats(batchRes.data);
+          setProfessorStats(profRes.data);
+          setTicketStats(ticketRes.data);
+        } catch (err) {
+          console.error('Error loading secondary stats:', err);
+          // Don't set error for secondary stats to avoid breaking the UI
+        }
       } catch (err) {
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     };
     fetchAllStats();
-  }, []);
+
+    // Cleanup function to clear cache when component unmounts
+    return () => {
+      const cacheKey = user?.role === 'support' ? 'supportDashboard' : 'adminDashboard';
+      dashboardPreloader.clearCacheEntry(cacheKey);
+    };
+  }, [user?.role]);
 
 
 
   useEffect(() => {
     const fetchBatches = async () => {
+      // Skip if data is already loaded from preloader
+      if (batches.length > 0) return;
+
       setBatchesLoading(true);
       setBatchesError(null);
       try {
@@ -142,11 +197,14 @@ const DashboardPage = () => {
       }
     };
     fetchBatches();
-  }, []);
+  }, [batches.length]);
 
   useEffect(() => {
     if (user && user.role === 'support') {
       const fetchAssignedTickets = async () => {
+        // Skip if data is already loaded from preloader
+        if (assignedTickets.length > 0) return;
+
         setAssignedLoading(true);
         setAssignedError(null);
         try {
@@ -162,9 +220,13 @@ const DashboardPage = () => {
       };
       fetchAssignedTickets();
     }
-  }, []);
+  }, [user, assignedTickets.length]);
 
-  if (loading) return <div className="flex justify-center items-center h-96"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div></div>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-96">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-400 font-bold py-10">{error}</div>;
   if (!user) return <div className="text-center text-red-400 font-bold py-10">Unauthorized</div>;
 
@@ -198,7 +260,7 @@ const DashboardPage = () => {
       {
         label: 'Total Assigned',
         value: assignedTickets.length,
-        icon: <AssignmentTurnedIn fontSize="large" className="text-blue-300" />, 
+        icon: <AssignmentTurnedIn fontSize="large" className="text-blue-300" />,
         gradient: 'from-blue-500/30 to-purple-500/30',
       },
       ...statusOrder.map(status => ({
@@ -229,227 +291,238 @@ const DashboardPage = () => {
       }
     };
     return (
-      <div className="space-y-10 pb-10 overflow-x-hidden">
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 md:gap-6 px-2 mt-4">
-          {metricCards.map((card, idx) => (
-            <div key={card.label} className={`group bg-gradient-to-br ${card.gradient} rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm relative overflow-hidden flex flex-col items-center justify-center`}>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2 bg-gradient-to-br from-white/10 to-transparent shadow-lg">
-                {card.icon}
-              </div>
-              <div className="text-2xl md:text-3xl font-bold text-white group-hover:text-blue-300 transition-colors">{card.value}</div>
-              <div className="text-xs md:text-sm font-medium text-purple-200 mt-1 text-center">{card.label}</div>
-            </div>
-          ))}
-        </div>
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Pie Chart - decrease width */}
-          <div className="md:col-span-1 bg-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 relative min-h-[320px]">
-            <div className="flex items-center gap-3 w-full mb-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 shadow-lg">
-                <Support className="text-white text-2xl drop-shadow-lg" />
-              </div>
-              <div>
-                <div className="text-xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1">Assigned Tickets by Status</div>
-                <div className="text-sm text-purple-100/80 mt-1">Distribution of your assigned tickets</div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={260} className="min-h-[230px]">
-              <PieChart>
-                <Pie
-                  data={assignedStatusPie}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value, percent }) =>
-                    value > 0
-                      ? (
-                        <tspan>
-                          <tspan fontWeight="bold">{name}</tspan>
-                          <tspan>: {value}</tspan>
-                          <tspan> ({(percent * 100).toFixed(0)}%)</tspan>
-                        </tspan>
-                      )
-                      : ''
-                  }
-                  labelStyle={{
-                    fontSize: 14,
-                    fill: '#fff',
-                    fontWeight: 600,
-                    textShadow: '0 1px 2px #312e81'
-                  }}
-                >
-                  {assignedStatusPie.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={statusColors[entry.name] || '#a78bfa'} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value} tickets`, name]} />
-                <Legend
-                  align="center"
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  wrapperStyle={{
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    marginTop: 10,
-                  }}
-                  payload={assignedStatusPie.map((item, i) => ({
-                    id: item.name,
-                    type: "circle",
-                    value: `${item.name}`,
-                    color: statusColors[item.name] || '#a78bfa'
-                  }))}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+      <>
+        {loading ? (
+          <div className="flex justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
           </div>
-          {/* Bar Chart - increase width */}
-          <div className="md:col-span-2 bg-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 relative min-h-[320px]">
-            <div className="flex items-center gap-3 w-full mb-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 via-yellow-400 to-green-400 shadow-lg">
-                <AssignmentTurnedIn className="text-white text-2xl drop-shadow-lg" />
-              </div>
-              <div>
-                <div className="text-xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1">Assigned Tickets by Priority</div>
-                <div className="text-sm text-purple-100/80 mt-1">Distribution of your assigned tickets</div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={290} className="min-h-[230px]">
-              <BarChart data={assignedPriorityBar} margin={{ top: 30, right: 30, left: 0, bottom: 0 }} barSize={40}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa55" />
-                <XAxis dataKey="name" stroke="#c4b5fd" tick={{ fontSize: 14, fill: '#c4b5fd', fontWeight: 600 }} />
-                <YAxis stroke="#c4b5fd" allowDecimals={false} tick={{ fontSize: 14 }} />
-                <Tooltip contentStyle={{ background: '#312e81', border: 'none', color: '#fff', borderRadius: 12, boxShadow: '0 2px 12px #a78bfa55' }} formatter={(value) => [value, 'Tickets']} cursor={{ fill: '#a78bfa22' }} />
-                <Legend wrapperStyle={{ color: '#fff', fontWeight: 700, fontSize: 16 }} iconType="circle" />
-                <Bar dataKey="value" radius={[16, 16, 0, 0]} label={{ position: 'top', fill: '#fff', fontWeight: 700, fontSize: 14 }}>
-                  {assignedPriorityBar.map((entry, index) => (
-                    <Cell key={`cell-bar-${index}`} fill={priorityColors[entry.name] || '#a78bfa'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        {/* Assigned Tickets Table */}
-        <div className="bg-gradient-to-br from-blue-900/80 via-purple-900/40 to-blue-900/80 rounded-2xl p-6 shadow-2xl border border-white/10 min-h-[320px] flex flex-col mt-8">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="text-2xl font-bold text-white">My Assigned Tickets</h2>
-            <button
-              className="px-4 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 border border-white/10"
-              onClick={() => navigate('/tickets')}
-            >
-              View All Tickets
-            </button>
-          </div>
-          {assignedLoading ? (
-            <div className="flex-1 flex items-center justify-center"><CircularProgress size={40} style={{ color: '#a78bfa' }} /></div>
-          ) : assignedError ? (
-            <div className="text-center text-red-400 font-bold py-10">{assignedError}</div>
-          ) : assignedTickets.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-purple-200/80 text-lg">No tickets assigned to you.</div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-left text-blue-100 table-auto bg-gradient-to-br from-[#312e81]/80 via-[#a78bfa22] to-[#0ea5e9]/20 rounded-2xl">
-                  <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#312e81]/80 via-[#a78bfa33] to-[#0ea5e9]/30 text-purple-100 text-sm border-b border-[#312e81]/40">
-                    <tr>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Ticket ID</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Title</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Status</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Priority</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Created By</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider">Created At</th>
-                      <th className="px-3 py-2 font-bold uppercase tracking-wider text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-purple-800/30">
-                    {assignedTickets.map(ticket => (
-                      <tr key={ticket._id} className="hover:bg-purple-900/20 transition-colors duration-200 group">
-                        <td className="px-3 py-2 font-mono text-purple-300 font-bold text-xs md:text-sm">{ticket.ticketId}</td>
-                        <td className="px-3 py-2 max-w-xs break-words whitespace-normal">
-                          <div className="font-semibold text-white text-sm line-clamp-1 truncate">{ticket.title}</div>
-                          <div className="text-purple-200/70 text-xs line-clamp-2 whitespace-normal break-words">{ticket.description}</div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(ticket.status)}`}>
-                            {ticket.status}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${getPriorityColor(ticket.priority)}`}>
-                            {ticket.priority}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 max-w-xs break-words whitespace-normal">
-                          <div className="font-semibold text-white text-xs line-clamp-1 truncate">{ticket.createdBy?.firstName} {ticket.createdBy?.lastName}</div>
-                          <div className="text-purple-200/70 text-xs truncate">{ticket.createdBy?.email}</div>
-                        </td>
-                        <td className="px-3 py-2 text-purple-200 text-xs md:text-sm">{new Date(ticket.createdAt).toLocaleString()}</td>
-                        <td className="px-3 py-2 text-center">
-                          <button
-                            className="p-1 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-lg hover:scale-110 hover:bg-purple-500 transition-all duration-200 h-7 w-7 flex items-center justify-center"
-                            title="View Ticket"
-                            onClick={() => navigate(`/tickets?ticketId=${ticket.ticketId}`)}
-                          >
-                            <Visibility fontSize="small" style={{ fontSize: 16 }} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination below table */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 py-4 bg-transparent relative z-0 mt-4">
-                <div className="flex-1" />
-                <div className="flex flex-wrap items-center gap-6 justify-end w-full">
-                  {/* Rows per page dropdown */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-purple-200/80 text-sm">Rows per page:</span>
-                    <select
-                      value={assignedRowsPerPage}
-                      onChange={e => { setAssignedRowsPerPage(Number(e.target.value)); }}
-                      className="py-1 px-2 rounded bg-[#181a20] text-white border border-purple-700 text-sm"
-                    >
-                      {[5, 10, 25, 50, 100].map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+        ) : (
+          <div className="space-y-10 pb-10 overflow-x-hidden">
+            {/* Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 md:gap-6 px-2 mt-4">
+              {metricCards.map((card, idx) => (
+                <div key={card.label} className={`group bg-gradient-to-br ${card.gradient} rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm relative overflow-hidden flex flex-col items-center justify-center`}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2 bg-gradient-to-br from-white/10 to-transparent shadow-lg">
+                    {card.icon}
                   </div>
-                  {/* Showing text */}
-                  <span className="text-purple-200/80 text-sm">
-                    Showing {assignedTickets.length === 0 ? 0 : ((assignedPage - 1) * assignedRowsPerPage + 1)}-
-                    {Math.min(assignedPage * assignedRowsPerPage, assignedTickets.length)} of {assignedTickets.length} tickets
-                  </span>
-                  {/* Pagination */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="p-0.5 rounded-full  hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
-                      onClick={() => setAssignedPage(p => Math.max(1, p - 1))}
-                      disabled={assignedPage === 1}
-                    >
-                      <ChevronLeft />
-                    </button>
-                    <span className="text-purple-200/80 text-sm">{assignedPage} / {Math.ceil(assignedTickets.length / assignedRowsPerPage)}</span>
-                    <button
-                      className="p-0.5 rounded-full  hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
-                      onClick={() => setAssignedPage(p => Math.min(Math.ceil(assignedTickets.length / assignedRowsPerPage), p + 1))}
-                      disabled={assignedPage === Math.ceil(assignedTickets.length / assignedRowsPerPage)}
-                    >
-                      <ChevronRight />
-                    </button>
+                  <div className="text-2xl md:text-3xl font-bold text-white group-hover:text-blue-300 transition-colors">{card.value}</div>
+                  <div className="text-xs md:text-sm font-medium text-purple-200 mt-1 text-center">{card.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Pie Chart - decrease width */}
+              <div className="md:col-span-1 bg-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 relative min-h-[320px]">
+                <div className="flex items-center gap-3 w-full mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 shadow-lg">
+                    <Support className="text-white text-2xl drop-shadow-lg" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1">Assigned Tickets by Status</div>
+                    <div className="text-sm text-purple-100/80 mt-1">Distribution of your assigned tickets</div>
                   </div>
                 </div>
+                <ResponsiveContainer width="100%" height={260} className="min-h-[230px]">
+                  <PieChart>
+                    <Pie
+                      data={assignedStatusPie}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value, percent }) =>
+                        value > 0
+                          ? (
+                            <tspan>
+                              <tspan fontWeight="bold">{name}</tspan>
+                              <tspan>: {value}</tspan>
+                              <tspan> ({(percent * 100).toFixed(0)}%)</tspan>
+                            </tspan>
+                          )
+                          : ''
+                      }
+                      labelStyle={{
+                        fontSize: 14,
+                        fill: '#fff',
+                        fontWeight: 600,
+                        textShadow: '0 1px 2px #312e81'
+                      }}
+                    >
+                      {assignedStatusPie.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={statusColors[entry.name] || '#a78bfa'} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} tickets`, name]} />
+                    <Legend
+                      align="center"
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      wrapperStyle={{
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        marginTop: 10,
+                      }}
+                      payload={assignedStatusPie.map((item, i) => ({
+                        id: item.name,
+                        type: "circle",
+                        value: `${item.name}`,
+                        color: statusColors[item.name] || '#a78bfa'
+                      }))}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+              {/* Bar Chart - increase width */}
+              <div className="md:col-span-2 bg-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl border border-white/10 relative min-h-[320px]">
+                <div className="flex items-center gap-3 w-full mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 via-yellow-400 to-green-400 shadow-lg">
+                    <AssignmentTurnedIn className="text-white text-2xl drop-shadow-lg" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1">Assigned Tickets by Priority</div>
+                    <div className="text-sm text-purple-100/80 mt-1">Distribution of your assigned tickets</div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={290} className="min-h-[230px]">
+                  <BarChart data={assignedPriorityBar} margin={{ top: 30, right: 30, left: 0, bottom: 0 }} barSize={40}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa55" />
+                    <XAxis dataKey="name" stroke="#c4b5fd" tick={{ fontSize: 14, fill: '#c4b5fd', fontWeight: 600 }} />
+                    <YAxis stroke="#c4b5fd" allowDecimals={false} tick={{ fontSize: 14 }} />
+                    <Tooltip contentStyle={{ background: '#312e81', border: 'none', color: '#fff', borderRadius: 12, boxShadow: '0 2px 12px #a78bfa55' }} formatter={(value) => [value, 'Tickets']} cursor={{ fill: '#a78bfa22' }} />
+                    <Legend wrapperStyle={{ color: '#fff', fontWeight: 700, fontSize: 16 }} iconType="circle" />
+                    <Bar dataKey="value" radius={[16, 16, 0, 0]} label={{ position: 'top', fill: '#fff', fontWeight: 700, fontSize: 14 }}>
+                      {assignedPriorityBar.map((entry, index) => (
+                        <Cell key={`cell-bar-${index}`} fill={priorityColors[entry.name] || '#a78bfa'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* Assigned Tickets Table */}
+            <div className="bg-gradient-to-br from-blue-900/80 via-purple-900/40 to-blue-900/80 rounded-2xl p-6 shadow-2xl border border-white/10 min-h-[320px] flex flex-col mt-8">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 className="text-2xl font-bold text-white">My Assigned Tickets</h2>
+                <button
+                  className="px-4 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 border border-white/10"
+                  onClick={() => navigate('/tickets')}
+                >
+                  View All Tickets
+                </button>
+              </div>
+              {assignedLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                  <span className="ml-3 text-purple-200">Loading tickets...</span>
+                </div>
+              ) : assignedError ? (
+                <div className="text-center text-red-400 font-bold py-10">{assignedError}</div>
+              ) : assignedTickets.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-purple-200/80 text-lg">No tickets assigned to you.</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px] text-left text-blue-100 table-auto bg-gradient-to-br from-[#312e81]/80 via-[#a78bfa22] to-[#0ea5e9]/20 rounded-2xl">
+                      <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#312e81]/80 via-[#a78bfa33] to-[#0ea5e9]/30 text-purple-100 text-sm border-b border-[#312e81]/40">
+                        <tr>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Ticket ID</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Title</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Status</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Priority</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Created By</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider">Created At</th>
+                          <th className="px-3 py-2 font-bold uppercase tracking-wider text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-purple-800/30">
+                        {assignedTickets.map(ticket => (
+                          <tr key={ticket._id} className="hover:bg-purple-900/20 transition-colors duration-200 group">
+                            <td className="px-3 py-2 font-mono text-purple-300 font-bold text-xs md:text-sm">{ticket.ticketId}</td>
+                            <td className="px-3 py-2 max-w-xs break-words whitespace-normal">
+                              <div className="font-semibold text-white text-sm line-clamp-1 truncate">{ticket.title}</div>
+                              <div className="text-purple-200/70 text-xs line-clamp-2 whitespace-normal break-words">{ticket.description}</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(ticket.status)}`}>
+                                {ticket.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${getPriorityColor(ticket.priority)}`}>
+                                {ticket.priority}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 max-w-xs break-words whitespace-normal">
+                              <div className="font-semibold text-white text-xs line-clamp-1 truncate">{ticket.createdBy?.firstName} {ticket.createdBy?.lastName}</div>
+                              <div className="text-purple-200/70 text-xs truncate">{ticket.createdBy?.email}</div>
+                            </td>
+                            <td className="px-3 py-2 text-purple-200 text-xs md:text-sm">{new Date(ticket.createdAt).toLocaleString()}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                className="p-1 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-lg hover:scale-110 hover:bg-purple-500 transition-all duration-200 h-7 w-7 flex items-center justify-center"
+                                title="View Ticket"
+                                onClick={() => navigate(`/tickets?ticketId=${ticket.ticketId}`)}
+                              >
+                                <Visibility fontSize="small" style={{ fontSize: 16 }} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Pagination below table */}
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 py-4 bg-transparent relative z-0 mt-4">
+                    <div className="flex-1" />
+                    <div className="flex flex-wrap items-center gap-6 justify-end w-full">
+                      {/* Rows per page dropdown */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-purple-200/80 text-sm">Rows per page:</span>
+                        <select
+                          value={assignedRowsPerPage}
+                          onChange={e => { setAssignedRowsPerPage(Number(e.target.value)); }}
+                          className="py-1 px-2 rounded bg-[#181a20] text-white border border-purple-700 text-sm"
+                        >
+                          {[5, 10, 25, 50, 100].map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {/* Showing text */}
+                      <span className="text-purple-200/80 text-sm">
+                        Showing {assignedTickets.length === 0 ? 0 : ((assignedPage - 1) * assignedRowsPerPage + 1)}-
+                        {Math.min(assignedPage * assignedRowsPerPage, assignedTickets.length)} of {assignedTickets.length} tickets
+                      </span>
+                      {/* Pagination */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="p-0.5 rounded-full  hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                          onClick={() => setAssignedPage(p => Math.max(1, p - 1))}
+                          disabled={assignedPage === 1}
+                        >
+                          <ChevronLeft />
+                        </button>
+                        <span className="text-purple-200/80 text-sm">{assignedPage} / {Math.ceil(assignedTickets.length / assignedRowsPerPage)}</span>
+                        <button
+                          className="p-0.5 rounded-full  hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                          onClick={() => setAssignedPage(p => Math.min(Math.ceil(assignedTickets.length / assignedRowsPerPage), p + 1))}
+                          disabled={assignedPage === Math.ceil(assignedTickets.length / assignedRowsPerPage)}
+                        >
+                          <ChevronRight />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -666,7 +739,7 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-                    {/* Tickets Card */}
+          {/* Tickets Card */}
           <div className="relative flex flex-col items-center justify-center rounded-2xl p-3 sm:p-4 lg:p-6 shadow-2xl bg-gradient-to-br from-red-400/30 to-red-600/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden min-h-[180px]">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-b-lg bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
               <Support className="text-lg sm:text-xl lg:text-2xl text-red-100 drop-shadow-lg" />
@@ -714,14 +787,14 @@ const DashboardPage = () => {
               <div className="text-xs sm:text-sm text-purple-100/80 mt-1">Breakdown of user roles</div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={230} className="min-h-[200px]">
+          <ResponsiveContainer width="100%" height={280} className="min-h-[200px]">
             <PieChart className="w-full h-full ">
               <Pie
                 data={userPieData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={80}
+                outerRadius={90}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -875,9 +948,9 @@ const DashboardPage = () => {
               </LocalizationProvider>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={250} className="min-h-[250px]">
+          <ResponsiveContainer width="100%" height={260} className="min-h-[250px]">
             {batchMonthlyData.length > 0 ? (
-              <BarChart data={batchMonthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 30 }} barSize={40}>
+              <BarChart data={batchMonthlyData} margin={{ top: 20, right: 30, left: 0, bottom: 10 }} barSize={40}>
                 <defs>
                   <linearGradient id="batchBarGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.9} />
@@ -885,8 +958,8 @@ const DashboardPage = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa55" />
-                <XAxis dataKey="month" stroke="#a78bfa" interval={0} angle={-20} textAnchor="end" height={60} tick={{ fontSize: 13, fill: '#fff', fontWeight: 600 }} />
-                <YAxis stroke="#a78bfa" allowDecimals={false} tick={{ fontSize: 13 }} />
+                <XAxis dataKey="month" stroke="#a78bfa" interval={0} angle={-20} textAnchor="end" height={50} tick={{ fontSize: 13, fill: '#fff', fontWeight: 600 }} />
+                <YAxis stroke="#a78bfa" allowDecimals={false} tick={{ fontSize: 13 }} width={40} />
                 <Tooltip contentStyle={{ background: '#312e81', border: 'none', color: '#fff', borderRadius: 12, boxShadow: '0 2px 12px #a78bfa55' }} formatter={(value) => [value, 'Batches']} cursor={{ fill: '#a78bfa22' }} />
                 <Legend wrapperStyle={{ color: '#fff', fontWeight: 700, fontSize: 16 }} iconType="circle" />
                 <Bar dataKey="count" fill="url(#batchBarGradient)" radius={[16, 16, 0, 0]} label={{ position: 'top', fill: '#fff', fontWeight: 700, fontSize: 14 }} />
@@ -921,12 +994,12 @@ const DashboardPage = () => {
               <div className="text-xs sm:text-sm text-purple-100/80 mt-1">Number of courses handled by each professor</div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={280} className="min-h-[250px]">
+          <ResponsiveContainer width="100%" height={260} className="min-h-[250px]">
             {professorStats && professorStats.allProfessorDetails && professorStats.allProfessorDetails.length > 0 ? (
-              <BarChart data={professorStats.allProfessorDetails.map((prof) => ({ name: prof.name, Courses: prof.courseCount }))} margin={{ top: 10, right: 30, left: 0, bottom: 30 }} barSize={40}>
+              <BarChart data={professorStats.allProfessorDetails.map((prof) => ({ name: prof.name, Courses: prof.courseCount }))} margin={{ top: 20, right: 20, left: 0, bottom: 10 }} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa55" />
-                <XAxis dataKey="name" stroke="#a78bfa" interval={0} height={60} tick={{ fontSize: 13, fill: '#fff', fontWeight: 600 }} />
-                <YAxis stroke="#a78bfa" allowDecimals={false} tick={{ fontSize: 13 }} />
+                <XAxis dataKey="name" stroke="#a78bfa" interval={0} height={40} tick={{ fontSize: 13, fill: '#fff', fontWeight: 600 }} />
+                <YAxis stroke="#a78bfa" allowDecimals={false} tick={{ fontSize: 13 }} width={40} />
                 <Tooltip contentStyle={{ background: '#a78bfa', border: 'none', color: '#fff' }} formatter={(value) => [value, 'Courses']} />
                 <Legend wrapperStyle={{ color: '#fff' }} />
                 <Bar dataKey="Courses" fill="#a78bfa" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#fff', fontWeight: 700 }} />
@@ -956,10 +1029,10 @@ const DashboardPage = () => {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200} className="min-h-[200px]">
-            <BarChart data={eventBarData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <BarChart data={eventBarData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#a78bfa33" />
-              <XAxis dataKey="name" stroke="#c4b5fd" />
-              <YAxis stroke="#c4b5fd" allowDecimals={false} />
+              <XAxis dataKey="name" stroke="#c4b5fd" height={20} />
+              <YAxis stroke="#c4b5fd" allowDecimals={false} width={20} />
               <Tooltip contentStyle={{ background: '#312e81', border: 'none', color: '#fff' }} />
               <Bar dataKey="value" label={{ position: 'top', fill: '#fff', fontWeight: 700 }}>
                 {eventBarData.map((entry, index) => (
@@ -1026,47 +1099,60 @@ const DashboardPage = () => {
                 {/* <th className="px-4 py-3 font-bold uppercase tracking-wider text-blue-200 text-center">Action</th> */}
               </tr>
             </thead>
-            <tbody>
-              {batchesLoading ? (
-                <tr><td colSpan={6} className="text-center py-16"><div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-500 mx-auto"></div></td></tr>
-              ) : batchesError ? (
-                <tr><td colSpan={6} className="text-center text-red-400 font-bold py-10">{batchesError}</td></tr>
-              ) : filteredBatches.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-16">
-                  <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#312e81]/30 flex items-center justify-center">
-                    <TrendingUp className="text-4xl text-purple-300" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">No Batches Found</h3>
-                  <p className="text-purple-200/80">No batch data available.</p>
-                </td></tr>
-              ) : (
-                paginatedBatches.map((batch) => (
-                  <tr key={batch._id} className="hover:bg-gradient-to-r hover:from-pink-400/10 hover:to-blue-400/10 transition-all duration-200 border-b border-[#312e81]/40 last:border-b-0">
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 font-semibold text-white tracking-wide truncate" title={batch.batchName}>{batch.batchName}</td>
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-purple-100 truncate" title={batch.course?.title}>{batch.course?.title}</td>
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-blue-100 truncate" title={batch.professor?.name}>
-                      <div className="font-semibold text-blue-100 text-xs sm:text-sm">{batch.professor?.name}</div>
-                      <div className="text-xs text-blue-300 mt-1 truncate" title={batch.professor?.email}>{batch.professor?.email}</div>
-                    </td>
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-purple-100 truncate text-xs sm:text-sm" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}>{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} - {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}</td>
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-blue-200 font-bold text-center">{batch.users?.length || 0}</td>
-                    <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-12 sm:w-16 lg:w-20 h-2 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 transition-all duration-700" style={{ width: `${batch.batchProgress?.percentage || 0}%` }}></div>
-                        </div>
-                        <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
+            {batchesLoading ? (
+              <tbody>
+                <tr>
+                  <td colSpan={6} className="text-center py-8">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                      <span className="ml-3 text-purple-200">Loading batches...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
+              <>
+                <tbody>
+                  {batchesError ? (
+                    <tr><td colSpan={6} className="text-center text-red-400 font-bold py-10">{batchesError}</td></tr>
+                  ) : filteredBatches.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-16">
+                      <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#312e81]/30 flex items-center justify-center">
+                        <TrendingUp className="text-4xl text-purple-300" />
                       </div>
-                    </td>
-                    {/* <td className="px-4 py-3 text-center">
-                      <button className="p-2 rounded-full bg-blue-800 hover:bg-blue-600 text-blue-200 hover:text-white shadow transition disabled:opacity-40 disabled:cursor-not-allowed">
-                        <EditIcon />
-                      </button>
-                    </td> */}
-                  </tr>
-                ))
-              )}
-            </tbody>
+                      <h3 className="text-2xl font-bold text-white mb-2">No Batches Found</h3>
+                      <p className="text-purple-200/80">No batch data available.</p>
+                    </td></tr>
+                  ) : (
+                    paginatedBatches.map((batch) => (
+                      <tr key={batch._id} className="hover:bg-gradient-to-r hover:from-pink-400/10 hover:to-blue-400/10 transition-all duration-200 border-b border-[#312e81]/40 last:border-b-0">
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 font-semibold text-white tracking-wide truncate" title={batch.batchName}>{batch.batchName}</td>
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-purple-100 truncate" title={batch.course?.title}>{batch.course?.title}</td>
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-blue-100 truncate" title={batch.professor?.name}>
+                          <div className="font-semibold text-blue-100 text-xs sm:text-sm">{batch.professor?.name}</div>
+                          <div className="text-xs text-blue-300 mt-1 truncate" title={batch.professor?.email}>{batch.professor?.email}</div>
+                        </td>
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-purple-100 truncate text-xs sm:text-sm" title={`Start: ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} | End: ${batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}`}>{batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '-'} - {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : '-'}</td>
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3 text-blue-200 font-bold text-center">{batch.users?.length || 0}</td>
+                        <td className="px-1 sm:px-2 lg:px-4 py-2 sm:py-3">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <div className="w-12 sm:w-16 lg:w-20 h-2 bg-[#312e81]/40 rounded-full overflow-hidden shadow-inner">
+                              <div className="h-2 rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 transition-all duration-700" style={{ width: `${batch.batchProgress?.percentage || 0}%` }}></div>
+                            </div>
+                            <span className="text-xs font-bold text-purple-100">{batch.batchProgress?.percentage || 0}%</span>
+                          </div>
+                        </td>
+                        {/* <td className="px-4 py-3 text-center">
+                          <button className="p-2 rounded-full bg-blue-800 hover:bg-blue-600 text-blue-200 hover:text-white shadow transition disabled:opacity-40 disabled:cursor-not-allowed">
+                            <EditIcon />
+                          </button>
+                        </td> */}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </>
+            )}
             {/* Table footer with pagination */}
             <tfoot>
               <tr>

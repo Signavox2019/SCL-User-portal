@@ -81,7 +81,7 @@ const userTableFields = [
   { key: 'isApproved', label: 'Status' },
 ];
 
-const userRoleColors = ['#a78bfa', '#f472b6', '#818cf8'];
+const userRoleColors = ['#a78bfa', '#f472b6', '#818cf8', '#10b981'];
 const approvalBarColors = ['#10b981', '#f59e0b'];
 
 const degreeOptions = [
@@ -169,9 +169,21 @@ const Users = () => {
     stipend: '₹ 7,000',
     amount: {
       courseAmount: '',
+      discount: '',
+      finalAmount: '',
       paidAmount: '',
       balanceAmount: ''
     },
+    // Course & Batch Details
+    courseRegisteredFor: '',
+    batchAssigned: '',
+    // Additional fields from schema
+    approveStatus: 'waiting',
+    isApproved: false,
+    profileImage: '',
+    resume: '',
+    offerLetter: '',
+    reportingDate: '',
   };
   const [formData, setFormData] = useState(initialFormData);
   const [page, setPage] = useState(1);
@@ -179,6 +191,8 @@ const Users = () => {
   const [editModal, setEditModal] = useState({ open: false, user: null, loading: false, error: null });
   const [editForm, setEditForm] = useState(initialFormData);
   const [loadingButtons, setLoadingButtons] = useState({}); // Track loading state for individual buttons
+  const [generateModal, setGenerateModal] = useState({ open: false, user: null, form: null, loading: false, error: null, offerLetterUrl: null });
+  const [regenerateModal, setRegenerateModal] = useState({ open: false, user: null, loading: false, error: null, offerLetterUrl: null });
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = currentUser.role === 'admin';
@@ -253,7 +267,7 @@ const Users = () => {
     { name: 'Interns', value: userStats.counts?.interns || 0 },
     { name: 'Professors', value: userStats.counts?.professors || 0 },
     { name: 'Admins', value: userStats.counts?.admins || 0 },
-    { name: 'Support', value: userStats.counts?.support || 0 },
+    { name: 'Support', value: userStats.counts?.supports || 0 },
   ] : [];
 
   const approvalBarData = userStats ? [
@@ -381,13 +395,19 @@ const Users = () => {
         shiftTimings: {
           start: formData.shiftTimings.start,
           end: formData.shiftTimings.end,
+          default: `${formData.shiftTimings.start} - ${formData.shiftTimings.end}`,
         },
         workingDays: formData.workingDays,
         amount: {
           courseAmount: Number(formData.amount?.courseAmount) || 0,
+          discount: Number(formData.amount?.discount) || 0,
+          finalAmount: Number(formData.amount?.finalAmount) || 0,
           paidAmount: Number(formData.amount?.paidAmount) || 0,
           balanceAmount: Number(formData.amount?.balanceAmount) || 0,
         },
+        // Backend will calculate finalAmount and balanceAmount automatically
+        approveStatus: formData.approveStatus,
+        isApproved: formData.approveStatus === 'approved',
       };
       const res = await axios.post(
         `${BaseUrl}/auth/register`,
@@ -428,9 +448,15 @@ const Users = () => {
       stipend: user.stipend || '₹ 7,000',
       amount: {
         courseAmount: user.amount?.courseAmount ?? '',
+        discount: user.amount?.discount ?? '',
+        finalAmount: user.amount?.finalAmount ?? '',
         paidAmount: user.amount?.paidAmount ?? '',
         balanceAmount: user.amount?.balanceAmount ?? '',
       },
+      // Additional fields from schema
+      reportingDate: user.reportingDate || '',
+      approveStatus: user.approveStatus || 'waiting',
+      isApproved: user.isApproved || false,
     };
     setEditForm(editUserData);
     setEditModal({ open: true, user, loading: false, error: null });
@@ -469,15 +495,20 @@ const Users = () => {
         yearsOfExperience: editForm.yearsOfExperience,
         organizationName: editForm.organizationName,
         placeOfWork: editForm.placeOfWork,
-        shiftTimings: editForm.shiftTimings,
+        shiftTimings: {
+          ...editForm.shiftTimings,
+          default: `${editForm.shiftTimings?.start || '09:30'} - ${editForm.shiftTimings?.end || '18:30'}`,
+        },
         workingDays: editForm.workingDays,
         hrName: editForm.hrName,
         employeeAddress: editForm.employeeAddress,
         stipend: editForm.stipend,
+        reportingDate: editForm.reportingDate,
         amount: {
           courseAmount: Number(editForm.amount?.courseAmount) || 0,
+          discount: Number(editForm.amount?.discount) || 0,
           paidAmount: Number(editForm.amount?.paidAmount) || 0,
-          balanceAmount: Number(editForm.amount?.balanceAmount) || 0,
+          // Backend will calculate finalAmount and balanceAmount automatically
         },
       };
       
@@ -505,6 +536,174 @@ const Users = () => {
       setLoadingButtons(prev => ({ ...prev, [userId]: false }));
     }
   };
+
+  // Helper to check if all required fields are filled
+  function isUserDataComplete(user) {
+    // First check if user is enrolled in course and assigned to batch
+    if (!user.courseRegisteredFor || !user.batchAssigned) {
+      return false;
+    }
+    
+    const requiredFields = [
+      'title', 'firstName', 'lastName', 'email', 'phone', 'role', 'collegeName', 'department', 'university',
+      'degree', 'specialization', 'cgpa', 'currentYear', 'organizationName', 'placeOfWork', 'shiftTimings',
+      'workingDays', 'hrName', 'employeeAddress', 'stipend', 'amount', 'reportingDate'
+    ];
+    for (const field of requiredFields) {
+      if (field === 'amount') {
+        if (!user.amount || user.amount.courseAmount === '' || user.amount.discount === '' || user.amount.paidAmount === '') return false;
+      } else if (field === 'shiftTimings') {
+        if (!user.shiftTimings || !user.shiftTimings.start || !user.shiftTimings.end) return false;
+      } else if (field === 'workingDays') {
+        if (!user.workingDays || user.workingDays.length === 0) return false;
+      } else if (user[field] === undefined || user[field] === null || user[field] === '') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Helper to check if all required fields are filled
+  function getFieldDescriptors() {
+	return [
+		{ path: 'title', label: 'Title', type: 'select', options: ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof'] },
+		{ path: 'firstName', label: 'First Name', type: 'text' },
+		{ path: 'lastName', label: 'Last Name', type: 'text' },
+		{ path: 'email', label: 'Email', type: 'email' },
+		{ path: 'phone', label: 'Phone', type: 'tel' },
+		{ path: 'role', label: 'Role', type: 'select', options: ['intern', 'admin', 'support'] },
+		{ path: 'collegeName', label: 'College Name', type: 'text' },
+		{ path: 'department', label: 'Department', type: 'select', options: departmentOptions },
+		{ path: 'university', label: 'University', type: 'select', options: universityOptions },
+		{ path: 'degree', label: 'Degree', type: 'select', options: degreeOptions },
+		{ path: 'currentYear', label: 'Current Year', type: 'select', options: yearOptions },
+	];
+}
+
+function getValueByPath(obj, path) {
+	return path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+}
+
+function setValueByPath(obj, path, value) {
+	const keys = path.split('.');
+	const newObj = { ...obj };
+	let cur = newObj;
+	for (let i = 0; i < keys.length - 1; i++) {
+		const k = keys[i];
+		cur[k] = { ...(cur[k] || {}) };
+		cur = cur[k];
+	}
+	cur[keys[keys.length - 1]] = value;
+	return newObj;
+}
+
+function isEmptyValue(path, value) {
+	if (path === 'workingDays') return !Array.isArray(value) || value.length === 0;
+	return value === undefined || value === null || value === '';
+}
+
+function getMissingRequiredFieldDescriptors(user) {
+	const descriptors = getFieldDescriptors();
+	return descriptors.filter(d => isEmptyValue(d.path, getValueByPath(user, d.path)));
+}
+
+function isUserDataComplete(user) {
+	return getMissingRequiredFieldDescriptors(user).length === 0;
+}
+
+// Handler for Generate button
+const handleOpenGenerateModal = (user) => {
+	setGenerateModal({ open: true, user, form: { ...user }, loading: false, error: null, offerLetterUrl: null });
+};
+
+// Generic handler for field changes by path
+const handleGenerateFieldChangeByPath = (path, value) => {
+	setGenerateModal(prev => ({ ...prev, form: setValueByPath(prev.form || {}, path, value) }));
+};
+
+// Handler for offer letter generation (saves updates first)
+const handleGenerateOfferLetter = async () => {
+	setGenerateModal((prev) => ({ ...prev, loading: true, error: null }));
+	try {
+		const token = localStorage.getItem('token');
+		const userId = generateModal.user._id;
+		// Prepare request body like edit submit
+		const f = generateModal.form || {};
+		const fullName = [f.firstName, f.middleName, f.lastName].filter(Boolean).join(' ');
+		const reqBody = {
+			name: fullName,
+			email: f.email,
+			phone: f.phone,
+			role: f.role,
+			title: f.title,
+			collegeName: f.collegeName,
+			department: f.department,
+			university: f.university,
+			degree: f.degree,
+			specialization: f.specialization,
+			cgpa: f.cgpa,
+			currentYear: f.currentYear,
+			isGraduated: f.isGraduated,
+			yearOfPassing: f.yearOfPassing,
+			hasExperience: f.hasExperience,
+			previousCompany: f.previousCompany,
+			position: f.position,
+			yearsOfExperience: f.yearsOfExperience,
+			organizationName: f.organizationName,
+			placeOfWork: f.placeOfWork,
+			shiftTimings: {
+				start: f.shiftTimings?.start || '09:30',
+				end: f.shiftTimings?.end || '18:30',
+				default: `${f.shiftTimings?.start || '09:30'} - ${f.shiftTimings?.end || '18:30'}`,
+			},
+			workingDays: Array.isArray(f.workingDays) ? f.workingDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+			hrName: f.hrName,
+			employeeAddress: f.employeeAddress,
+			stipend: f.stipend,
+			reportingDate: f.reportingDate,
+			amount: {
+				courseAmount: Number(f.amount?.courseAmount) || 0,
+				discount: Number(f.amount?.discount) || 0,
+				paidAmount: Number(f.amount?.paidAmount) || 0,
+				// final and balance calculated by backend
+			},
+		};
+		// Save updates first
+		await axios.put(`${BaseUrl}/users/admin/update-user/${userId}`, reqBody, { headers: { 'Authorization': `Bearer ${token}` } });
+		// Update local state
+		setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...reqBody, name: fullName } : u));
+		// Then generate offer letter
+		const res = await axios.get(`${BaseUrl}/users/${userId}/offer-letter`, { headers: { 'Authorization': `Bearer ${token}` } });
+		setGenerateModal((prev) => ({ ...prev, loading: false, offerLetterUrl: res.data.url }));
+		showToast(res.data.message || 'Offer letter generated!', 'success');
+		setUsers(prev => prev.map(u => u._id === userId ? { ...u, offerLetter: res.data.url } : u));
+	} catch (err) {
+		setGenerateModal((prev) => ({ ...prev, loading: false, error: err.response?.data?.message || err.message }));
+		showToast(err.response?.data?.message || err.message, 'error');
+	}
+};
+
+// Open regenerate modal (when an offer letter already exists)
+const handleOpenRegenerateModal = (user) => {
+  setRegenerateModal({ open: true, user, loading: false, error: null, offerLetterUrl: user.offerLetter || null });
+};
+
+// Regenerate offer letter (GET endpoint)
+const handleRegenerateOfferLetter = async () => {
+  setRegenerateModal(prev => ({ ...prev, loading: true, error: null }));
+  try {
+    const token = localStorage.getItem('token');
+    const userId = regenerateModal.user._id;
+    const res = await axios.get(`${BaseUrl}/users/${userId}/offer-letter`, { headers: { 'Authorization': `Bearer ${token}` } });
+    // Update modal and list with new url
+    setRegenerateModal(prev => ({ ...prev, loading: false, offerLetterUrl: res.data.url }));
+    setUsers(prev => prev.map(u => u._id === userId ? { ...u, offerLetter: res.data.url } : u));
+    showToast(res.data.message || 'Offer letter regenerated!', 'success');
+  } catch (err) {
+    setRegenerateModal(prev => ({ ...prev, loading: false, error: err.response?.data?.message || err.message }));
+    showToast(err.response?.data?.message || err.message, 'error');
+  }
+};
 
   return (
     <>
@@ -564,6 +763,12 @@ const Users = () => {
                     <span className="text-xs text-purple-100/90 font-semibold">Admins</span>
                     <span className="text-xl sm:text-3xl font-extrabold text-pink-300">
                       {userStats?.counts?.admins ?? '-'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-purple-100/90 font-semibold">Support</span>
+                    <span className="text-xl sm:text-3xl font-extrabold text-green-300">
+                      {userStats?.counts?.supports ?? '-'}
                     </span>
                   </div>
                 </div>
@@ -911,6 +1116,30 @@ const Users = () => {
                             <button title="Delete" disabled={deleting[u._id]} onClick={() => setDeleteConfirm({ open: true, user: u })} className="p-1.5 rounded-full bg-pink-500/80 hover:bg-pink-600 text-white shadow-md transition-transform hover:scale-110">
                               <DeleteIcon fontSize="small" />
                             </button>
+                            {isAdmin && (
+                              u.offerLetter ? (
+                                <button
+                                  title="Offer Letter Generated"
+                                  onClick={() => handleOpenRegenerateModal(u)}
+                                  className="p-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-md transition-transform hover:scale-110"
+                                >
+                                  <CheckCircleIcon fontSize="small" />
+                                </button>
+                              ) : (
+                                <button
+                                  title={u.courseRegisteredFor && u.batchAssigned ? "Generate Offer Letter" : "Cannot generate offer letter - user not enrolled in course or assigned to batch"}
+                                  onClick={() => u.courseRegisteredFor && u.batchAssigned ? handleOpenGenerateModal(u) : null}
+                                  className={`p-1.5 rounded-full shadow-md transition-transform ${
+                                    u.courseRegisteredFor && u.batchAssigned 
+                                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white hover:scale-110' 
+                                      : 'bg-gray-400 cursor-not-allowed text-white'
+                                  }`}
+                                  disabled={!u.courseRegisteredFor || !u.batchAssigned}
+                                >
+                                  <EmojiEventsIcon fontSize="small" />
+                                </button>
+                              )
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1166,6 +1395,10 @@ const Users = () => {
                         <input type="tel" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
                       </div>
                       <div>
+                        <label className="block text-purple-200 mb-1">Employee Address</label>
+                        <input type="text" value={formData.employeeAddress} onChange={e => setFormData(f => ({ ...f, employeeAddress: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
+                      </div>
+                      <div>
                         <label className="block text-purple-200 mb-1">Role</label>
                         <select value={formData.role} onChange={e => setFormData(f => ({ ...f, role: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required>
                           {['intern', 'admin', 'support'].map(opt => (
@@ -1344,71 +1577,113 @@ const Users = () => {
                         <input type="text" value={formData.hrName} onChange={e => setFormData(f => ({ ...f, hrName: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
                       </div>
                       <div>
-                        <label className="block text-purple-200 mb-1">Employee Address</label>
-                        <input type="text" value={formData.employeeAddress} onChange={e => setFormData(f => ({ ...f, employeeAddress: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
-                      </div>
-                      <div>
                         <label className="block text-purple-200 mb-1">Stipend</label>
                         <input type="text" value={formData.stipend} onChange={e => setFormData(f => ({ ...f, stipend: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
+                      </div>
+                      <div>
+                        <label className="block text-purple-200 mb-1">Reporting Date</label>
+                        <input type="date" value={formData.reportingDate} onChange={e => setFormData(f => ({ ...f, reportingDate: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
                       </div>
                     </div>
                   </div>
                   {isAdmin && (
                     <div className="mb-4">
                       <h3 className="text-xl font-semibold text-purple-200 mb-2">Course Payment</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-purple-200 mb-1">Course Amount</label>
-                          <input
-                            type="number"
-                            name="courseAmount"
-                            value={formData.amount.courseAmount}
-                            onChange={e => {
-                              const value = e.target.value;
-                              setFormData(f => {
-                                const newAmount = {
-                                  ...f.amount,
-                                  courseAmount: value,
-                                };
-                                const course = Number(newAmount.courseAmount) || 0;
-                                const paid = Number(newAmount.paidAmount) || 0;
-                                newAmount.balanceAmount = course - paid;
-                                return { ...f, amount: newAmount };
-                              });
-                            }}
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                          />
+                      <div className="space-y-4">
+                        {/* First row - 3 fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-purple-200 mb-1">Course Amount</label>
+                            <input
+                              type="number"
+                              name="courseAmount"
+                              value={formData.amount.courseAmount}
+                              onChange={e => {
+                                const value = e.target.value;
+                                setFormData(f => {
+                                  const newAmount = {
+                                    ...f.amount,
+                                    courseAmount: value,
+                                  };
+                                  const course = Number(newAmount.courseAmount) || 0;
+                                  const discount = Number(newAmount.discount) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
+                                  newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                  newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                  return { ...f, amount: newAmount };
+                                });
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-purple-200 mb-1">Discount (%)</label>
+                            <input
+                              type="number"
+                              name="discount"
+                              value={formData.amount.discount}
+                              onChange={e => {
+                                const value = e.target.value;
+                                setFormData(f => {
+                                  const newAmount = {
+                                    ...f.amount,
+                                    discount: value,
+                                  };
+                                  const course = Number(newAmount.courseAmount) || 0;
+                                  const discount = Number(newAmount.discount) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
+                                  newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                  newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                  return { ...f, amount: newAmount };
+                                });
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                              placeholder="0"
+                              min="0"
+                              max="100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-purple-200 mb-1">Paid Amount</label>
+                            <input
+                              type="number"
+                              name="paidAmount"
+                              value={formData.amount.paidAmount}
+                              onChange={e => {
+                                const value = e.target.value;
+                                setFormData(f => {
+                                  const newAmount = {
+                                    ...f.amount,
+                                    paidAmount: value,
+                                  };
+                                  const course = Number(newAmount.courseAmount) || 0;
+                                  const discount = Number(newAmount.discount) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
+                                  newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                  newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                  return { ...f, amount: newAmount };
+                                });
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                              placeholder="0"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Paid Amount</label>
-                          <input
-                            type="number"
-                            name="paidAmount"
-                            value={formData.amount.paidAmount}
-                            onChange={e => {
-                              const value = e.target.value;
-                              setFormData(f => {
-                                const newAmount = {
-                                  ...f.amount,
-                                  paidAmount: value,
-                                };
-                                const course = Number(newAmount.courseAmount) || 0;
-                                const paid = Number(newAmount.paidAmount) || 0;
-                                newAmount.balanceAmount = course - paid;
-                                return { ...f, amount: newAmount };
-                              });
-                            }}
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-purple-200 mb-1">Balance Amount</label>
-                          <input
-                            type="number"
-                            value={formData.amount.balanceAmount}
-                            readOnly
-                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed"
-                          />
+                        {/* Second row - 2 calculated fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-purple-200 mb-1">Final Amount (Calculated)</label>
+                            <div className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed">
+                              ₹{formData.amount.finalAmount || 0}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-purple-200 mb-1">Balance Amount (Calculated)</label>
+                            <div className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed">
+                              ₹{formData.amount.balanceAmount || 0}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1663,7 +1938,7 @@ const Users = () => {
                          </div>
                       </div>
 
-                      {/* Organization Section */}
+                                            {/* Organization Section */}
                       <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-green-500/15 hover:to-blue-500/15 transition-all duration-300">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -1672,45 +1947,105 @@ const Users = () => {
                           <h3 className="text-2xl font-bold text-white">Organization</h3>
                         </div>
                         
-                                                 <div className="space-y-4">
-                           <div className="flex flex-wrap gap-4">
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Organization Name</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.organizationName || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Place of Work</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.placeOfWork || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Shift Timings</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.shiftTimings?.default || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">HR Name</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.hrName || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Stipend</p>
-                               <p className="text-white font-medium break-words">{viewModal.user.stipend || 'Not provided'}</p>
-                             </div>
-                             <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
-                               <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Working Days</p>
-                               <p className="text-white font-medium break-words">{Array.isArray(viewModal.user.workingDays) ? viewModal.user.workingDays.join(', ') : 'Not provided'}</p>
-                             </div>
-                             {viewModal.user.offerLetter && (
-                               <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
-                                 <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Offer Letter</p>
-                                 <a href={viewModal.user.offerLetter} target="_blank" rel="noopener noreferrer" className="text-blue-300 underline font-bold hover:text-blue-400 transition inline-flex items-center gap-2">
-                                   Download PDF
-                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                   </svg>
-                                 </a>
-                               </div>
-                             )}
-                           </div>
-                         </div>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-4">
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Organization Name</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.organizationName || 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Place of Work</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.placeOfWork || 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Shift Timings</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.shiftTimings?.default || 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">HR Name</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.hrName || 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Stipend</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.stipend || 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Working Days</p>
+                              <p className="text-white font-medium break-words">{Array.isArray(viewModal.user.workingDays) ? viewModal.user.workingDays.join(', ') : 'Not provided'}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Reporting Date</p>
+                              <p className="text-white font-medium break-words">{viewModal.user.reportingDate ? new Date(viewModal.user.reportingDate).toLocaleDateString() : 'Not provided'}</p>
+                            </div>
+                            {viewModal.user.offerLetter && (
+                              <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[300px] flex-1">
+                                <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Offer Letter</p>
+                                <a href={viewModal.user.offerLetter} target="_blank" rel="noopener noreferrer" className="text-blue-300 underline font-bold hover:text-blue-400 transition inline-flex items-center gap-2">
+                                  Download PDF
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Course & Batch Section */}
+                      <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-indigo-500/15 hover:to-purple-500/15 transition-all duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                            <LocalLibraryIcon className="text-indigo-400 text-2xl" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-white">Course & Batch Details</h3>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-4">
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Course Registered For</p>
+                              <p className="text-white font-medium break-words">
+                                {viewModal.user.courseRegisteredFor?.title || 'Not enrolled in any course'}
+                              </p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Batch Assigned</p>
+                              <p className="text-white font-medium break-words">
+                                {viewModal.user.batchAssigned?.batchName || 'Not assigned to any batch'}
+                              </p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Batch Start Date</p>
+                              <p className="text-white font-medium break-words">
+                                {viewModal.user.batchStartDate ? new Date(viewModal.user.batchStartDate).toLocaleDateString() : 'Not provided'}
+                              </p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
+                              <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Batch End Date</p>
+                              <p className="text-white font-medium break-words">
+                                {viewModal.user.batchEndDate ? new Date(viewModal.user.batchEndDate).toLocaleDateString() : 'Not provided'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Course & Batch Validation Status */}
+                          <div className="mt-4 p-4 rounded-xl border border-white/10">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full ${(viewModal.user.courseRegisteredFor && viewModal.user.batchAssigned) ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                              <span className="text-sm font-medium text-white">
+                                {viewModal.user.courseRegisteredFor && viewModal.user.batchAssigned 
+                                  ? '✓ Eligible for offer letter generation' 
+                                  : '✗ Not eligible for offer letter generation'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-purple-300 mt-2">
+                              {viewModal.user.courseRegisteredFor && viewModal.user.batchAssigned 
+                                ? 'User is enrolled in a course and assigned to a batch' 
+                                : 'User must be enrolled in a course and assigned to a batch before generating offer letter'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1758,7 +2093,7 @@ const Users = () => {
                         <h3 className="text-2xl font-bold text-white">Registration Details</h3>
                       </div>
                       
-                                             <div className="flex flex-wrap gap-4">
+                       <div className="flex flex-wrap gap-4">
                          <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-w-[200px] flex-1">
                            <p className="text-xs text-purple-300 uppercase tracking-wide mb-1">Account Status</p>
                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold capitalize ${getStatusColorClass(viewModal.user.approveStatus)}`}>
@@ -1786,36 +2121,52 @@ const Users = () => {
                           <p className="text-purple-100/80 text-base">Detailed payment breakdown for this user</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                        {/* Course Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-pink-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-pink-300 uppercase tracking-wider mb-2">Total Amount</span>
-                          <span className="text-3xl font-extrabold text-pink-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.courseAmount ? `₹${Number(viewModal.user.amount.courseAmount).toLocaleString()}` : 'N/A'}</span>
-                        </div>
-                        {/* Paid Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-blue-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Paid</span>
-                          <span className="text-3xl font-extrabold text-blue-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.paidAmount ? `₹${Number(viewModal.user.amount.paidAmount).toLocaleString()}` : 'N/A'}</span>
-                          {/* Progress Bar */}
-                          <div className="w-full mt-4">
-                            <div className="h-2 rounded-full bg-blue-900/30 overflow-hidden">
-                              <div
-                                className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-500"
-                                style={{ width: `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.courseAmount || 1))) * 100))}%` }}
-                              />
-                            </div>
-                            <div className="text-xs text-blue-200 mt-1 text-right">
-                              {viewModal.user?.amount?.courseAmount ? `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.courseAmount || 1))) * 100))}% Paid` : ''}
-                            </div>
+                      <div className="space-y-6 relative z-10">
+                        {/* First row - 3 fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Course Amount */}
+                          <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-pink-400/20 shadow-md">
+                            <span className="text-xs font-semibold text-pink-300 uppercase tracking-wider mb-2">Course Amount</span>
+                            <span className="text-xl font-extrabold text-pink-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.courseAmount ? `₹${Number(viewModal.user.amount.courseAmount).toLocaleString()}` : 'N/A'}</span>
+                          </div>
+                          {/* Discount */}
+                          <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-orange-400/20 shadow-md">
+                            <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider mb-2">Discount (%)</span>
+                            <span className="text-xl font-extrabold text-orange-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.discount ? `${Number(viewModal.user.amount.discount)}%` : 'N/A'}</span>
+                          </div>
+                          {/* Final Amount */}
+                          <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-green-400/20 shadow-md">
+                            <span className="text-xs font-semibold text-green-300 uppercase tracking-wider mb-2">Final Amount</span>
+                            <span className="text-xl font-extrabold text-green-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.finalAmount ? `₹${Number(viewModal.user.amount.finalAmount).toLocaleString()}` : 'N/A'}</span>
                           </div>
                         </div>
-                        {/* Balance Amount */}
-                        <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-6 border border-purple-400/20 shadow-md">
-                          <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Balance</span>
-                          <span className="text-3xl font-extrabold text-purple-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.balanceAmount !== undefined ? `₹${Number(viewModal.user.amount.balanceAmount).toLocaleString()}` : 'N/A'}</span>
-                          {Number(viewModal.user?.amount?.balanceAmount) === 0 && (
-                            <span className="mt-2 px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold animate-pulse">Fully Paid</span>
-                          )}
+                        {/* Second row - 2 fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Paid Amount */}
+                          <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-blue-400/20 shadow-md">
+                            <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Paid</span>
+                            <span className="text-xl font-extrabold text-blue-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.paidAmount ? `₹${Number(viewModal.user.amount.paidAmount).toLocaleString()}` : 'N/A'}</span>
+                            {/* Progress Bar */}
+                            <div className="w-full mt-2">
+                              <div className="h-1.5 rounded-full bg-blue-900/30 overflow-hidden">
+                                <div
+                                  className="h-1.5 rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-500"
+                                  style={{ width: `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}%` }}
+                                />
+                              </div>
+                              <div className="text-xs text-blue-200 mt-1 text-right">
+                                {viewModal.user?.amount?.finalAmount ? `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}% Paid` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Balance Amount */}
+                          <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-purple-400/20 shadow-md">
+                            <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Balance</span>
+                            <span className="text-xl font-extrabold text-purple-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.balanceAmount !== undefined ? `₹${Number(viewModal.user.amount.balanceAmount).toLocaleString()}` : 'N/A'}</span>
+                            {Number(viewModal.user?.amount?.balanceAmount) === 0 && (
+                              <span className="mt-2 px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold animate-pulse">Fully Paid</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1870,6 +2221,10 @@ const Users = () => {
                     <div>
                       <label className="block text-purple-200 mb-1">Phone</label>
                       <input type="tel" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" required />
+                    </div>
+                    <div>
+                      <label className="block text-purple-200 mb-1">Employee Address</label>
+                      <input type="text" value={editForm.employeeAddress} onChange={e => setEditForm(f => ({ ...f, employeeAddress: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
                     </div>
                     <div>
                       <label className="block text-purple-200 mb-1">Role</label>
@@ -2074,64 +2429,110 @@ const Users = () => {
                       <label className="block text-purple-200 mb-1">Stipend</label>
                       <input type="text" value={editForm.stipend} onChange={e => setEditForm(f => ({ ...f, stipend: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
                     </div>
+                    <div>
+                      <label className="block text-purple-200 mb-1">Reporting Date</label>
+                      <input type="date" value={editForm.reportingDate} onChange={e => setEditForm(f => ({ ...f, reportingDate: e.target.value }))} className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10" />
+                    </div>
                   </div>
                 </div>
                 {isAdmin && (
                   <div className="mb-4">
                     <h3 className="text-xl font-semibold text-purple-200 mb-2">Course Payment</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-purple-200 mb-1">Course Amount</label>
-                        <input
-                          type="number"
-                          name="courseAmount"
-                          value={editForm.amount?.courseAmount || ''}
-                          onChange={e => {
-                            const value = e.target.value;
-                            setEditForm(f => {
-                              const newAmount = {
-                                ...f.amount,
-                                courseAmount: value,
-                              };
-                              const course = Number(newAmount.courseAmount) || 0;
-                              const paid = Number(newAmount.paidAmount) || 0;
-                              newAmount.balanceAmount = course - paid;
-                              return { ...f, amount: newAmount };
-                            });
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        />
+                    <div className="space-y-4">
+                      {/* First row - 3 fields */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-purple-200 mb-1">Course Amount</label>
+                          <input
+                            type="number"
+                            name="courseAmount"
+                            value={editForm.amount?.courseAmount || ''}
+                            onChange={e => {
+                              const value = e.target.value;
+                              setEditForm(f => {
+                                const newAmount = {
+                                  ...f.amount,
+                                  courseAmount: value,
+                                };
+                                const course = Number(newAmount.courseAmount) || 0;
+                                const discount = Number(newAmount.discount) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
+                                newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                return { ...f, amount: newAmount };
+                              });
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-purple-200 mb-1">Discount (%)</label>
+                          <input
+                            type="number"
+                            name="discount"
+                            value={editForm.amount?.discount || ''}
+                            onChange={e => {
+                              const value = e.target.value;
+                              setEditForm(f => {
+                                const newAmount = {
+                                  ...f.amount,
+                                  discount: value,
+                                };
+                                const course = Number(newAmount.courseAmount) || 0;
+                                const discount = Number(newAmount.discount) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
+                                newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                return { ...f, amount: newAmount };
+                              });
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                            placeholder="0"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-purple-200 mb-1">Paid Amount</label>
+                          <input
+                            type="number"
+                            name="paidAmount"
+                            value={editForm.amount?.paidAmount || ''}
+                            onChange={e => {
+                              const value = e.target.value;
+                              setEditForm(f => {
+                                const newAmount = {
+                                  ...f.amount,
+                                  paidAmount: value,
+                                };
+                                const course = Number(newAmount.courseAmount) || 0;
+                                const discount = Number(newAmount.discount) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
+                                newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
+                                newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
+                                return { ...f, amount: newAmount };
+                              });
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                            placeholder="0"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-purple-200 mb-1">Paid Amount</label>
-                        <input
-                          type="number"
-                          name="paidAmount"
-                          value={editForm.amount?.paidAmount || ''}
-                          onChange={e => {
-                            const value = e.target.value;
-                            setEditForm(f => {
-                              const newAmount = {
-                                ...f.amount,
-                                paidAmount: value,
-                              };
-                              const course = Number(newAmount.courseAmount) || 0;
-                              const paid = Number(newAmount.paidAmount) || 0;
-                              newAmount.balanceAmount = course - paid;
-                              return { ...f, amount: newAmount };
-                            });
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-purple-200 mb-1">Balance Amount</label>
-                        <input
-                          type="number"
-                          value={editForm.amount?.balanceAmount || ''}
-                          readOnly
-                          className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed"
-                        />
+                      {/* Second row - 2 calculated fields */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-purple-200 mb-1">Final Amount (Calculated)</label>
+                          <div className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed">
+                            ₹{editForm.amount.finalAmount || 0}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-purple-200 mb-1">Balance Amount (Calculated)</label>
+                          <div className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10 bg-opacity-60 cursor-not-allowed">
+                            ₹{editForm.amount.balanceAmount || 0}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2170,6 +2571,215 @@ const Users = () => {
                   border-radius: 8px;
                 }
               `}</style>
+            </div>
+          </div>,
+          document.getElementById('modal-root')
+        )}
+        {generateModal.open && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="relative w-full max-w-2xl mx-auto bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
+              <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl" />
+              <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
+                onClick={() => setGenerateModal({ open: false, user: null, form: null, loading: false, error: null, offerLetterUrl: null })}>
+                <CloseIcon fontSize="large" />
+              </button>
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar font-sans">
+                <div className="text-2xl font-bold text-white mb-2">Generate Offer Letter</div>
+                <div className="mb-4 text-purple-200">Please fill all required fields. Only missing fields are shown below.</div>
+                {(() => {
+                  const missingFields = getMissingRequiredFieldDescriptors(generateModal.form || {});
+                  const hasCourseAndBatch = generateModal.form?.courseRegisteredFor && generateModal.form?.batchAssigned;
+                  
+                  if (!hasCourseAndBatch) {
+                    return (
+                      <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 rounded-xl">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </div>
+                          <span className="text-red-300 font-semibold">Course & Batch Required</span>
+                        </div>
+                        <p className="text-red-200 text-sm">
+                          This user must be enrolled in a course and assigned to a batch before an offer letter can be generated.
+                        </p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded-full ${generateModal.form?.courseRegisteredFor ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className="text-red-200 text-sm">
+                              Course: {generateModal.form?.courseRegisteredFor?.title || 'Not enrolled'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded-full ${generateModal.form?.batchAssigned ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className="text-red-200 text-sm">
+                              Batch: {generateModal.form?.batchAssigned?.batchName || 'Not assigned'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  if (missingFields.length === 0) {
+                    return (
+                      <div className="mb-6 p-4 bg-green-500/20 border border-green-400/30 rounded-xl">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-green-300 font-semibold">All Required Fields Completed!</span>
+                        </div>
+                        <p className="text-green-200 text-sm">
+                          This user's profile is complete and ready for offer letter generation.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-400/30 rounded-xl">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                        </div>
+                        <span className="text-yellow-300 font-semibold">Missing Required Fields</span>
+                      </div>
+                      <p className="text-yellow-200 text-sm mb-3">
+                        Please fill in the following required fields before generating the offer letter:
+                      </p>
+                      <div className="space-y-3">
+                        {missingFields.map((field) => (
+                          <div key={field.path} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <label className="block text-sm font-semibold text-white mb-2">{field.label}</label>
+                            {field.type === 'select' && (
+                              <select
+                                className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                                value={getValueByPath(generateModal.form || {}, field.path) || ''}
+                                onChange={e => handleGenerateFieldChangeByPath(field.path, e.target.value)}
+                              >
+                                <option value="">Select {field.label}</option>
+                                {(field.options || []).map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            )}
+                            {['text','email','tel','date','time','number'].includes(field.type) && (
+                              <input
+                                type={field.type}
+                                value={getValueByPath(generateModal.form || {}, field.path) || ''}
+                                onChange={e => handleGenerateFieldChangeByPath(field.path, e.target.value)}
+                                className="w-full py-2 px-3 rounded-xl bg-purple-900/40 text-white border border-white/10"
+                              />
+                            )}
+                            {field.type === 'days' && (
+                              <div className="flex flex-wrap gap-3">
+                                {['Monday','Tuesday','Wednesday','Thursday','Friday'].map((day) => (
+                                  <label key={day} className="flex items-center gap-2 text-purple-100">
+                                    <input
+                                      type="checkbox"
+                                      checked={(Array.isArray(getValueByPath(generateModal.form || {}, 'workingDays')) ? getValueByPath(generateModal.form || {}, 'workingDays') : []).includes(day)}
+                                      onChange={(e) => {
+                                        const current = Array.isArray(getValueByPath(generateModal.form || {}, 'workingDays')) ? [...getValueByPath(generateModal.form || {}, 'workingDays')] : [];
+                                        if (e.target.checked) current.push(day); else current.splice(current.indexOf(day), 1);
+                                        handleGenerateFieldChangeByPath('workingDays', Array.from(new Set(current)));
+                                      }}
+                                      className="form-checkbox text-pink-500"
+                                    />
+                                    {day}
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {generateModal.error && <div className="text-red-400 font-bold mb-4">{generateModal.error}</div>}
+                {generateModal.offerLetterUrl && (
+                  <div className="mb-4">
+                    <a href={generateModal.offerLetterUrl} target="_blank" rel="noopener noreferrer" className="text-green-300 underline font-bold hover:text-green-400 transition inline-flex items-center gap-2">
+                      Download Offer Letter
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    className="px-7 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                    onClick={handleGenerateOfferLetter}
+                    disabled={generateModal.loading || !isUserDataComplete(generateModal.form)}
+                  >
+                    {generateModal.loading ? 'Generating...' : 'Generate Offer Letter'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.getElementById('modal-root')
+        )}
+        {/* Regenerate Offer Letter Modal */}
+        {regenerateModal.open && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
+            <div className="relative w-full max-w-2xl mx-auto bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
+              <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl" />
+              <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
+                onClick={() => setRegenerateModal({ open: false, user: null, loading: false, error: null, offerLetterUrl: null })}>
+                <CloseIcon fontSize="large" />
+              </button>
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar font-sans">
+                <div className="text-2xl font-bold text-white mb-2">Offer Letter</div>
+                <div className="text-purple-200 mb-4">View the current offer letter or regenerate a new one.</div>
+
+                {regenerateModal.error && (
+                  <div className="text-red-400 font-bold mb-4">{regenerateModal.error}</div>
+                )}
+
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
+                  <div className="text-sm text-purple-300 mb-2">Current Offer Letter</div>
+                  {regenerateModal.offerLetterUrl ? (
+                    <a
+                      href={regenerateModal.offerLetterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-300 underline font-bold hover:text-blue-400 transition inline-flex items-center gap-2"
+                    >
+                      View Offer Letter
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <div className="text-purple-300">No offer letter found.</div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    className="px-6 py-3 rounded-lg bg-gradient-to-br from-gray-500 to-gray-600 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300"
+                    onClick={() => setRegenerateModal({ open: false, user: null, loading: false, error: null, offerLetterUrl: null })}
+                    disabled={regenerateModal.loading}
+                  >
+                    Close
+                  </button>
+                  <button
+                    className="px-6 py-3 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                    onClick={handleRegenerateOfferLetter}
+                    disabled={regenerateModal.loading}
+                  >
+                    {regenerateModal.loading ? 'Regenerating...' : 'Regenerate'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>,
           document.getElementById('modal-root')

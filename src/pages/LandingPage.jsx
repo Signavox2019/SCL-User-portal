@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import Layout from '../components/Layout';
 import SignavoxLogo from '../assets/snignavox_icon.png';
+import dashboardPreloader from '../services/DashboardPreloader';
 
 const steps = [
   {
@@ -92,6 +93,27 @@ const LandingPage = ({ onComplete }) => {
     // Hide scrollbars when LandingPage is mounted
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    
+    // Start pre-fetching dashboard data based on user role
+    const startPreloading = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+          if (user.role === 'admin') {
+            await dashboardPreloader.preloadAdminDashboard();
+          } else if (user.role === 'support') {
+            await dashboardPreloader.preloadSupportDashboard();
+          } else {
+            await dashboardPreloader.preloadUserDashboard();
+          }
+        }
+      } catch (error) {
+        console.error('Error preloading dashboard data:', error);
+      }
+    };
+    
+    startPreloading();
+    
     // Restore scrollbars when unmounted
     return () => {
       document.body.style.overflow = '';

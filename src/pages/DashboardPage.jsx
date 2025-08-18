@@ -3,6 +3,7 @@ import BaseUrl from '../Api';
 import { TrendingUp, School, Event, AssignmentTurnedIn, CheckCircle, HourglassEmpty, Cancel, EmojiEvents } from '@mui/icons-material';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import dashboardPreloader from '../services/DashboardPreloader';
 
 const pieColors = ['#a3e635', '#f472b6', '#818cf8'];
 
@@ -41,6 +42,16 @@ const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
+        // Check for preloaded data first
+        const cachedData = dashboardPreloader.getCachedData('userDashboard');
+        if (cachedData) {
+          console.log('🚀 Using preloaded user dashboard data');
+          setDashboard(cachedData);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback to API call if no cached data
         const token = localStorage.getItem('token');
         const res = await fetch(`${BaseUrl}/dashboard`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -55,10 +66,19 @@ const DashboardPage = () => {
       }
     };
     fetchDashboard();
+
+    // Cleanup function to clear cache when component unmounts
+    return () => {
+      dashboardPreloader.clearCacheEntry('userDashboard');
+    };
   }, []);
 
   // Loading & error states
-  if (loading) return <div className="flex justify-center items-center h-96"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div></div>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-96">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-400 font-bold py-10">{error}</div>;
   if (!dashboard) return null;
 

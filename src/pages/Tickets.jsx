@@ -56,7 +56,7 @@ const Tickets = () => {
     const [filter, setFilter] = useState({ status: '', priority: '' });
     const [viewModal, setViewModal] = useState({ open: false, ticket: null });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, ticket: null });
-    const [forwardModal, setForwardModal] = useState({ open: false, ticket: null, supportUserId: '' });
+    const [forwardModal, setForwardModal] = useState({ open: false, ticket: null, supportUserId: '', loading: false });
     const [updateModal, setUpdateModal] = useState({ open: false, ticket: null, status: '' });
     const [createModal, setCreateModal] = useState({ open: false, loading: false });
     const [supportMembers, setSupportMembers] = useState([]);
@@ -288,6 +288,7 @@ const Tickets = () => {
     const handleForwardTicket = async (e) => {
         e.preventDefault();
         try {
+            setForwardModal(prev => ({ ...prev, loading: true }));
             const token = validateToken();
             if (!token) return;
 
@@ -296,22 +297,23 @@ const Tickets = () => {
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
             showToast('Ticket forwarded successfully!', 'success');
-            setTimeout(() => {
-                setForwardModal({ open: false, ticket: null, supportUserId: '' });
-                setTickets(prev =>
-                    prev.map(t =>
-                        t._id === forwardModal.ticket._id
-                            ? { ...t, forwardedTo: supportMembers.find(s => s._id === forwardModal.supportUserId) }
-                            : t
-                    )
-                );
-            }, 500);
+            const selectedMember = supportMembers.find(s => s._id === forwardModal.supportUserId) || null;
+            // Optimistically update the table immediately without reloading
+            setTickets(prev =>
+                prev.map(t =>
+                    t._id === forwardModal.ticket._id
+                        ? { ...t, handledBy: selectedMember, forwardedTo: selectedMember }
+                        : t
+                )
+            );
+            setForwardModal({ open: false, ticket: null, supportUserId: '', loading: false });
         } catch (err) {
             if (err.response?.status === 401) {
                 showToast('Session expired. Please login again.', 'error');
             } else {
                 showToast(err.response?.data?.message || 'Failed to forward ticket', 'error');
             }
+            setForwardModal(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -672,54 +674,56 @@ const Tickets = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 w-full flex items-center justify-center  relative">
+                            <div className="flex-1 w-full relative">
                                 {barLoading ? (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 rounded-2xl">
                                         <CircularProgress size={48} style={{ color: '#a78bfa' }} />
                                     </div>
                                 ) : barStats ? (
-                                    <Bar
-                                        data={{
-                                            labels: ['Total', 'Pending', 'Open', 'Solved', 'Closed', 'Breached'],
-                                            datasets: [
-                                                {
-                                                    label: 'Tickets',
-                                                    data: [
-                                                        barStats.total || 0,
-                                                        barStats.pending || 0,
-                                                        barStats.open || 0,
-                                                        barStats.solved || 0,
-                                                        barStats.closed || 0,
-                                                        barStats.breached || 0,
-                                                    ],
-                                                    backgroundColor: [
-                                                        '#a78bfa', '#facc15', '#38bdf8', '#4ade80', '#a3a3a3', '#f87171',
-                                                    ],
-                                                    borderRadius: 8,
-                                                    borderWidth: 1,
+                                    <div className="w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[360px]">
+                                        <Bar
+                                            data={{
+                                                labels: ['Total', 'Pending', 'Open', 'Solved', 'Closed', 'Breached'],
+                                                datasets: [
+                                                    {
+                                                        label: 'Tickets',
+                                                        data: [
+                                                            barStats.total || 0,
+                                                            barStats.pending || 0,
+                                                            barStats.open || 0,
+                                                            barStats.solved || 0,
+                                                            barStats.closed || 0,
+                                                            barStats.breached || 0,
+                                                        ],
+                                                        backgroundColor: [
+                                                            '#a78bfa', '#facc15', '#38bdf8', '#4ade80', '#a3a3a3', '#f87171',
+                                                        ],
+                                                        borderRadius: 8,
+                                                        borderWidth: 1,
+                                                    },
+                                                ],
+                                            }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: { display: false },
+                                                    tooltip: { enabled: true },
                                                 },
-                                            ],
-                                        }}
-                                        options={{
-                                            responsive: true,
-                                            plugins: {
-                                                legend: { display: false },
-                                                tooltip: { enabled: true },
-                                            },
-                                            scales: {
-                                                x: {
-                                                    grid: { color: 'rgba(168,139,250,0.1)' },
-                                                    ticks: { color: '#c4b5fd', font: { size: 14 } },
+                                                scales: {
+                                                    x: {
+                                                        grid: { color: 'rgba(168,139,250,0.1)' },
+                                                        ticks: { color: '#c4b5fd', font: { size: 14 } },
+                                                    },
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        grid: { color: 'rgba(168,139,250,0.1)' },
+                                                        ticks: { color: '#c4b5fd', font: { size: 14 } },
+                                                    },
                                                 },
-                                                y: {
-                                                    beginAtZero: true,
-                                                    grid: { color: 'rgba(168,139,250,0.1)' },
-                                                    ticks: { color: '#c4b5fd', font: { size: 14 } },
-                                                },
-                                            },
-                                        }}
-                                        height={220}
-                                    />
+                                            }}
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="text-purple-200/80 text-center w-full">No data for this month.</div>
                                 )}
@@ -733,45 +737,47 @@ const Tickets = () => {
                                     <p className="text-purple-200/80 text-sm">Donut chart for all tickets</p>
                                 </div>
                             </div>
-                            <div className="flex-1 w-full flex items-center justify-center min-h-[220px] relative">
+                            <div className="flex-1 w-full min-h-[220px] relative">
                                 {donutLoading ? (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 rounded-2xl">
                                         <CircularProgress size={48} style={{ color: '#f472b6' }} />
                                     </div>
                                 ) : donutStats ? (
-                                    <Doughnut
-                                        data={{
-                                            labels: ['Pending', 'Open', 'Solved', 'Closed', 'Breached'],
-                                            datasets: [
-                                                {
-                                                    label: 'Tickets',
-                                                    data: [
-                                                        donutStats.pending || 0,
-                                                        donutStats.open || 0,
-                                                        donutStats.solved || 0,
-                                                        donutStats.closed || 0,
-                                                        donutStats.breached || 0,
-                                                    ],
-                                                    backgroundColor: [
-                                                        '#facc15', '#38bdf8', '#4ade80', '#a3a3a3', '#f87171',
-                                                    ],
-                                                    borderWidth: 2,
+                                    <div className="w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[360px]">
+                                        <Doughnut
+                                            data={{
+                                                labels: ['Pending', 'Open', 'Solved', 'Closed', 'Breached'],
+                                                datasets: [
+                                                    {
+                                                        label: 'Tickets',
+                                                        data: [
+                                                            donutStats.pending || 0,
+                                                            donutStats.open || 0,
+                                                            donutStats.solved || 0,
+                                                            donutStats.closed || 0,
+                                                            donutStats.breached || 0,
+                                                        ],
+                                                        backgroundColor: [
+                                                            '#facc15', '#38bdf8', '#4ade80', '#a3a3a3', '#f87171',
+                                                        ],
+                                                        borderWidth: 2,
+                                                    },
+                                                ],
+                                            }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'bottom',
+                                                        labels: { color: '#c4b5fd', font: { size: 14 } },
+                                                    },
+                                                    tooltip: { enabled: true },
                                                 },
-                                            ],
-                                        }}
-                                        options={{
-                                            responsive: true,
-                                            plugins: {
-                                                legend: {
-                                                    display: true,
-                                                    position: 'bottom',
-                                                    labels: { color: '#c4b5fd', font: { size: 14 } },
-                                                },
-                                                tooltip: { enabled: true },
-                                            },
-                                        }}
-                                        height={220}
-                                    />
+                                            }}
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="text-purple-200/80 text-center w-full">No data available.</div>
                                 )}
@@ -1291,7 +1297,7 @@ const Tickets = () => {
                                                         <p className="text-white font-semibold text-lg">
                                                             {viewModal.ticket.createdBy?.firstName || 'N/A'}
                                                         </p>
-                                                        <p className="text-purple-200 text-sm">
+                                                        <p className="text-purple-200 text-sm break-all whitespace-normal">
                                                             {viewModal.ticket.createdBy?.email || 'N/A'}
                                                         </p>
                                                     </div>
@@ -1316,7 +1322,7 @@ const Tickets = () => {
                                                         </div>
                                                         <div>
                                                             <p className="text-white font-semibold text-lg">{viewModal.ticket.handledBy.firstName}</p>
-                                                            <p className="text-purple-200 text-sm">{viewModal.ticket.handledBy.email}</p>
+                                                            <p className="text-purple-200 text-sm break-all whitespace-normal">{viewModal.ticket.handledBy.email}</p>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -1350,7 +1356,7 @@ const Tickets = () => {
                                                         </div>
                                                         <div>
                                                             <p className="text-white font-semibold text-lg">{viewModal.ticket.forwardedTo.firstName}</p>
-                                                            <p className="text-purple-200 text-sm">{viewModal.ticket.forwardedTo.email}</p>
+                                                            <p className="text-purple-200 text-sm break-all whitespace-normal">{viewModal.ticket.forwardedTo.email}</p>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -1433,7 +1439,7 @@ const Tickets = () => {
                     <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
                         <div className="relative w-full max-w-md mx-auto min-w-[320px] bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-pink-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
                             <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-3xl mb-2" />
-                            <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => setForwardModal({ open: false, ticket: null, supportUserId: '' })}><CloseIcon fontSize="large" /></button>
+                            <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => setForwardModal({ open: false, ticket: null, supportUserId: '', loading: false })}><CloseIcon fontSize="large" /></button>
                             <form className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar" onSubmit={handleForwardTicket}>
                                 <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-glow">Forward Ticket</h2>
                                 <div className="space-y-4">
@@ -1442,6 +1448,27 @@ const Tickets = () => {
                                         <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-800/30">
                                             <p className="text-white font-semibold">{forwardModal.ticket?.title}</p>
                                             <p className="text-purple-200 text-sm">{forwardModal.ticket?.ticketId}</p>
+                                        </div>
+                                    </div>
+                                    {/* Raised by and Handled by details */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-800/30">
+                                            <p className="text-purple-200 text-xs font-semibold mb-1">Raised By</p>
+                                            <p className="text-white text-sm font-medium">
+                                                {typeof forwardModal.ticket?.createdBy === 'object' ? (forwardModal.ticket?.createdBy?.firstName || '-') : '-'}
+                                            </p>
+                                            <p className="text-purple-300 text-xs break-all whitespace-normal">{typeof forwardModal.ticket?.createdBy === 'object' ? (forwardModal.ticket?.createdBy?.email || '-') : '-'}</p>
+                                        </div>
+                                        <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-800/30">
+                                            <p className="text-purple-200 text-xs font-semibold mb-1">Handled By</p>
+                                            {forwardModal.ticket?.handledBy ? (
+                                                <>
+                                                    <p className="text-white text-sm font-medium">{forwardModal.ticket?.handledBy?.firstName || '-'}</p>
+                                                    <p className="text-purple-300 text-xs break-all whitespace-normal">{forwardModal.ticket?.handledBy?.email || '-'}</p>
+                                                </>
+                                            ) : (
+                                                <p className="text-purple-300 text-xs">Unassigned</p>
+                                            )}
                                         </div>
                                     </div>
                                     <div>
@@ -1463,7 +1490,16 @@ const Tickets = () => {
                                 </div>
                                 <div className="mt-6 flex justify-end gap-3">
                                     <button type="button" className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300" onClick={() => setForwardModal({ open: false, ticket: null, supportUserId: '' })}>Cancel</button>
-                                    <button type="submit" className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300">Forward Ticket</button>
+                                    <button type="submit" className="px-7 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 justify-center" disabled={forwardModal.loading}>
+                                        {forwardModal.loading ? (
+                                            <>
+                                                <CircularProgress size={18} style={{ color: 'white' }} />
+                                                Forwarding...
+                                            </>
+                                        ) : (
+                                            <>Forward Ticket</>
+                                        )}
+                                    </button>
                                 </div>
                             </form>
                         </div>

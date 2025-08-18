@@ -79,7 +79,19 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             ) : (
               <ProtectedRoute>
                 <DashboardLayout>
-                  <DashboardPage />
+                  {(() => {
+                    try {
+                      const user = JSON.parse(localStorage.getItem('user'));
+                      if (user && (user.role === 'admin' || user.role === 'support')) {
+                        return <AdminDashboardPage />;
+                      } else {
+                        return <DashboardPage />;
+                      }
+                    } catch (error) {
+                      console.error('Error parsing user data in root route:', error);
+                      return <DashboardPage />;
+                    }
+                  })()}
                 </DashboardLayout>
               </ProtectedRoute>
             )

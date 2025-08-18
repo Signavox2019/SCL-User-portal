@@ -7,6 +7,7 @@ import BaseUrl from '../Api.jsx';
 import SignavoxLogo from '../assets/snignavox_icon.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import dashboardPreloader from '../services/DashboardPreloader';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -59,6 +60,22 @@ const Login = ({ onLoginSuccess }) => {
           } catch (userErr) {
             console.error('Failed to fetch user data after login:', userErr);
           }
+        }
+        
+        // Start preloading dashboard data immediately after successful login
+        try {
+          const user = data.user || JSON.parse(localStorage.getItem('user'));
+          if (user) {
+            if (user.role === 'admin') {
+              dashboardPreloader.preloadAdminDashboard();
+            } else if (user.role === 'support') {
+              dashboardPreloader.preloadSupportDashboard();
+            } else {
+              dashboardPreloader.preloadUserDashboard();
+            }
+          }
+        } catch (preloadErr) {
+          console.error('Failed to start preloading dashboard data:', preloadErr);
         }
       } else {
         toastMsg = data.message || 'Login failed.';

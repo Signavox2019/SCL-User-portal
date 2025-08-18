@@ -37,6 +37,21 @@ const ProtectedRoute = ({ children }) => {
     return !!(token && user);
   });
 
+  // Function to clear user data and redirect to login
+  const clearUserDataAndRedirect = (reason = 'Token validation failed') => {
+    console.log(`Redirecting to login: ${reason}`);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsValid(false);
+    setUser(null);
+    setToken(null);
+    setHasValidated(false);
+    if (!redirectedRef.current) {
+      redirectedRef.current = true;
+      navigate('/login', { replace: true });
+    }
+  };
+
   useEffect(() => {
     redirectedRef.current = false; // Reset on pathname change
   }, [location.pathname]);
@@ -47,6 +62,13 @@ const ProtectedRoute = ({ children }) => {
       setToken(currentToken);
 
       if (redirectedRef.current) return;
+
+      // If no token and trying to access protected route, redirect to login
+      if (!currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        clearUserDataAndRedirect('No token found');
+        setLoading(false);
+        return;
+      }
 
       // If we already have valid data and are on a protected route, just set loading to false
       if (hasValidated && user && !PUBLIC_PATHS.includes(location.pathname)) {
@@ -85,6 +107,8 @@ const ProtectedRoute = ({ children }) => {
           setLoading(false);
           return;
         }
+        
+        // Validate token with server
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -93,8 +117,20 @@ const ProtectedRoute = ({ children }) => {
               'Authorization': `Bearer ${currentToken}`,
             },
           });
+          
+          if (!res.ok) {
+            // Handle HTTP errors (4xx, 5xx)
+            if (res.status === 401 || res.status === 403) {
+              clearUserDataAndRedirect('Token expired or invalid');
+            } else {
+              clearUserDataAndRedirect(`Server error: ${res.status}`);
+            }
+            setLoading(false);
+            return;
+          }
+
           const data = await res.json();
-          if (res.ok && data.valid) {
+          if (data.valid && data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
@@ -112,29 +148,18 @@ const ProtectedRoute = ({ children }) => {
             setLoading(false);
             return;
           } else {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setIsValid(false);
+            // Token is not valid according to server
+            clearUserDataAndRedirect('Token validation failed');
             setLoading(false);
             return;
           }
         } catch (err) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsValid(false);
+          console.error('Token validation error:', err);
+          // Network error or other issues - clear data and redirect
+          clearUserDataAndRedirect('Network error during validation');
           setLoading(false);
           return;
         }
-      }
-
-      // If no token and trying to access protected route, redirect to login
-      if (!currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
-        redirectedRef.current = true;
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login', { replace: true });
-        setLoading(false);
-        return;
       }
 
       // If token exists and on protected route, validate it
@@ -174,6 +199,8 @@ const ProtectedRoute = ({ children }) => {
           setLoading(false);
           return;
         }
+        
+        // Validate token with server
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -182,8 +209,20 @@ const ProtectedRoute = ({ children }) => {
               'Authorization': `Bearer ${currentToken}`,
             },
           });
+          
+          if (!res.ok) {
+            // Handle HTTP errors (4xx, 5xx)
+            if (res.status === 401 || res.status === 403) {
+              clearUserDataAndRedirect('Token expired or invalid');
+            } else {
+              clearUserDataAndRedirect(`Server error: ${res.status}`);
+            }
+            setLoading(false);
+            return;
+          }
+
           const data = await res.json();
-          if (res.ok && data.valid) {
+          if (data.valid && data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             setHasValidated(true);
@@ -205,18 +244,17 @@ const ProtectedRoute = ({ children }) => {
             }
             setIsValid(true);
           } else {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setIsValid(false);
-            redirectedRef.current = true;
-            navigate('/login', { replace: true });
+            // Token is not valid according to server
+            clearUserDataAndRedirect('Token validation failed');
+            setLoading(false);
+            return;
           }
         } catch (err) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsValid(false);
-          redirectedRef.current = true;
-          navigate('/login', { replace: true });
+          console.error('Token validation error:', err);
+          // Network error or other issues - clear data and redirect
+          clearUserDataAndRedirect('Network error during validation');
+          setLoading(false);
+          return;
         }
       } else if (!currentToken && PUBLIC_PATHS.includes(location.pathname)) {
         setIsValid(true);
