@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
+import './services/http';
 import Layout from './components/Layout';
 import RegistrationPage from './pages/RegistrationPage.jsx';
 import Login from './pages/Login.jsx';

@@ -70,11 +70,7 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      // If we already have valid data and are on a protected route, just set loading to false
-      if (hasValidated && user && !PUBLIC_PATHS.includes(location.pathname)) {
-        setLoading(false);
-        return;
-      }
+      // Always validate with server when token exists to ensure freshness
 
       // If on a public path and has valid token, redirect to correct dashboard
       if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
@@ -92,23 +88,7 @@ const ProtectedRoute = ({ children }) => {
           }
         }
 
-        if (hasValidated && currentUser) {
-          if ((currentUser.role === 'admin' || currentUser.role === 'support') && location.pathname !== '/admin-dashboard') {
-            redirectedRef.current = true;
-            navigate('/admin-dashboard', { replace: true });
-            setLoading(false);
-            return;
-          } else if (currentUser.role !== 'admin' && currentUser.role !== 'support' && location.pathname !== '/dashboard') {
-            redirectedRef.current = true;
-            navigate('/dashboard', { replace: true });
-            setLoading(false);
-            return;
-          }
-          setLoading(false);
-          return;
-        }
-        
-        // Validate token with server
+        // Validate token with server (always)
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
@@ -162,45 +142,10 @@ const ProtectedRoute = ({ children }) => {
         }
       }
 
-      // If token exists and on protected route, validate it
+      // If token exists and on protected route, validate it (always)
       if (currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
-        // First check if we have user data in localStorage
-        let currentUser = user;
-        if (!currentUser) {
-          try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-              currentUser = JSON.parse(storedUser);
-              setUser(currentUser);
-            }
-          } catch (err) {
-            console.error('Error parsing stored user:', err);
-          }
-        }
-
-        if (hasValidated && currentUser) {
-          // Only allow admin/support on /admin-dashboard
-          if (location.pathname === '/admin-dashboard' && currentUser.role !== 'admin' && currentUser.role !== 'support') {
-            redirectedRef.current = true;
-            navigate('/dashboard', { replace: true });
-            setIsValid(false);
-            setLoading(false);
-            return;
-          }
-          // Only allow non-admin/support on /dashboard
-          if (location.pathname === '/dashboard' && (currentUser.role === 'admin' || currentUser.role === 'support')) {
-            redirectedRef.current = true;
-            navigate('/admin-dashboard', { replace: true });
-            setIsValid(false);
-            setLoading(false);
-            return;
-          }
-          setIsValid(true);
-          setLoading(false);
-          return;
-        }
         
-        // Validate token with server
+        // Validate token with server (always)
         try {
           const res = await fetch(`${BaseUrl}/auth/validate`, {
             method: 'GET',
