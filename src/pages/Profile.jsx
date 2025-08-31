@@ -737,7 +737,7 @@ const Profile = () => {
               </div>
             </div>
             <div className="space-y-4">
-              {renderFormField('Course Amount', 'amount.courseAmount', 'text', '', true, <PaymentIcon />)}
+              {renderFormField('Course Amount', 'amount.finalAmount', 'text', '', true, <PaymentIcon />)}
               {renderFormField('Paid Amount', 'amount.paidAmount', 'text', '', true, <PaymentIcon />)}
               {renderFormField('Balance Amount', 'amount.balanceAmount', 'text', '', true, <PaymentIcon />)}
             </div>

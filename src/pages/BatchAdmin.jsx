@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
-import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart } from '@mui/icons-material';
+import { TrendingUp, Group, School, Person, CalendarToday, Quiz, Add, Search, Visibility, Edit, Delete, BarChart, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 import { motion } from 'framer-motion';
 import BaseUrl from '../Api';
@@ -172,8 +172,9 @@ const BatchAdmin = () => {
     const paginatedBatches = filteredBatches.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     // Fetch all batches (new API structure)
-    const fetchBatches = async () => {
-        setLoading(true);
+    const fetchBatches = async (options = {}) => {
+        const silent = options === true || options.silent === true;
+        if (!silent) setLoading(true);
         setError('');
         try {
             const token = getToken();
@@ -184,7 +185,7 @@ const BatchAdmin = () => {
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'Failed to fetch batches');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -340,12 +341,17 @@ const BatchAdmin = () => {
                 startDate: form.startDate,
                 endDate: form.endDate,
             };
-            await axios.post(`${BaseUrl}/batches/`, payload, {
+            const createRes = await axios.post(`${BaseUrl}/batches/`, payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             toast.success('Batch created successfully!');
             setModalOpen(false);
-            fetchBatches();
+            if (createRes?.data?.batch) {
+                const hydrated = hydrateBatch(createRes.data.batch);
+                setBatches(prev => [hydrated, ...prev]);
+            } else {
+                fetchBatches({ silent: true });
+            }
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to create batch');
         } finally {
@@ -372,7 +378,12 @@ const BatchAdmin = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             Swal.fire('Deleted!', 'Batch has been deleted.', 'success');
-            fetchBatches();
+            setBatches(prev => prev.filter(b => (b._id || b.id || b.batchId) !== batchId));
+            setBatchCertificateStats(prev => {
+                const copy = { ...prev };
+                delete copy[batchId];
+                return copy;
+            });
         } catch (err) {
             Swal.fire('Error', err.response?.data?.message || 'Failed to delete batch', 'error');
         } finally {
@@ -459,6 +470,21 @@ const BatchAdmin = () => {
     const [editBatchId, setEditBatchId] = useState(null);
     const [editUserBreakdown, setEditUserBreakdown] = useState({ assigned: [], available: [] });
     const [editSelectedCourseDetails, setEditSelectedCourseDetails] = useState(null);
+
+    // Hydrate a batch object with full course and professor objects for UI rendering
+    const hydrateBatch = useCallback((rawBatch) => {
+        if (!rawBatch) return rawBatch;
+        const hydrated = { ...rawBatch };
+        // Course
+        const courseId = (typeof hydrated.course === 'object' && hydrated.course?._id) ? hydrated.course._id : hydrated.course;
+        const fullCourse = courses.find(c => c._id === courseId);
+        if (fullCourse) hydrated.course = fullCourse;
+        // Professor
+        const professorId = (typeof hydrated.professor === 'object' && hydrated.professor?._id) ? hydrated.professor._id : hydrated.professor;
+        const fullProfessor = professors.find(p => p._id === professorId);
+        if (fullProfessor) hydrated.professor = fullProfessor;
+        return hydrated;
+    }, [courses, professors]);
 
     // Open edit modal and fetch batch details and user breakdown
     const openEditModal = useCallback(async (batchId, courseId) => {
@@ -576,12 +602,26 @@ const BatchAdmin = () => {
                 completedTopics,
                 markAsCompleted: Boolean(editForm.markAsCompleted),
             };
-            await axios.put(`${BaseUrl}/batches/${editBatchId}`, payload, {
+            const updateRes = await axios.put(`${BaseUrl}/batches/${editBatchId}`, payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             toast.success('Batch updated successfully!');
             setEditModalOpen(false);
-            fetchBatches();
+            try {
+                // Always fetch fresh updated batch to ensure nested objects are complete
+                const fresh = await axios.get(`${BaseUrl}/batches/${editBatchId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const updated = hydrateBatch(fresh?.data?.batch || updateRes?.data?.batch);
+                if (updated) {
+                    setBatches(prev => prev.map(b => ((b._id || b.id || b.batchId) === (updated._id || updated.id || updated.batchId)) ? updated : b));
+                } else {
+                    fetchBatches({ silent: true });
+                }
+            } catch (_) {
+                // If fetching fresh fails, fallback to silent refetch
+                fetchBatches({ silent: true });
+            }
             fetchBatchCertStats(); // <-- Add this line to refresh certificate stats
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to update batch');
@@ -625,13 +665,7 @@ const BatchAdmin = () => {
                 <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => setModalOpen(false)}>
                     <CloseIcon className="text-lg font-bold" />
                 </button>
-                {modalLoading ? (
-                    <div className="flex flex-col items-center justify-center h-96">
-                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-400 mb-4"></div>
-                        <div className="text-lg text-purple-200 font-bold">Saving batch details...</div>
-                    </div>
-                ) : (
-                    <form onSubmit={handleCreate} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
+                <form onSubmit={handleCreate} className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
                         <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-glow text-center">{'Create Batch'}</h2>
                         <div className="space-y-4">
                             {/* Validation errors */}
@@ -824,7 +858,6 @@ const BatchAdmin = () => {
                             </button>
                         </div>
                     </form>
-                )}
             </div>
             <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1380,18 +1413,39 @@ const BatchAdmin = () => {
                                             ? 'Showing 0 of 0'
                                             : `Showing ${(currentPage - 1) * rowsPerPage + 1}–${Math.min(currentPage * rowsPerPage, filteredBatches.length)} of ${filteredBatches.length}`}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <label htmlFor="rowsPerPage" className="text-purple-200 text-sm">Rows per page:</label>
-                                        <select
-                                            id="rowsPerPage"
-                                            value={rowsPerPage}
-                                            onChange={e => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                                            className="rounded bg-[#1a1536]/80 text-white border border-[#312e81]/40 px-2 py-1"
-                                        >
-                                            {[5, 10, 20, 50].map(n => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
-                                        </select>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <label htmlFor="rowsPerPage" className="text-purple-200 text-sm">Rows per page:</label>
+                                            <select
+                                                id="rowsPerPage"
+                                                value={rowsPerPage}
+                                                onChange={e => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                                className="rounded bg-[#1a1536]/80 text-white border border-[#312e81]/40 px-2 py-1"
+                                            >
+                                                {[5, 10, 20, 50].map(n => (
+                                                    <option key={n} value={n}>{n}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                title="Previous page"
+                                            >
+                                                <ChevronLeft fontSize="small" />
+                                            </button>
+                                            <span className="text-purple-200/80 text-sm">{currentPage} / {Math.max(1, Math.ceil(filteredBatches.length / rowsPerPage))}</span>
+                                            <button
+                                                className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                                                onClick={() => setCurrentPage(p => Math.min(Math.max(1, Math.ceil(filteredBatches.length / rowsPerPage)), p + 1))}
+                                                disabled={currentPage === Math.max(1, Math.ceil(filteredBatches.length / rowsPerPage))}
+                                                title="Next page"
+                                            >
+                                                <ChevronRight fontSize="small" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -1399,7 +1453,7 @@ const BatchAdmin = () => {
                     </tfoot>
                 </table>
                 {/* Pagination Controls */}
-                {totalPages > 1 && (
+                {/* {totalPages > 1 && (
                     <div className="flex justify-center items-center gap-2 py-6">
                         <button
                             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -1425,7 +1479,7 @@ const BatchAdmin = () => {
                             Next
                         </button>
                     </div>
-                )}
+                )} */}
             </div>
 
             {/* View Modal (portal) */}

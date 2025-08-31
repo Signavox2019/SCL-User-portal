@@ -1,44 +1,102 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import BaseUrl from '../Api.jsx';
 
+/**
+ * ProtectedRoute Component - Optimized Authentication Guard
+ * 
+ * This component has been optimized to prevent multiple API calls to auth/validate endpoint:
+ * 
+ * 1. **Global Validation Cache**: Uses a module-level cache to store validation results
+ *    - Cache duration: 5 minutes
+ *    - Prevents duplicate API calls for the same token
+ *    - Handles concurrent validation requests
+ * 
+ * 2. **Reduced useEffect Dependencies**: Only depends on location.pathname to prevent
+ *    unnecessary re-renders and API calls
+ * 
+ * 3. **Memoized Functions**: Uses useCallback for validateToken and clearUserDataAndRedirect
+ *    to prevent function recreation on every render
+ * 
+ * 4. **Optimized Initial State**: Uses useMemo to compute initial state once
+ * 
+ * 5. **Cache Clearing**: Provides clearValidationCache() function that can be called
+ *    from other components (e.g., on logout)
+ * 
+ * Usage:
+ * - Wrap protected routes with <ProtectedRoute> component
+ * - Call clearValidationCache() when logging out
+ * - Cache automatically expires after 5 minutes
+ */
+
 const PUBLIC_PATHS = ['/', '/login', '/forgotpassword'];
 const ADMIN_PATHS = ['/admin-dashboard'];
+
+// Global validation cache to prevent multiple API calls
+let validationCache = {
+  token: null,
+  isValid: false,
+  user: null,
+  timestamp: 0,
+  isPending: false
+};
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
+
+// Debug counter for API calls
+let apiCallCount = 0;
+let cacheHitCount = 0;
+
+// Utility function to clear validation cache (can be called from other components)
+export const clearValidationCache = () => {
+  validationCache = {
+    token: null,
+    isValid: false,
+    user: null,
+    timestamp: 0,
+    isPending: false
+  };
+  // Reset debug counters
+  apiCallCount = 0;
+  cacheHitCount = 0;
+  console.log('Validation cache cleared');
+};
+
+// Debug function to get cache statistics
+export const getValidationCacheStats = () => {
+  return {
+    apiCalls: apiCallCount,
+    cacheHits: cacheHitCount,
+    cacheHitRate: apiCallCount > 0 ? (cacheHitCount / apiCallCount * 100).toFixed(2) + '%' : '0%'
+  };
+};
 
 const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectedRef = useRef(false); // Prevent multiple redirects
-  const [loading, setLoading] = useState(() => {
-    // If we have both token and user data, don't show loading initially
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    return !(token && user);
-  });
-  const [isValid, setIsValid] = useState(() => {
-    // If we have both token and user data, consider it valid immediately
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    return !!(token && user);
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [user, setUser] = useState(() => {
+  
+  // Memoize initial state to prevent unnecessary re-renders
+  const initialToken = useMemo(() => localStorage.getItem('token'), []);
+  const initialUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('user'));
     } catch {
       return null;
     }
-  });
-  const [hasValidated, setHasValidated] = useState(() => {
-    // If we have both token and user data, consider it already validated
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    return !!(token && user);
-  });
+  }, []);
+  const hasInitialData = useMemo(() => !!(initialToken && initialUser), [initialToken, initialUser]);
+  
+  const [loading, setLoading] = useState(!hasInitialData);
+  const [isValid, setIsValid] = useState(hasInitialData);
+  const [token, setToken] = useState(initialToken);
+  const [user, setUser] = useState(initialUser);
+  const [hasValidated, setHasValidated] = useState(hasInitialData);
 
   // Function to clear user data and redirect to login
-  const clearUserDataAndRedirect = (reason = 'Token validation failed') => {
+  const clearUserDataAndRedirect = useCallback((reason = 'Token validation failed') => {
     console.log(`Redirecting to login: ${reason}`);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -46,11 +104,116 @@ const ProtectedRoute = ({ children }) => {
     setUser(null);
     setToken(null);
     setHasValidated(false);
+    // Clear validation cache
+    validationCache = {
+      token: null,
+      isValid: false,
+      user: null,
+      timestamp: 0,
+      isPending: false
+    };
     if (!redirectedRef.current) {
       redirectedRef.current = true;
       navigate('/login', { replace: true });
     }
-  };
+  }, [navigate]);
+
+  // Function to validate token with caching
+  const validateToken = useCallback(async (currentToken) => {
+    // Check if we have a valid cached result
+    const now = Date.now();
+    if (
+      validationCache.token === currentToken &&
+      validationCache.timestamp > now - CACHE_DURATION &&
+      !validationCache.isPending
+    ) {
+      cacheHitCount++;
+      console.log(`Using cached validation result (Cache hits: ${cacheHitCount})`);
+      return {
+        valid: validationCache.isValid,
+        user: validationCache.user
+      };
+    }
+
+    // If there's already a pending validation for the same token, wait for it
+    if (validationCache.token === currentToken && validationCache.isPending) {
+      console.log('Waiting for pending validation');
+      // Wait for the pending validation to complete
+      while (validationCache.isPending) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return {
+        valid: validationCache.isValid,
+        user: validationCache.user
+      };
+    }
+
+    // Set pending state
+    validationCache.isPending = true;
+    validationCache.token = currentToken;
+
+    try {
+      apiCallCount++;
+      console.log(`Validating token with server (API call #${apiCallCount})`);
+      const res = await fetch(`${BaseUrl}/auth/validate`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
+        },
+      });
+      
+      if (!res.ok) {
+        // Handle HTTP errors (4xx, 5xx)
+        if (res.status === 401 || res.status === 403) {
+          validationCache = {
+            token: currentToken,
+            isValid: false,
+            user: null,
+            timestamp: now,
+            isPending: false
+          };
+          return { valid: false, user: null };
+        } else {
+          // For non-auth server errors, do not clear local data
+          console.warn('Non-auth server error during validation:', res.status);
+          validationCache = {
+            token: currentToken,
+            isValid: true,
+            user: user,
+            timestamp: now,
+            isPending: false
+          };
+          return { valid: true, user: user };
+        }
+      }
+
+      const data = await res.json();
+      const isValid = data.valid && data.user;
+      
+      // Cache the result
+      validationCache = {
+        token: currentToken,
+        isValid: isValid,
+        user: isValid ? data.user : null,
+        timestamp: now,
+        isPending: false
+      };
+
+      return { valid: isValid, user: data.user };
+    } catch (err) {
+      console.error('Token validation error:', err);
+      // Network error or other issues - treat as valid and cache the result
+      validationCache = {
+        token: currentToken,
+        isValid: true,
+        user: user,
+        timestamp: now,
+        isPending: false
+      };
+      return { valid: true, user: user };
+    }
+  }, [user]);
 
   useEffect(() => {
     redirectedRef.current = false; // Reset on pathname change
@@ -70,8 +233,6 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      // Always validate with server when token exists to ensure freshness
-
       // If on a public path and has valid token, redirect to correct dashboard
       if (PUBLIC_PATHS.includes(location.pathname) && currentToken) {
         // First check if we have user data in localStorage
@@ -88,170 +249,77 @@ const ProtectedRoute = ({ children }) => {
           }
         }
 
-        // Validate token with server (always)
-        try {
-          const res = await fetch(`${BaseUrl}/auth/validate`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${currentToken}`,
-            },
-          });
-          
-          if (!res.ok) {
-            // Handle HTTP errors (4xx, 5xx)
-            if (res.status === 401 || res.status === 403) {
-              clearUserDataAndRedirect('Token expired or invalid');
-            } else {
-              // For non-auth server errors, do not clear local data.
-              console.warn('Non-auth server error during validation:', res.status);
-              // If on a public path, still redirect to the best guess dashboard using stored user
-              let redirectUser = currentUser;
-              if (!redirectUser) {
-                try {
-                  const storedUser = localStorage.getItem('user');
-                  if (storedUser) redirectUser = JSON.parse(storedUser);
-                } catch (_) {}
-              }
-              if (redirectUser) {
-                redirectedRef.current = true;
-                if (redirectUser.role === 'admin' && location.pathname !== '/admin-dashboard') {
-                  navigate('/admin-dashboard', { replace: true });
-                } else if (redirectUser.role === 'support' && location.pathname !== '/support-dashboard') {
-                  navigate('/support-dashboard', { replace: true });
-                } else if (redirectUser.role !== 'admin' && redirectUser.role !== 'support' && location.pathname !== '/dashboard') {
-                  navigate('/dashboard', { replace: true });
-                }
-              }
-              setIsValid(true);
-            }
+        // Validate token with server (with caching)
+        const validation = await validateToken(currentToken);
+        
+        if (validation.valid && validation.user) {
+          localStorage.setItem('user', JSON.stringify(validation.user));
+          setUser(validation.user);
+          setHasValidated(true);
+          if (validation.user.role === 'admin' && location.pathname !== '/admin-dashboard') {
+            redirectedRef.current = true;
+            navigate('/admin-dashboard', { replace: true });
+            setLoading(false);
+            return;
+          } else if (validation.user.role === 'support' && location.pathname !== '/support-dashboard') {
+            redirectedRef.current = true;
+            navigate('/support-dashboard', { replace: true });
+            setLoading(false);
+            return;
+          } else if (validation.user.role !== 'admin' && validation.user.role !== 'support' && location.pathname !== '/dashboard') {
+            redirectedRef.current = true;
+            navigate('/dashboard', { replace: true });
             setLoading(false);
             return;
           }
-
-          const data = await res.json();
-          if (data.valid && data.user) {
-            localStorage.setItem('user', JSON.stringify(data.user));
-            setUser(data.user);
-            setHasValidated(true);
-            if (data.user.role === 'admin' && location.pathname !== '/admin-dashboard') {
-              redirectedRef.current = true;
-              navigate('/admin-dashboard', { replace: true });
-              setLoading(false);
-              return;
-            } else if (data.user.role === 'support' && location.pathname !== '/support-dashboard') {
-              redirectedRef.current = true;
-              navigate('/support-dashboard', { replace: true });
-              setLoading(false);
-              return;
-            } else if (data.user.role !== 'admin' && data.user.role !== 'support' && location.pathname !== '/dashboard') {
-              redirectedRef.current = true;
-              navigate('/dashboard', { replace: true });
-              setLoading(false);
-              return;
-            }
-            setLoading(false);
-            return;
-          } else {
-            // Token is not valid according to server
-            clearUserDataAndRedirect('Token validation failed');
-            setLoading(false);
-            return;
-          }
-        } catch (err) {
-          console.error('Token validation error:', err);
-          // Network error or other issues - treat as valid and best-effort redirect if on public path
-          try {
-            let redirectUser = currentUser;
-            if (!redirectUser) {
-              const storedUser = localStorage.getItem('user');
-              if (storedUser) redirectUser = JSON.parse(storedUser);
-            }
-            if (redirectUser) {
-              redirectedRef.current = true;
-              if (redirectUser.role === 'admin' && location.pathname !== '/admin-dashboard') {
-                navigate('/admin-dashboard', { replace: true });
-              } else if (redirectUser.role === 'support' && location.pathname !== '/support-dashboard') {
-                navigate('/support-dashboard', { replace: true });
-              } else if (redirectUser.role !== 'admin' && redirectUser.role !== 'support' && location.pathname !== '/dashboard') {
-                navigate('/dashboard', { replace: true });
-              }
-            }
-          } catch (_) {}
-          setIsValid(true);
+          setLoading(false);
+          return;
+        } else {
+          // Token is not valid according to server
+          clearUserDataAndRedirect('Token validation failed');
           setLoading(false);
           return;
         }
       }
 
-      // If token exists and on protected route, validate it (always)
+      // If token exists and on protected route, validate it (with caching)
       if (currentToken && !PUBLIC_PATHS.includes(location.pathname)) {
+        const validation = await validateToken(currentToken);
         
-        // Validate token with server (always)
-        try {
-          const res = await fetch(`${BaseUrl}/auth/validate`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${currentToken}`,
-            },
-          });
-          
-          if (!res.ok) {
-            // Handle HTTP errors (4xx, 5xx)
-            if (res.status === 401 || res.status === 403) {
-              clearUserDataAndRedirect('Token expired or invalid');
-            } else {
-              // For non-auth server errors, allow access without clearing
-              console.warn('Non-auth server error during validation on protected route:', res.status);
-              setIsValid(true);
-            }
+        if (validation.valid && validation.user) {
+          localStorage.setItem('user', JSON.stringify(validation.user));
+          setUser(validation.user);
+          setHasValidated(true);
+          // Only allow admin on /admin-dashboard
+          if (location.pathname === '/admin-dashboard' && validation.user.role !== 'admin') {
+            redirectedRef.current = true;
+            navigate('/dashboard', { replace: true });
+            setIsValid(false);
             setLoading(false);
             return;
           }
-
-          const data = await res.json();
-          if (data.valid && data.user) {
-            localStorage.setItem('user', JSON.stringify(data.user));
-            setUser(data.user);
-            setHasValidated(true);
-            // Only allow admin on /admin-dashboard
-            if (location.pathname === '/admin-dashboard' && data.user.role !== 'admin') {
-              redirectedRef.current = true;
-              navigate('/dashboard', { replace: true });
-              setIsValid(false);
-              setLoading(false);
-              return;
-            }
-            // Only allow support on /support-dashboard
-            if (location.pathname === '/support-dashboard' && data.user.role !== 'support') {
-              redirectedRef.current = true;
-              const target = data.user.role === 'admin' ? '/admin-dashboard' : '/dashboard';
-              navigate(target, { replace: true });
-              setIsValid(false);
-              setLoading(false);
-              return;
-            }
-            // Only allow non-admin/non-support on /dashboard
-            if (location.pathname === '/dashboard' && (data.user.role === 'admin' || data.user.role === 'support')) {
-              redirectedRef.current = true;
-              const target = data.user.role === 'admin' ? '/admin-dashboard' : '/support-dashboard';
-              navigate(target, { replace: true });
-              setIsValid(false);
-              setLoading(false);
-              return;
-            }
-            setIsValid(true);
-          } else {
-            // Token is not valid according to server
-            clearUserDataAndRedirect('Token validation failed');
+          // Only allow support on /support-dashboard
+          if (location.pathname === '/support-dashboard' && validation.user.role !== 'support') {
+            redirectedRef.current = true;
+            const target = validation.user.role === 'admin' ? '/admin-dashboard' : '/dashboard';
+            navigate(target, { replace: true });
+            setIsValid(false);
             setLoading(false);
             return;
           }
-        } catch (err) {
-          console.error('Token validation error:', err);
-          // Network error or other issues - allow access without clearing
+          // Only allow non-admin/non-support on /dashboard
+          if (location.pathname === '/dashboard' && (validation.user.role === 'admin' || validation.user.role === 'support')) {
+            redirectedRef.current = true;
+            const target = validation.user.role === 'admin' ? '/admin-dashboard' : '/support-dashboard';
+            navigate(target, { replace: true });
+            setIsValid(false);
+            setLoading(false);
+            return;
+          }
           setIsValid(true);
+        } else {
+          // Token is not valid according to server
+          clearUserDataAndRedirect('Token validation failed');
           setLoading(false);
           return;
         }
@@ -262,7 +330,7 @@ const ProtectedRoute = ({ children }) => {
     };
 
     checkTokenValidity();
-  }, [location.pathname, hasValidated, user, navigate]);
+  }, [location.pathname, validateToken, clearUserDataAndRedirect]); // Added validateToken and clearUserDataAndRedirect to dependencies
 
   if (loading) {
     return (

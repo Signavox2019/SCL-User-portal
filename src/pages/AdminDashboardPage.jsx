@@ -53,7 +53,8 @@ const iconBgGradients = [
   'from-yellow-400 to-orange-400', // Interns
 ];
 
-const userPieColors = ['#a78bfa', '#f472b6', '#818cf8'];
+const userPieColors = ['#a78bfa', '#f472b6', '#4ade80', '#facc15'];
+// const userPieColors = ['#a78bfa', '#f472b6', '#4ade80', '#10b981'];
 const eventBarColors = ['#a78bfa', '#f472b6', '#818cf8'];
 const enrollBarColors = ['#34d399', '#fbbf24'];
 // Update enrollPieColors to match eventBarColors
@@ -569,6 +570,7 @@ const DashboardPage = () => {
     { name: 'Interns', value: userStats.counts.interns },
     { name: 'Professors', value: professorStats?.totalProfessors || 0 },
     { name: 'Admins', value: userStats.counts.admins },
+    { name: 'Support', value: userStats.counts.supports },
   ];
 
   // Events Bar Chart data
@@ -633,8 +635,8 @@ const DashboardPage = () => {
       </div>
 
       {/* New Metric Cards Section - full width, responsive, gap below */}
-      <div className="flex flex-col w-full mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 xl:gap-6 w-full">
+      <div className="flex flex-col w-full mb-8 px-2 sm:px-2 lg:px-2 xl:px-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 xl:gap-6 w-full">
           {/* Total Users Card */}
           <div className="relative flex flex-col items-center justify-center rounded-2xl p-2 sm:p-3 lg:p-4 xl:p-6 shadow-2xl bg-gradient-to-br from-blue-400/30 to-blue-700/30 backdrop-blur-xl border border-white/10 group hover:scale-105 hover:shadow-2xl transition-transform duration-300 overflow-hidden min-h-[160px] sm:min-h-[180px]">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 xl:w-14 xl:h-14 rounded-b-lg bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mt-3">
@@ -652,6 +654,12 @@ const DashboardPage = () => {
                   <span className="text-xs text-purple-100/90 font-semibold">Admins</span>
                   <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-extrabold text-pink-300">{userStats?.counts?.admins ?? 0}</span>
                 </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-xs text-purple-100/90 font-semibold">Support</span>
+                    <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-extrabold text-green-300">
+                      {userStats?.counts?.supports ?? '-'}
+                    </span>
+                  </div>
               </div>
             </div>
           </div>
@@ -778,7 +786,7 @@ const DashboardPage = () => {
           >
             <Visibility className="text-lg" />
           </button>
-          <div className="flex items-center gap-3 sm:gap-4 w-full mb-4 sm:mb-6 -mt-8 sm:-mt-11">
+          <div className="flex items-center gap-3 sm:gap-4 w-full mb-4 sm:mb-6 -mt-4 sm:-mt-4">
             <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 shadow-lg">
               <LocalLibrary className="text-white text-xl sm:text-2xl drop-shadow-lg" />
             </div>
@@ -1158,71 +1166,45 @@ const DashboardPage = () => {
               <tr>
                 <td colSpan={8} className="px-4 py-2 bg-gradient-to-br from-[#312e81]/80 via-[#a78bfa22] to-[#0ea5e9]/20">
                   {filteredBatches.length > 0 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-2">
-                      <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-purple-200 font-semibold text-xs sm:text-sm">Rows per page:</span>
-                        <select
-                          value={batchPageSize}
-                          onChange={e => { setBatchPageSize(Number(e.target.value)); setBatchPage(1); }}
-                          className="bg-[#1a1536]/80 text-purple-100 border border-[#312e81]/40 rounded-lg px-2 sm:px-3 py-1 focus:outline-none shadow-sm hover:border-purple-400 transition text-xs sm:text-sm"
-                        >
-                          {[5, 10, 20, 50].map(size => (
-                            <option key={size} value={size}>{size}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          className="p-2 rounded-full bg-[#1a1536]/80 hover:bg-pink-500/60 text-purple-200 hover:text-white shadow transition disabled:opacity-40 disabled:cursor-not-allowed"
-                          onClick={() => setBatchPage(p => Math.max(1, p - 1))}
-                          disabled={batchPage === 1}
-                          aria-label="Previous page"
-                        >
-                          <ChevronLeft />
-                        </button>
-                        {/* Page numbers with ellipsis if many pages */}
-                        {(() => {
-                          const pages = [];
-                          const maxPagesToShow = 5;
-                          let start = Math.max(1, batchPage - 2);
-                          let end = Math.min(totalBatchPages, batchPage + 2);
-                          if (batchPage <= 3) {
-                            end = Math.min(totalBatchPages, maxPagesToShow);
-                          } else if (batchPage >= totalBatchPages - 2) {
-                            start = Math.max(1, totalBatchPages - maxPagesToShow + 1);
-                          }
-                          if (start > 1) {
-                            pages.push(
-                              <button key={1} className={`px-3 py-1 mx-0.5 rounded-lg font-bold bg-[#1a1536]/80 text-purple-200 hover:bg-purple-500/60 hover:text-white shadow transition`} onClick={() => setBatchPage(1)}>1</button>
-                            );
-                            if (start > 2) pages.push(<span key="start-ellipsis" className="px-1 text-purple-400"><MoreHoriz fontSize="small" /></span>);
-                          }
-                          for (let i = start; i <= end; i++) {
-                            pages.push(
-                              <button
-                                key={i}
-                                className={`px-3 py-1 mx-0.5 rounded-lg font-bold shadow transition ${batchPage === i ? 'bg-purple-500 text-white scale-105 ring-2 ring-purple-300' : 'bg-[#1a1536]/80 text-purple-200 hover:bg-purple-500/60 hover:text-white'}`}
-                                onClick={() => setBatchPage(i)}
-                                aria-current={batchPage === i ? 'page' : undefined}
-                              >{i}</button>
-                            );
-                          }
-                          if (end < totalBatchPages) {
-                            if (end < totalBatchPages - 1) pages.push(<span key="end-ellipsis" className="px-1 text-purple-400"><MoreHoriz fontSize="small" /></span>);
-                            pages.push(
-                              <button key={totalBatchPages} className={`px-3 py-1 mx-0.5 rounded-lg font-bold bg-[#1a1536]/80 text-purple-200 hover:bg-purple-500/60 hover:text-white shadow transition`} onClick={() => setBatchPage(totalBatchPages)}>{totalBatchPages}</button>
-                            );
-                          }
-                          return pages;
-                        })()}
-                        <button
-                          className="p-2 rounded-full bg-[#1a1536]/80 hover:bg-pink-500/60 text-purple-200 hover:text-white shadow transition disabled:opacity-40 disabled:cursor-not-allowed"
-                          onClick={() => setBatchPage(p => Math.min(totalBatchPages, p + 1))}
-                          disabled={batchPage === totalBatchPages}
-                          aria-label="Next page"
-                        >
-                          <ChevronRight />
-                        </button>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 py-4 bg-transparent relative z-0 mt-4">
+                      <div className="flex-1" />
+                      <div className="flex flex-wrap items-center gap-6 justify-end w-full">
+                        {/* Rows per page dropdown */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-purple-200/80 text-sm">Rows per page:</span>
+                          <select
+                            value={batchPageSize}
+                            onChange={e => { setBatchPageSize(Number(e.target.value)); setBatchPage(1); }}
+                            className="py-1 px-2 rounded bg-[#181a20] text-white border border-purple-700 text-sm"
+                          >
+                            {[5, 10, 25, 50, 100].map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Showing text */}
+                        <span className="text-purple-200/80 text-sm">
+                          Showing {filteredBatches.length === 0 ? 0 : ((batchPage - 1) * batchPageSize + 1)}-
+                          {Math.min(batchPage * batchPageSize, filteredBatches.length)} of {filteredBatches.length} batches
+                        </span>
+                        {/* Pagination */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                            onClick={() => setBatchPage(p => Math.max(1, p - 1))}
+                            disabled={batchPage === 1}
+                          >
+                            <ChevronLeft />
+                          </button>
+                          <span className="text-purple-200/80 text-sm">{batchPage} / {totalBatchPages}</span>
+                          <button
+                            className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                            onClick={() => setBatchPage(p => Math.min(totalBatchPages, p + 1))}
+                            disabled={batchPage === totalBatchPages}
+                          >
+                            <ChevronRight />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

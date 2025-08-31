@@ -19,6 +19,7 @@ const CourseDetails = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
@@ -51,6 +52,22 @@ const CourseDetails = () => {
       if (!res.ok) throw new Error('Failed to fetch course');
       const data = await res.json();
       setCourse(data);
+      try {
+        const u = getUser();
+        if (u && data) {
+          const enrolled = Boolean(
+            (Array.isArray(data?.enrolledUsers) && data.enrolledUsers.some(x => (x?._id || x) === u._id)) ||
+            (Array.isArray(data?.users) && data.users.some(x => (x?._id || x) === u._id)) ||
+            (Array.isArray(data?.enrollments) && data.enrollments.some(e => (e?.userId?._id || e?.userId || e?.user?._id || e?.user) === u._id)) ||
+            data?.isEnrolled === true || data?.enrolled === true
+          );
+          setIsEnrolled(enrolled);
+        } else {
+          setIsEnrolled(false);
+        }
+      } catch {
+        setIsEnrolled(false);
+      }
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -69,6 +86,22 @@ const CourseDetails = () => {
         if (!res.ok) throw new Error('Failed to fetch course');
         const data = await res.json();
         setCourse(data);
+        try {
+          const u = getUser();
+          if (u && data) {
+            const enrolled = Boolean(
+              (Array.isArray(data?.enrolledUsers) && data.enrolledUsers.some(x => (x?._id || x) === u._id)) ||
+              (Array.isArray(data?.users) && data.users.some(x => (x?._id || x) === u._id)) ||
+              (Array.isArray(data?.enrollments) && data.enrollments.some(e => (e?.userId?._id || e?.userId || e?.user?._id || e?.user) === u._id)) ||
+              data?.isEnrolled === true || data?.enrolled === true
+            );
+            setIsEnrolled(enrolled);
+          } else {
+            setIsEnrolled(false);
+          }
+        } catch {
+          setIsEnrolled(false);
+        }
       } catch (err) {
         toast.error(err.message);
       } finally {
@@ -128,6 +161,9 @@ const CourseDetails = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to enroll');
       toast.success('Enrolled successfully!');
       setEnrollModalOpen(false);
+      setIsEnrolled(true);
+      // Optionally refresh details
+      try { await refetchCourse(); } catch {}
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -228,27 +264,33 @@ const CourseDetails = () => {
               </div>
             </div>
             {!isAdmin ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setEnrollModalOpen(true)}
-                sx={{
-                  background: 'linear-gradient(to right, #f472b6, #a78bfa)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  fontSize: 15,
-                  px: 1.5,
-                  py: 0.7,
-                  width: 150,
-                  minWidth: 70,
-                  mt: 1,
-                  boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
-                  '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' }
-                }}
-              >
-                {enrolling ? 'Enrolling...' : 'Enroll Now'}
-              </Button>
+              isEnrolled ? (
+                <span className="px-4 py-2 rounded-lg bg-green-600/30 text-green-200 font-bold inline-flex items-center justify-center" style={{ minWidth: 150 }}>
+                  Already enrolled for the course
+                </span>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => setEnrollModalOpen(true)}
+                  sx={{
+                    background: 'linear-gradient(to right, #f472b6, #a78bfa)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    fontSize: 15,
+                    px: 1.5,
+                    py: 0.7,
+                    width: 150,
+                    minWidth: 70,
+                    mt: 1,
+                    boxShadow: '0 4px 24px 0 rgba(168,139,250,0.15)',
+                    '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' }
+                  }}
+                >
+                  {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                </Button>
+              )
             ) : (
               <div className="mt-2">
                 {course.professor && course.professor.name ? (

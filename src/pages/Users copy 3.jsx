@@ -172,7 +172,7 @@ const Users = () => {
       courseAmount: '',
       discount: '',
       finalAmount: '',
-      totalPaid: '',
+      paidAmount: '',
       balanceAmount: ''
     },
     // Course & Batch Details
@@ -194,19 +194,6 @@ const Users = () => {
   const [loadingButtons, setLoadingButtons] = useState({}); // Track loading state for individual buttons
   const [generateModal, setGenerateModal] = useState({ open: false, user: null, form: null, loading: false, error: null, offerLetterUrl: null });
   const [regenerateModal, setRegenerateModal] = useState({ open: false, user: null, loading: false, error: null, offerLetterUrl: null });
-  const [installments, setInstallments] = useState([]);
-  const [installmentsLoading, setInstallmentsLoading] = useState(false);
-  const [installmentsError, setInstallmentsError] = useState(null);
-  const [addInstallmentModal, setAddInstallmentModal] = useState({ open: false, loading: false, error: null });
-  const [editInstallmentModal, setEditInstallmentModal] = useState({ open: false, installment: null, loading: false, error: null });
-  const [deleteInstallmentConfirm, setDeleteInstallmentConfirm] = useState({ open: false, installment: null });
-  const [installmentForm, setInstallmentForm] = useState({
-    amountPaid: '',
-    dateOfPayment: new Date().toISOString().slice(0, 16), // Set current date and time as default
-    referenceId: '',
-    description: '',
-    paymentSnapshot: null
-  });
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = currentUser.role === 'admin';
@@ -343,249 +330,13 @@ const Users = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setViewModal({ open: true, user: res.data, loading: false, error: null });
-      
-      // Fetch installments for this user
-      await fetchInstallments(userId, token);
     } catch (err) {
       setViewModal({ open: true, user: null, loading: false, error: err.response?.data?.message || err.message });
     }
   };
 
   // Close view modal
-  const closeViewModal = () => {
-    setViewModal({ open: false, user: null, loading: false, error: null });
-    setInstallments([]);
-    setInstallmentsLoading(false);
-    setInstallmentsError(null);
-    setAddInstallmentModal({ open: false, loading: false, error: null });
-    setEditInstallmentModal({ open: false, installment: null, loading: false, error: null });
-    setDeleteInstallmentConfirm({ open: false, installment: null });
-    setInstallmentForm({
-      amountPaid: '',
-      dateOfPayment: new Date().toISOString().slice(0, 16),
-      referenceId: '',
-      description: '',
-      paymentSnapshot: null
-    });
-  };
-
-  // Fetch installments for a user
-  const fetchInstallments = async (userId, token) => {
-    setInstallmentsLoading(true);
-    setInstallmentsError(null);
-    try {
-      const res = await axios.get(`${BaseUrl}/users/${userId}/installments`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setInstallments(res.data.installments || []);
-    } catch (err) {
-      setInstallmentsError(err.response?.data?.message || err.message);
-      setInstallments([]);
-    } finally {
-      setInstallmentsLoading(false);
-    }
-  };
-
-  // Add new installment
-  const handleAddInstallment = async (e) => {
-    e.preventDefault();
-    setAddInstallmentModal(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const token = localStorage.getItem('token');
-      const userId = viewModal.user._id;
-      
-      const formData = new FormData();
-      formData.append('amountPaid', installmentForm.amountPaid);
-      formData.append('dateOfPayment', installmentForm.dateOfPayment);
-      formData.append('referenceId', installmentForm.referenceId);
-      formData.append('description', installmentForm.description);
-      
-      if (installmentForm.paymentSnapshot) {
-        formData.append('paymentSnapshot', installmentForm.paymentSnapshot);
-      }
-      
-      const res = await axios.post(`${BaseUrl}/users/${userId}/installments`, formData, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // Add new installment to the list
-      setInstallments(prev => [res.data.installment, ...prev]);
-      
-      // Update user's payment details
-      if (viewModal.user && res.data.installment) {
-        const newAmountPaid = Number(res.data.installment.amountPaid);
-        setViewModal(prev => ({
-          ...prev,
-          user: {
-            ...prev.user,
-            amount: {
-              ...prev.user.amount,
-              totalPaid: (Number(prev.user.amount?.totalPaid || 0) + newAmountPaid).toString(),
-              balanceAmount: Math.max(Number(prev.user.amount?.finalAmount || 0) - (Number(prev.user.amount?.totalPaid || 0) + newAmountPaid), 0).toString()
-            }
-          }
-        }));
-      }
-      
-      // Reset form and close modal
-      setInstallmentForm({
-        amountPaid: '',
-        dateOfPayment: '',
-        referenceId: '',
-        description: '',
-        paymentSnapshot: null
-      });
-      setAddInstallmentModal({ open: false, loading: false, error: null });
-      
-      showToast(res.data.message || 'Installment added successfully!', 'success');
-    } catch (err) {
-      setAddInstallmentModal(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: err.response?.data?.message || err.message 
-      }));
-      showToast(err.response?.data?.message || err.message, 'error');
-    }
-  };
-
-  // Handle file upload for payment snapshot
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setInstallmentForm(prev => ({ ...prev, paymentSnapshot: file }));
-    }
-  };
-
-  // Edit installment
-  const handleEditInstallment = async (e) => {
-    e.preventDefault();
-    setEditInstallmentModal(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const token = localStorage.getItem('token');
-      const userId = viewModal.user._id;
-      const installmentId = editInstallmentModal.installment._id;
-      
-      const formData = new FormData();
-      formData.append('amountPaid', installmentForm.amountPaid);
-      formData.append('dateOfPayment', installmentForm.dateOfPayment);
-      formData.append('referenceId', installmentForm.referenceId);
-      formData.append('description', installmentForm.description);
-      
-      if (installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object') {
-        formData.append('paymentSnapshot', installmentForm.paymentSnapshot);
-      }
-      
-      const res = await axios.put(`${BaseUrl}/users/${userId}/installments/${installmentId}`, formData, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // Update installment in the list
-      setInstallments(prev => prev.map(inst => 
-        inst._id === installmentId ? res.data.installment : inst
-      ));
-      
-      // Update user's payment details
-      if (viewModal.user && res.data.installment && editInstallmentModal.installment) {
-        const oldAmountPaid = Number(editInstallmentModal.installment.amountPaid);
-        const newAmountPaid = Number(res.data.installment.amountPaid);
-        const difference = newAmountPaid - oldAmountPaid;
-        
-        setViewModal(prev => ({
-          ...prev,
-          user: {
-            ...prev.user,
-            amount: {
-              ...prev.user.amount,
-              totalPaid: (Number(prev.user.amount?.totalPaid || 0) + difference).toString(),
-              balanceAmount: Math.max(Number(prev.user.amount?.finalAmount || 0) - (Number(prev.user.amount?.totalPaid || 0) + difference), 0).toString()
-            }
-          }
-        }));
-      }
-      
-      // Reset form and close modal
-      setInstallmentForm({
-        amountPaid: '',
-        dateOfPayment: new Date().toISOString().slice(0, 16),
-        referenceId: '',
-        description: '',
-        paymentSnapshot: null
-      });
-      setEditInstallmentModal({ open: false, installment: null, loading: false, error: null });
-      
-      showToast(res.data.message || 'Installment updated successfully!', 'success');
-    } catch (err) {
-      setEditInstallmentModal(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: err.response?.data?.message || err.message 
-      }));
-      showToast(err.response?.data?.message || err.message, 'error');
-    }
-  };
-
-  // Delete installment
-  const handleDeleteInstallment = async () => {
-    try {
-      console.log('Starting delete process...');
-      const token = localStorage.getItem('token');
-      const userId = viewModal.user._id;
-      const installmentId = deleteInstallmentConfirm.installment._id;
-      
-      console.log('Delete params:', { userId, installmentId, token: token ? 'exists' : 'missing' });
-      
-      const response = await axios.delete(`${BaseUrl}/users/${userId}/installments/${installmentId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      console.log('Delete response:', response.data);
-      
-      // Remove installment from the list
-      setInstallments(prev => prev.filter(inst => inst._id !== installmentId));
-      
-      // Update user's payment details
-      if (viewModal.user && deleteInstallmentConfirm.installment) {
-        const deletedAmountPaid = Number(deleteInstallmentConfirm.installment.amountPaid);
-        setViewModal(prev => ({
-          ...prev,
-          user: {
-            ...prev.user,
-            amount: {
-              ...prev.user.amount,
-              totalPaid: Math.max(Number(prev.user.amount?.totalPaid || 0) - deletedAmountPaid, 0).toString(),
-              balanceAmount: (Number(prev.user.amount?.finalAmount || 0) - Math.max(Number(prev.user.amount?.totalPaid || 0) - deletedAmountPaid, 0)).toString()
-            }
-          }
-        }));
-      }
-      
-      setDeleteInstallmentConfirm({ open: false, installment: null });
-      showToast(response.data?.message || 'Installment deleted successfully!', 'success');
-    } catch (err) {
-      console.error('Delete error:', err);
-      showToast(err.response?.data?.message || err.message, 'error');
-    }
-  };
-
-  // Open edit modal and populate form
-  const openEditInstallmentModal = (installment) => {
-    setInstallmentForm({
-      amountPaid: installment.amountPaid.toString(),
-      dateOfPayment: new Date(installment.dateOfPayment).toISOString().slice(0, 16),
-      referenceId: installment.referenceId,
-      description: installment.description,
-      paymentSnapshot: installment.paymentSnapshot || null
-    });
-    setEditInstallmentModal({ open: true, installment, loading: false, error: null });
-  };
+  const closeViewModal = () => setViewModal({ open: false, user: null, loading: false, error: null });
 
   // Delete user
   const handleDeleteUser = async (userId) => {
@@ -652,7 +403,7 @@ const Users = () => {
           courseAmount: Number(formData.amount?.courseAmount) || 0,
           discount: Number(formData.amount?.discount) || 0,
           finalAmount: Number(formData.amount?.finalAmount) || 0,
-          totalPaid: Number(formData.amount?.totalPaid) || 0,
+          paidAmount: Number(formData.amount?.paidAmount) || 0,
           balanceAmount: Number(formData.amount?.balanceAmount) || 0,
         },
         // Backend will calculate finalAmount and balanceAmount automatically
@@ -700,7 +451,7 @@ const Users = () => {
         courseAmount: user.amount?.courseAmount ?? '',
         discount: user.amount?.discount ?? '',
         finalAmount: user.amount?.finalAmount ?? '',
-        totalPaid: user.amount?.totalPaid ?? '',
+        paidAmount: user.amount?.paidAmount ?? '',
         balanceAmount: user.amount?.balanceAmount ?? '',
       },
       // Additional fields from schema
@@ -757,7 +508,7 @@ const Users = () => {
         amount: {
           courseAmount: Number(editForm.amount?.courseAmount) || 0,
           discount: Number(editForm.amount?.discount) || 0,
-          totalPaid: Number(editForm.amount?.totalPaid) || 0,
+          paidAmount: Number(editForm.amount?.paidAmount) || 0,
           // Backend will calculate finalAmount and balanceAmount automatically
         },
       };
@@ -801,7 +552,7 @@ const Users = () => {
     ];
     for (const field of requiredFields) {
       if (field === 'amount') {
-        if (!user.amount || user.amount.courseAmount === '' || user.amount.discount === '' || user.amount.totalPaid === '') return false;
+        if (!user.amount || user.amount.courseAmount === '' || user.amount.discount === '' || user.amount.paidAmount === '') return false;
       } else if (field === 'shiftTimings') {
         if (!user.shiftTimings || !user.shiftTimings.start || !user.shiftTimings.end) return false;
       } else if (field === 'workingDays') {
@@ -914,7 +665,7 @@ const handleGenerateOfferLetter = async () => {
 			amount: {
 				courseAmount: Number(f.amount?.courseAmount) || 0,
 				discount: Number(f.amount?.discount) || 0,
-				totalPaid: Number(f.amount?.totalPaid) || 0,
+				paidAmount: Number(f.amount?.paidAmount) || 0,
 				// final and balance calculated by backend
 			},
 		};
@@ -1875,7 +1626,7 @@ const handleRegenerateOfferLetter = async () => {
                                   };
                                   const course = Number(newAmount.courseAmount) || 0;
                                   const discount = Number(newAmount.discount) || 0;
-                                  const paid = Number(newAmount.totalPaid) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
                                   newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                   newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                   return { ...f, amount: newAmount };
@@ -1900,7 +1651,7 @@ const handleRegenerateOfferLetter = async () => {
                                   };
                                   const course = Number(newAmount.courseAmount) || 0;
                                   const discount = Number(newAmount.discount) || 0;
-                                  const paid = Number(newAmount.totalPaid) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
                                   newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                   newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                   return { ...f, amount: newAmount };
@@ -1916,18 +1667,18 @@ const handleRegenerateOfferLetter = async () => {
                             <label className="block text-purple-200 mb-1">Paid Amount</label>
                             <input
                               type="number"
-                              name="totalPaid"
-                              value={formData.amount.totalPaid}
+                              name="paidAmount"
+                              value={formData.amount.paidAmount}
                               onChange={e => {
                                 const value = e.target.value;
                                 setFormData(f => {
                                   const newAmount = {
                                     ...f.amount,
-                                    totalPaid: value,
+                                    paidAmount: value,
                                   };
                                   const course = Number(newAmount.courseAmount) || 0;
                                   const discount = Number(newAmount.discount) || 0;
-                                  const paid = Number(newAmount.totalPaid) || 0;
+                                  const paid = Number(newAmount.paidAmount) || 0;
                                   newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                   newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                   return { ...f, amount: newAmount };
@@ -2059,7 +1810,7 @@ const handleRegenerateOfferLetter = async () => {
             onClick={closeViewModal}
           >
             <div 
-              className="relative w-full max-w-6xl mx-auto min-w-[320px] bg-gradient-to-br from-[#1a1a2e]/95 via-[#16213e]/95 to-[#0f3460]/95 rounded-3xl shadow-2xl border border-purple-400/20 flex flex-col max-h-[90vh] overflow-hidden animate-modalSlideIn font-sans"
+              className="relative w-full max-w-4xl mx-auto min-w-[320px] bg-gradient-to-br from-[#1a1a2e]/95 via-[#16213e]/95 to-[#0f3460]/95 rounded-3xl shadow-2xl border border-purple-400/20 flex flex-col max-h-[90vh] overflow-hidden animate-modalSlideIn font-sans"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Animated Header Bar */}
@@ -2131,23 +1882,9 @@ const handleRegenerateOfferLetter = async () => {
                                <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center icon-float">
                                  <EmailIcon className="text-pink-400 text-xl" />
                                </div>
-                               <div className="flex-1 min-w-0">
+                               <div>
                                  <p className="text-xs text-purple-300 uppercase tracking-wide">Email</p>
-                                 <div className="flex items-center gap-2">
-                                   <p className="text-white font-medium truncate" title={viewModal.user.email}>{viewModal.user.email}</p>
-                                   <button
-                                     onClick={() => {
-                                       navigator.clipboard.writeText(viewModal.user.email);
-                                       showToast('Email copied to clipboard!', 'success');
-                                     }}
-                                     className="flex-shrink-0 p-1 rounded-full bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 hover:text-pink-300 transition-all duration-200 hover:scale-110"
-                                     title="Copy email"
-                                   >
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                     </svg>
-                                   </button>
-                                 </div>
+                                 <p className="text-white font-medium">{viewModal.user.email}</p>
                                </div>
                              </div>
                              
@@ -2155,27 +1892,9 @@ const handleRegenerateOfferLetter = async () => {
                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center icon-float">
                                  <PhoneIcon className="text-blue-400 text-xl" />
                                </div>
-                               <div className="flex-1 min-w-0">
+                               <div>
                                  <p className="text-xs text-purple-300 uppercase tracking-wide">Phone</p>
-                                 <div className="flex items-center gap-2">
-                                   <p className="text-white font-medium truncate" title={viewModal.user.phone || 'Not provided'}>
-                                     {viewModal.user.phone || 'Not provided'}
-                                   </p>
-                                   {viewModal.user.phone && (
-                                     <button
-                                       onClick={() => {
-                                         navigator.clipboard.writeText(viewModal.user.phone);
-                                         showToast('Phone number copied to clipboard!', 'success');
-                                       }}
-                                       className="flex-shrink-0 p-1 rounded-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 transition-all duration-200 hover:scale-110"
-                                       title="Copy phone number"
-                                     >
-                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                       </svg>
-                                     </button>
-                                   )}
-                                 </div>
+                                 <p className="text-white font-medium">{viewModal.user.phone || 'Not provided'}</p>
                                </div>
                              </div>
                            </div>
@@ -2445,17 +2164,17 @@ const handleRegenerateOfferLetter = async () => {
                           {/* Paid Amount */}
                           <div className="flex flex-col items-center justify-center bg-white/10 rounded-xl p-4 border border-blue-400/20 shadow-md">
                             <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Paid</span>
-                            <span className="text-xl font-extrabold text-blue-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.totalPaid ? `₹${Number(viewModal.user.amount.totalPaid).toLocaleString()}` : 'N/A'}</span>
+                            <span className="text-xl font-extrabold text-blue-200 gradient-text drop-shadow-lg">{viewModal.user?.amount?.paidAmount ? `₹${Number(viewModal.user.amount.paidAmount).toLocaleString()}` : 'N/A'}</span>
                             {/* Progress Bar */}
                             <div className="w-full mt-2">
                               <div className="h-1.5 rounded-full bg-blue-900/30 overflow-hidden">
                                 <div
                                   className="h-1.5 rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-500"
-                                  style={{ width: `${Math.min(100, Math.round((Number(viewModal.user?.amount?.totalPaid || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}%` }}
+                                  style={{ width: `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}%` }}
                                 />
                               </div>
                               <div className="text-xs text-blue-200 mt-1 text-right">
-                                {viewModal.user?.amount?.finalAmount ? `${Math.min(100, Math.round((Number(viewModal.user?.amount?.totalPaid || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}% Paid` : ''}
+                                {viewModal.user?.amount?.finalAmount ? `${Math.min(100, Math.round((Number(viewModal.user?.amount?.paidAmount || 0) / (Number(viewModal.user?.amount?.finalAmount || 1))) * 100))}% Paid` : ''}
                               </div>
                             </div>
                           </div>
@@ -2470,212 +2189,6 @@ const handleRegenerateOfferLetter = async () => {
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Installments Section */}
-                    <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl p-6 border border-white/10 backdrop-blur-sm card-hover hover:from-emerald-500/15 hover:to-teal-500/15 transition-all duration-300 mt-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          <h3 className="text-2xl font-bold text-white">Payment Installments</h3>
-                        </div>
-                        
-                        <button
-                          onClick={() => setAddInstallmentModal({ open: true, loading: false, error: null })}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
-                          title="Add new installment"
-                        >
-                          <AddIcon className="text-sm" />
-                          Add Installment
-                        </button>
-                      </div>
-                      
-                      {installmentsLoading ? (
-                        <div className="flex justify-center items-center py-8">
-                          <div className="flex flex-col items-center gap-4">
-                            <CircularProgress size={40} style={{ color: '#10b981' }} />
-                            <p className="text-emerald-200 text-sm">Loading installments...</p>
-                          </div>
-                        </div>
-                      ) : installmentsError ? (
-                        <div className="text-center py-8">
-                          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-                            <ErrorIcon className="text-red-400 text-2xl" />
-                          </div>
-                          <p className="text-red-300 font-medium mb-2">Failed to load installments</p>
-                          <p className="text-red-200 text-sm">{installmentsError}</p>
-                        </div>
-                      ) : installments.length === 0 ? (
-                        <div className="text-center py-8">
-                          <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          <p className="text-emerald-200 text-lg font-medium">No installments found</p>
-                          <p className="text-emerald-300 text-sm mt-1">This user hasn't made any installment payments yet</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                             {installments.map((installment, index) => (
-                               <div key={installment._id} className="group relative bg-gradient-to-br from-white/5 via-white/8 to-white/5 rounded-2xl border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/10 overflow-hidden">
-                                 {/* Top Action Icons - Floating on Top Right */}
-                                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-                                   <button
-                                     onClick={() => openEditInstallmentModal(installment)}
-                                     className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-blue-500/25 hover:scale-110 transition-all duration-300 flex items-center justify-center backdrop-blur-sm"
-                                     title="Edit installment"
-                                   >
-                                     <EditIcon className="w-5 h-5" />
-                                   </button>
-                                   <button
-                                     onClick={() => {
-                                       console.log('Delete button clicked for installment:', installment);
-                                       setDeleteInstallmentConfirm({ open: true, installment });
-                                     }}
-                                     className="w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg hover:shadow-red-500/25 hover:scale-110 transition-all duration-300 flex items-center justify-center backdrop-blur-sm"
-                                     title="Delete installment"
-                                   >
-                                     <DeleteIcon className="w-5 h-5" />
-                                   </button>
-                                 </div>
-                                 
-                                 {/* Card Header */}
-                                 <div className="p-6 pb-4">
-                                   <div className="flex items-start justify-between mb-4">
-                                     <div className="flex items-center gap-3">
-                                       <div className="relative">
-                                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center shadow-lg">
-                                           <span className="text-white text-lg font-bold">{index + 1}</span>
-                                         </div>
-                                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center">
-                                           <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                           </svg>
-                                         </div>
-                                       </div>
-                                       <div>
-                                         <h4 className="text-emerald-200 font-bold text-lg leading-tight">{installment.description}</h4>
-                                         <p className="text-emerald-300/70 text-sm">Installment #{index + 1}</p>
-                                       </div>
-                                     </div>
-                                     <div className="text-right">
-                                       <div className="text-emerald-200 text-xs bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-400/30">
-                                         {new Date(installment.dateOfPayment).toLocaleDateString('en-US', { 
-                                           year: 'numeric', 
-                                           month: 'short', 
-                                           day: 'numeric' 
-                                         })}
-                                       </div>
-                                     </div>
-                                   </div>
-                                   
-                                  {/* Payment Image Preview */}
-                                   {installment.paymentSnapshot && (
-                                     <div className="mb-4">
-                                       <div className="relative group/image">
-                                         <a
-                                           href={installment.paymentSnapshot}
-                                           target="_blank"
-                                           rel="noopener noreferrer"
-                                           tabIndex={-1}
-                                           className="block"
-                                         >
-                                           <img 
-                                             src={installment.paymentSnapshot} 
-                                             alt="Payment Proof" 
-                                             className="w-full h-32 object-cover rounded-xl border border-emerald-400/30 hover:border-emerald-400/50 transition-all duration-300 cursor-pointer"
-                                           />
-                                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 rounded-xl flex items-center justify-center pointer-events-none">
-                                             <div className="text-white text-center">
-                                               <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                               </svg>
-                                               <p className="text-sm font-medium">Click to view full size</p>
-                                             </div>
-                                           </div>
-                                         </a>
-                                       </div>
-                                     </div>
-                                   )}
-                                   
-                                   {/* Installment Details */}
-                                   <div className="space-y-3">
-                                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg border border-emerald-400/20">
-                                       <span className="text-emerald-200 font-medium">Amount Paid:</span>
-                                       <span className="text-emerald-100 font-bold text-xl">₹{Number(installment.amountPaid).toLocaleString()}</span>
-                                     </div>
-                                     
-                                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-400/20">
-                                       <span className="text-blue-200 font-medium">Reference ID:</span>
-                                       <span className="text-blue-100 font-mono text-sm bg-blue-500/20 px-3 py-1 rounded-lg border border-blue-400/30">
-                                         {installment.referenceId}
-                                       </span>
-                                     </div>
-                                   </div>
-                                 </div>
-                                 
-                                 {/* Bottom Action Bar */}
-                                 <div className="px-6 pb-4">
-                                   <button
-                                     onClick={() => {
-                                       navigator.clipboard.writeText(installment.referenceId);
-                                       showToast('Reference ID copied to clipboard!', 'success');
-                                     }}
-                                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-300 hover:text-emerald-200 transition-all duration-300 text-sm font-medium border border-emerald-400/30 hover:border-emerald-400/50 group-hover:from-emerald-500/30 group-hover:to-teal-500/30"
-                                     title="Copy reference ID"
-                                   >
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                     </svg>
-                                     Copy Reference ID
-                                   </button>
-                                 </div>
-                               </div>
-                             ))}
-                           </div>
-                          
-                                                     {/* Enhanced Summary Card */}
-                           <div className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl p-6 border border-emerald-400/30 backdrop-blur-sm">
-                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                               <div className="text-center">
-                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                   </svg>
-                                 </div>
-                                 <p className="text-emerald-200 text-sm font-medium mb-1">Total Installments</p>
-                                 <p className="text-emerald-100 text-3xl font-bold">{installments.length}</p>
-                               </div>
-                               
-                               <div className="text-center">
-                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 16v-4m8-4h-4m-8 0H4" />
-                                   </svg>
-                                 </div>
-                                 <p className="text-teal-200 text-sm font-medium mb-1">Total Amount Paid</p>
-                                 <p className="text-teal-100 text-3xl font-bold">₹{installments.reduce((sum, inst) => sum + Number(inst.amountPaid), 0).toLocaleString()}</p>
-                               </div>
-                               
-                               <div className="text-center">
-                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 16v-4m8-4h-4m-8 0H4" />
-                                   </svg>
-                                 </div>
-                                 <p className="text-cyan-200 text-sm font-medium mb-1">Balance Amount</p>
-                                 <p className="text-cyan-100 text-3xl font-bold">₹{viewModal.user?.amount?.balanceAmount ? Number(viewModal.user.amount.balanceAmount).toLocaleString() : 0}</p>
-                               </div>
-                             </div>
-                           </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>
@@ -2683,551 +2196,6 @@ const handleRegenerateOfferLetter = async () => {
           </div>,
           document.getElementById('modal-root')
         )}
-        
-        {/* Add Installment Modal */}
-        {addInstallmentModal.open && ReactDOM.createPortal(
-          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
-            <div className="relative w-full max-w-2xl mx-auto bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-emerald-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
-              <div className="h-2 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 rounded-t-3xl" />
-              <button className="absolute top-5 right-5 text-emerald-200 hover:text-emerald-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
-                onClick={() => {
-                  setAddInstallmentModal({ open: false, loading: false, error: null });
-                  setInstallmentForm({
-                    amountPaid: '',
-                    dateOfPayment: '',
-                    referenceId: '',
-                    description: '',
-                    paymentSnapshot: null
-                  });
-                }}>
-                <CloseIcon fontSize="large" />
-              </button>
-              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar font-sans">
-                <div className="text-2xl font-bold text-white mb-2">Add New Installment</div>
-                <div className="text-emerald-200 mb-6">Add a new installment payment for {viewModal.user?.name}</div>
-                
-                <form onSubmit={handleAddInstallment}>
-                  <div className="space-y-6">
-                    {/* Amount Paid */}
-                    <div>
-                      <label className="block text-emerald-200 mb-2 font-semibold">Amount Paid (₹)</label>
-                      <input
-                        type="number"
-                        value={installmentForm.amountPaid}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, amountPaid: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 shadow-lg"
-                        placeholder="Enter amount"
-                        required
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-
-                    {/* Date of Payment */}
-                    <div>
-                      <label className="block text-emerald-200 mb-2 font-semibold">Date of Payment</label>
-                      <input
-                        type="datetime-local"
-                        value={installmentForm.dateOfPayment}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, dateOfPayment: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 shadow-lg"
-                        required
-                      />
-                    </div>
-
-                    {/* Reference ID */}
-                    <div>
-                      <label className="block text-emerald-200 mb-2 font-semibold">Reference ID</label>
-                      <input
-                        type="text"
-                        value={installmentForm.referenceId}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, referenceId: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 shadow-lg"
-                        placeholder="Enter reference ID (e.g., PAY1234)"
-                        required
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-emerald-200 mb-2 font-semibold">Description</label>
-                      <textarea
-                        value={installmentForm.description}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, description: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 shadow-lg resize-none"
-                        placeholder="Enter installment description"
-                        rows="3"
-                        required
-                      />
-                    </div>
-
-                    {/* Payment Snapshot Upload */}
-                    <div>
-                      <label className="block text-emerald-200 mb-2 font-semibold">Payment Proof (Optional)</label>
-                      <div className="border-2 border-dashed border-emerald-400/30 rounded-xl p-6 text-center hover:border-emerald-400/50 transition-colors">
-                        <input
-                          type="file"
-                          onChange={handleFileUpload}
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          id="payment-snapshot-upload"
-                        />
-                        <label htmlFor="payment-snapshot-upload" className="cursor-pointer">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                              <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-emerald-200 font-medium">
-                                {installmentForm.paymentSnapshot ? installmentForm.paymentSnapshot.name : 'Click to upload payment proof'}
-                              </p>
-                              <p className="text-emerald-300 text-sm mt-1">
-                                {installmentForm.paymentSnapshot ? 'File selected' : 'PNG, JPG, PDF up to 10MB'}
-                              </p>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                                             {installmentForm.paymentSnapshot && (
-                         <div className="mt-4 p-4 bg-emerald-500/10 rounded-xl border border-emerald-400/20">
-                           <div className="flex items-center gap-3 mb-3">
-                             <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                             </svg>
-                             <span className="text-emerald-200 font-medium text-sm">Selected File:</span>
-                           </div>
-                           
-                           {installmentForm.paymentSnapshot.type?.startsWith('image/') ? (
-                             <div className="relative group">
-                               <img 
-                                 src={URL.createObjectURL(installmentForm.paymentSnapshot)} 
-                                 alt="Preview" 
-                                 className="w-full h-32 object-cover rounded-lg border border-emerald-400/30 cursor-pointer"
-                                 onClick={() => {
-                                   if (installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object') {
-                                     const imageUrl = URL.createObjectURL(installmentForm.paymentSnapshot);
-                                     window.open(imageUrl, '_blank');
-                                   }
-                                 }}
-                               />
-                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
-                                 <div className="text-white text-center">
-                                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                   </svg>
-                                   <p className="text-xs">Click to view full size</p>
-                                 </div>
-                               </div>
-                             </div>
-                           ) : (
-                             <div className="flex items-center gap-3 p-3 bg-emerald-500/20 rounded-lg">
-                               <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                               </svg>
-                               <div>
-                                 <p className="text-emerald-200 font-medium text-sm">{installmentForm.paymentSnapshot.name}</p>
-                                 <p className="text-emerald-300 text-xs">{(installmentForm.paymentSnapshot.size / 1024 / 1024).toFixed(2)} MB</p>
-                               </div>
-                             </div>
-                           )}
-                           
-                           <div className="mt-3 flex items-center justify-between">
-                             <span className="text-emerald-300 text-sm">{installmentForm.paymentSnapshot.name}</span>
-                             <button
-                               type="button"
-                               onClick={() => setInstallmentForm(prev => ({ ...prev, paymentSnapshot: null }))}
-                               className="text-red-400 hover:text-red-300 transition-colors p-1 rounded"
-                               title="Remove file"
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                               </svg>
-                             </button>
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </div>
-
-                  {addInstallmentModal.error && (
-                    <div className="mt-6 text-red-400 font-bold text-center p-3 bg-red-500/10 rounded-xl border border-red-400/20">
-                      {addInstallmentModal.error}
-                    </div>
-                  )}
-
-                  {/* Submit/Cancel Buttons */}
-                  <div className="mt-8 flex justify-end gap-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddInstallmentModal({ open: false, loading: false, error: null });
-                        setInstallmentForm({
-                          amountPaid: '',
-                          dateOfPayment: '',
-                          referenceId: '',
-                          description: '',
-                          paymentSnapshot: null
-                        });
-                      }}
-                      className="px-6 py-3 rounded-xl bg-transparent border border-emerald-400/30 text-emerald-200 font-bold shadow-lg hover:scale-105 transition-all duration-300"
-                      disabled={addInstallmentModal.loading}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={addInstallmentModal.loading || !installmentForm.amountPaid || !installmentForm.dateOfPayment || !installmentForm.referenceId || !installmentForm.description}
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {addInstallmentModal.loading ? (
-                        <>
-                          <CircularProgress size={20} color="inherit" />
-                          Adding...
-                        </>
-                      ) : (
-                        <>
-                          <AddIcon />
-                          Add Installment
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>,
-          document.getElementById('modal-root')
-        )}
-        
-        {/* Edit Installment Modal */}
-        {editInstallmentModal.open && ReactDOM.createPortal(
-          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
-            <div className="relative w-full max-w-2xl mx-auto bg-gradient-to-br from-[#312e81]/90 to-[#0a081e]/95 rounded-3xl shadow-2xl border border-blue-400/30 flex flex-col max-h-[90vh] overflow-hidden animate-modalPop">
-              <div className="h-2 w-full bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 rounded-t-3xl" />
-              <button className="absolute top-5 right-5 text-blue-200 hover:text-blue-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md"
-                onClick={() => {
-                  setEditInstallmentModal({ open: false, installment: null, loading: false, error: null });
-                  setInstallmentForm({
-                    amountPaid: '',
-                    dateOfPayment: new Date().toISOString().slice(0, 16),
-                    referenceId: '',
-                    description: '',
-                    paymentSnapshot: null
-                  });
-                }}>
-                <CloseIcon fontSize="large" />
-              </button>
-              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar font-sans">
-                <div className="text-2xl font-bold text-white mb-2">Edit Installment</div>
-                <div className="text-blue-200 mb-6">Edit installment details for {viewModal.user?.name}</div>
-                
-                <form onSubmit={handleEditInstallment}>
-                  <div className="space-y-6">
-                    {/* Amount Paid */}
-                    <div>
-                      <label className="block text-blue-200 mb-2 font-semibold">Amount Paid (₹)</label>
-                      <input
-                        type="number"
-                        value={installmentForm.amountPaid}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, amountPaid: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-lg"
-                        placeholder="Enter amount"
-                        required
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-
-                    {/* Date of Payment */}
-                    <div>
-                      <label className="block text-blue-200 mb-2 font-semibold">Date of Payment</label>
-                      <input
-                        type="datetime-local"
-                        value={installmentForm.dateOfPayment}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, dateOfPayment: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-lg"
-                        required
-                      />
-                    </div>
-
-                    {/* Reference ID */}
-                    <div>
-                      <label className="block text-blue-200 mb-2 font-semibold">Reference ID</label>
-                      <input
-                        type="text"
-                        value={installmentForm.referenceId}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, referenceId: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-lg"
-                        placeholder="Enter reference ID (e.g., PAY1234)"
-                        required
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-blue-200 mb-2 font-semibold">Description</label>
-                      <textarea
-                        value={installmentForm.description}
-                        onChange={e => setInstallmentForm(prev => ({ ...prev, description: e.target.value }))}
-                        className="w-full py-3 px-4 rounded-xl bg-blue-900/40 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-lg resize-none"
-                        placeholder="Enter installment description"
-                        rows="3"
-                        required
-                      />
-                    </div>
-
-                    {/* Payment Snapshot Upload */}
-                    <div>
-                      <label className="block text-blue-200 mb-2 font-semibold">Payment Proof (Optional)</label>
-                      <div className="border-2 border-dashed border-blue-400/30 rounded-xl p-6 text-center hover:border-blue-400/50 transition-colors">
-                        <input
-                          type="file"
-                          onChange={handleFileUpload}
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          id="edit-payment-snapshot-upload"
-                        />
-                        <label htmlFor="edit-payment-snapshot-upload" className="cursor-pointer">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                              <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-blue-200 font-medium">
-                                {installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object' 
-                                  ? installmentForm.paymentSnapshot.name 
-                                  : 'Click to upload new payment proof'}
-                              </p>
-                              <p className="text-blue-300 text-sm mt-1">
-                                {installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object' 
-                                  ? 'New file selected' 
-                                  : 'PNG, JPG, PDF up to 10MB'}
-                              </p>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                                             {/* File Preview for New Upload */}
-                       {installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object' && (
-                         <div className="mt-4 p-4 bg-blue-500/10 rounded-xl border border-blue-400/20">
-                           <div className="flex items-center gap-3 mb-3">
-                             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                             </svg>
-                             <span className="text-blue-200 font-medium text-sm">New File Selected:</span>
-                           </div>
-                           
-                           {installmentForm.paymentSnapshot.type?.startsWith('image/') ? (
-                             <div className="relative group">
-                               <img 
-                                 src={URL.createObjectURL(installmentForm.paymentSnapshot)} 
-                                 alt="Preview" 
-                                 className="w-full h-32 object-cover rounded-lg border border-blue-400/30 cursor-pointer"
-                                 onClick={() => {
-                                   if (installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object') {
-                                     const imageUrl = URL.createObjectURL(installmentForm.paymentSnapshot);
-                                     window.open(imageUrl, '_blank');
-                                   }
-                                 }}
-                               />
-                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
-                                 <div className="text-white text-center">
-                                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                   </svg>
-                                   <p className="text-xs">Click to view full size</p>
-                                 </div>
-                               </div>
-                             </div>
-                           ) : (
-                             <div className="flex items-center gap-3 p-3 bg-blue-500/20 rounded-lg">
-                               <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                               </svg>
-                               <div>
-                                 <p className="text-blue-200 font-medium text-sm">{installmentForm.paymentSnapshot.name}</p>
-                                 <p className="text-blue-300 text-xs">{(installmentForm.paymentSnapshot.size / 1024 / 1024).toFixed(2)} MB</p>
-                               </div>
-                             </div>
-                           )}
-                           
-                           <div className="mt-3 flex items-center justify-between">
-                             <span className="text-blue-300 text-sm">{installmentForm.paymentSnapshot.name}</span>
-                             <button
-                               type="button"
-                               onClick={() => setInstallmentForm(prev => ({ ...prev, paymentSnapshot: null }))}
-                               className="text-red-400 hover:text-red-300 transition-colors p-1 rounded"
-                               title="Remove file"
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                               </svg>
-                             </button>
-                           </div>
-                         </div>
-                       )}
-                       
-                       {/* Current Payment Proof Display - Only show when no new file is selected */}
-                       {editInstallmentModal.installment?.paymentSnapshot && !(installmentForm.paymentSnapshot && typeof installmentForm.paymentSnapshot === 'object') && (
-                         <div className="mt-4 p-4 bg-blue-500/10 rounded-xl border border-blue-400/20">
-                           <div className="flex items-center gap-3 mb-3">
-                             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                             </svg>
-                             <span className="text-blue-200 font-medium text-sm">Current Payment Proof:</span>
-                           </div>
-                           
-                           <div className="relative group">
-                             <img 
-                               src={editInstallmentModal.installment.paymentSnapshot} 
-                               alt="Current Payment Proof" 
-                               className="w-full h-32 object-cover rounded-lg border border-blue-400/30 cursor-pointer"
-                               onClick={() => {
-                                 if (editInstallmentModal.installment.paymentSnapshot) {
-                                   window.open(editInstallmentModal.installment.paymentSnapshot, '_blank');
-                                 }
-                               }}
-                             />
-                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
-                               <div className="text-white text-center">
-                                 <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                 </svg>
-                                 <p className="text-xs">Click to view full size</p>
-                                 </div>
-                               </div>
-                             </div>
-                           
-                           <div className="mt-3 flex items-center justify-between">
-                             <span className="text-blue-300 text-sm">Current file</span>
-                             <a
-                               href={editInstallmentModal.installment.paymentSnapshot}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="text-blue-300 underline font-medium hover:text-blue-200 transition-colors inline-flex items-center gap-1"
-                               title="View current payment proof"
-                             >
-                               Open in New Tab
-                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 00-2 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                               </svg>
-                             </a>
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </div>
-
-                  {editInstallmentModal.error && (
-                    <div className="mt-6 text-red-400 font-bold text-center p-3 bg-red-500/10 rounded-xl border border-red-400/20">
-                      {editInstallmentModal.error}
-                    </div>
-                  )}
-
-                  {/* Submit/Cancel Buttons */}
-                  <div className="mt-8 flex justify-end gap-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditInstallmentModal({ open: false, installment: null, loading: false, error: null });
-                        setInstallmentForm({
-                          amountPaid: '',
-                          dateOfPayment: new Date().toISOString().slice(0, 16),
-                          referenceId: '',
-                          description: '',
-                          paymentSnapshot: null
-                        });
-                      }}
-                      className="px-6 py-3 rounded-xl bg-transparent border border-blue-400/30 text-blue-200 font-bold shadow-lg hover:scale-105 transition-all duration-300"
-                      disabled={editInstallmentModal.loading}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={editInstallmentModal.loading || !installmentForm.amountPaid || !installmentForm.dateOfPayment || !installmentForm.referenceId || !installmentForm.description}
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {editInstallmentModal.loading ? (
-                        <>
-                          <CircularProgress size={20} color="inherit" />
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <EditIcon />
-                          Update Installment
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>,
-          document.getElementById('modal-root')
-        )}
-        
-        {/* Delete Installment Confirmation Modal */}
-        {deleteInstallmentConfirm.open && ReactDOM.createPortal(
-          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn p-4">
-            <div className="bg-gradient-to-br from-red-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl shadow-2xl border border-white/10 p-6 max-w-md w-full mx-4">
-              <div className="flex flex-col items-center text-center">
-                {/* Warning Icon */}
-                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-                  <DeleteIcon className="text-red-400 text-3xl" />
-                </div>
-                
-                {/* Modal Title */}
-                <h2 className="text-xl font-bold text-white mb-3">Delete Installment</h2>
-                
-                {/* Modal Content */}
-                <div className="w-full">
-                  <p className="text-purple-200 mb-6 leading-relaxed">
-                    Are you sure you want to delete the installment with reference ID{' '}
-                    <span className="font-bold text-red-300 break-words">
-                      {deleteInstallmentConfirm.installment?.referenceId}
-                    </span>?
-                  </p>
-                  <p className="text-red-300 text-sm mb-6 font-medium">
-                    This action cannot be undone.
-                  </p>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                  <button 
-                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 text-sm" 
-                    onClick={() => setDeleteInstallmentConfirm({ open: false, installment: null })}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white font-bold shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed text-sm" 
-                    onClick={handleDeleteInstallment}
-                  >
-                    Delete Installment
-                  </button>
-                </div>
-              </div>
-            </div>
-            <style>{`
-              @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-              .animate-fadeIn {
-                animation: fadeIn 0.3s cubic-bezier(0.4,0,0.2,1);
-              }
-            `}</style>
-          </div>,
-          document.getElementById('modal-root')
-        )}
-        
         {/* Edit User Modal */}
         {editModal.open && ReactDOM.createPortal(
           <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn">
@@ -3507,7 +2475,7 @@ const handleRegenerateOfferLetter = async () => {
                                 };
                                 const course = Number(newAmount.courseAmount) || 0;
                                 const discount = Number(newAmount.discount) || 0;
-                                const paid = Number(newAmount.totalPaid) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
                                 newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                 newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                 return { ...f, amount: newAmount };
@@ -3532,7 +2500,7 @@ const handleRegenerateOfferLetter = async () => {
                                 };
                                 const course = Number(newAmount.courseAmount) || 0;
                                 const discount = Number(newAmount.discount) || 0;
-                                const paid = Number(newAmount.totalPaid) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
                                 newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                 newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                 return { ...f, amount: newAmount };
@@ -3548,18 +2516,18 @@ const handleRegenerateOfferLetter = async () => {
                           <label className="block text-purple-200 mb-1">Paid Amount</label>
                           <input
                             type="number"
-                            name="totalPaid"
-                            value={editForm.amount?.totalPaid || ''}
+                            name="paidAmount"
+                            value={editForm.amount?.paidAmount || ''}
                             onChange={e => {
                               const value = e.target.value;
                               setEditForm(f => {
                                 const newAmount = {
                                   ...f.amount,
-                                  totalPaid: value,
+                                  paidAmount: value,
                                 };
                                 const course = Number(newAmount.courseAmount) || 0;
                                 const discount = Number(newAmount.discount) || 0;
-                                const paid = Number(newAmount.totalPaid) || 0;
+                                const paid = Number(newAmount.paidAmount) || 0;
                                 newAmount.finalAmount = Math.max(course - (course * discount / 100), 0);
                                 newAmount.balanceAmount = Math.max(newAmount.finalAmount - paid, 0);
                                 return { ...f, amount: newAmount };

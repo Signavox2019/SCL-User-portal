@@ -25,6 +25,7 @@ import NotificationBell from './NotificationBell';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import dashboardPreloader from '../services/DashboardPreloader';
+import { clearValidationCache } from './ProtectedRoute';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -116,6 +117,8 @@ const DashboardLayout = ({ children }) => {
   const handleLogout = () => {
     // Clear preloader cache before logout
     dashboardPreloader.clearCache();
+    // Clear validation cache
+    clearValidationCache();
     localStorage.clear();
     handleClose();
     navigate('/login', { replace: true });
@@ -138,7 +141,7 @@ const DashboardLayout = ({ children }) => {
       />
       <div className="min-h-screen w-full flex relative">
         {/* Animated, Large, Low-Opacity Logo Background for Dashboard */}
-        <img
+        {/* <img
           src={SignavoxLogo}
           alt="Signavox Logo Watermark"
           className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 hidden md:block animate-dashboard-logo-float"
@@ -150,7 +153,7 @@ const DashboardLayout = ({ children }) => {
             filter: 'drop-shadow(0 0 80px #a78bfa) drop-shadow(0 0 32px #f472b6)',
           }}
           draggable={false}
-        />
+        /> */}
         {/* Sidebar */}
         <aside
           className={`

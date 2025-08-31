@@ -54,13 +54,15 @@ const Landing = () => {
 
   // Add new name fields and title at the top of the form
   const nameFields = [
-    { placeholder: 'Title', type: 'select', icon: <HowToReg />, required: true, options: [
-      { value: 'Mr', label: 'Mr' },
-      { value: 'Ms', label: 'Ms' },
-      { value: 'Mrs', label: 'Mrs' },
-      { value: 'Dr', label: 'Dr' },
-      { value: 'Prof', label: 'Prof' },
-    ] },
+    {
+      placeholder: 'Title', type: 'select', icon: <HowToReg />, required: true, options: [
+        { value: 'Mr', label: 'Mr' },
+        { value: 'Ms', label: 'Ms' },
+        { value: 'Mrs', label: 'Mrs' },
+        { value: 'Dr', label: 'Dr' },
+        { value: 'Prof', label: 'Prof' },
+      ]
+    },
     { placeholder: 'First Name', type: 'text', icon: <Person />, required: true },
     { placeholder: 'Middle Name', type: 'text', icon: <Person />, required: false },
     { placeholder: 'Last Name', type: 'text', icon: <Person />, required: true },
@@ -76,19 +78,23 @@ const Landing = () => {
   const collegeFields = [
     { placeholder: 'University Name', type: 'select', icon: <School />, required: true, options: universityOptions },
     { placeholder: 'College/University', type: 'text', icon: <SchoolOutline />, required: true },
-    { placeholder: 'Degree Type', type: 'select', icon: <Business />, required: true, options: [
-      { value: 'Graduate', label: 'Graduate' },
-      { value: 'Post Graduate', label: 'Post Graduate' },
-      { value: 'PhD', label: 'PhD' },
-    ] },
-    { placeholder: 'Department', type: 'select', icon: <AccountTree />, required: true, options: [
-      { value: 'CSE', label: 'Computer Science & Engineering' },
-      { value: 'IT', label: 'Information Technology' },
-      { value: 'ECE', label: 'Electronics & Communication' },
-      { value: 'EEE', label: 'Electrical & Electronics' },
-      { value: 'ME', label: 'Mechanical Engineering' },
-      { value: 'CE', label: 'Civil Engineering' },
-    ] },
+    {
+      placeholder: 'Degree Type', type: 'select', icon: <Business />, required: true, options: [
+        { value: 'Graduate', label: 'Graduate' },
+        { value: 'Post Graduate', label: 'Post Graduate' },
+        { value: 'PhD', label: 'PhD' },
+      ]
+    },
+    {
+      placeholder: 'Department', type: 'select', icon: <AccountTree />, required: true, options: [
+        { value: 'CSE', label: 'Computer Science & Engineering' },
+        { value: 'IT', label: 'Information Technology' },
+        { value: 'ECE', label: 'Electronics & Communication' },
+        { value: 'EEE', label: 'Electrical & Electronics' },
+        { value: 'ME', label: 'Mechanical Engineering' },
+        { value: 'CE', label: 'Civil Engineering' },
+      ]
+    },
     { placeholder: 'Specialization', type: 'text', icon: <MenuBook />, required: true },
     { placeholder: 'CGPA Score', type: 'number', icon: <Grade />, required: true, min: 0, max: 10, step: 0.1 },
     {
@@ -222,10 +228,10 @@ const Landing = () => {
         <div className="hidden md:flex w-full md:w-[65%] flex-col h-full relative pt-2 px-2 xs:px-3 sm:px-6 lg:px-12 bg-gradient-to-br from-[#311188]/10 to-[#0A081E]/30 min-w-0 overflow-visible max-h-full transition-all duration-500">
           <div className="w-full flex flex-col flex-grow min-w-0 h-full justify-between">
             {/* Title at the very top, minimal space above */}
-            <div className="flex flex-col items-start mt-4 mb-8">
+            <div className="flex flex-col items-start mt-4 mb-12">
               <div className="flex items-center gap-0 mb-1">
                 <span className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 font-spoof leading-none">Sign</span>
-                <img src={SignavoxLogo} alt="Signavox Logo" className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-10 lg:h-10 xl:w-10 xl:h-10 align-middle inline-block mt-2 xs:mt-3" />
+                <img src={SignavoxLogo} alt="Signavox Logo" className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 lg:w-10 lg:h-10 xl:w-10 xl:h-10 align-middle inline-block mt-3 xs:mt-3" />
                 <span className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 font-spoof leading-none">vox</span>
               </div>
               <p className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl text-purple-200 mt-1 font-spoof tracking-wide max-w-2xl mb-2">Empowering Future Tech Leaders</p>
@@ -239,10 +245,10 @@ const Landing = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="mt-1 mb-4 flex-0"
+              className="mt-2 mb-4 flex-0"
             >
               <motion.h2
-                className="text-xs xs:text-sm sm:text-lg md:text-2xl lg:text-3xl mb-4 text-purple-200 font-light tracking-wide font-spoof mt-2"
+                className="text-xs xs:text-sm sm:text-lg md:text-2xl lg:text-3xl mb-4 text-purple-200  font-semibold tracking-wide font-spoof mt-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
@@ -257,11 +263,11 @@ const Landing = () => {
               >
                 This is not just our company — it's our legacy. Signavox stands for trust, transformation, and fearless journey into the future.
               </motion.p>
-              <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-8 mb-2 max-w-5xl w-full">
+              <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-12 mb-2 max-w-5xl w-full">
                 {features.map((feature, index) => (
                   <motion.div
                     key={index}
-                    className="bg-white/10 h-20 xs:h-24 min-h-[5rem] xs:min-h-[6rem] flex items-center p-2 xs:p-3 md:p-4 rounded-2xl backdrop-blur-lg transition-all border border-purple-500/30 group hover:bg-gradient-to-br hover:from-[#311188]/30 hover:to-[#0A081E]/40 hover:scale-105 hover:shadow-2xl relative overflow-hidden w-full min-w-0"
+                    className="bg-white/10 h-20 xs:h-24 min-h-[6rem] xs:min-h-[6rem] flex items-center p-2 xs:p-3 md:p-4 rounded-2xl backdrop-blur-lg transition-all border border-purple-500/30 group hover:bg-gradient-to-br hover:from-[#311188]/30 hover:to-[#0A081E]/40 hover:scale-105 hover:shadow-2xl relative overflow-hidden w-full min-w-0"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -434,158 +440,62 @@ const Landing = () => {
                 </Typography>
               </motion.div>
 
-              <div className="space-y-2 xs:space-y-4">
-                {/* Name Fields Column */}
-                <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5, duration: 0.6 }}
-                  className="flex flex-col gap-2"
-                >
-                  {nameFields.map((field, idx) => (
-                    <div className="flex-1 min-w-0" key={field.placeholder}>
-                      {field.type === 'select' ? (
-                        <FormControl fullWidth required={field.required}>
-                          <Select
-                            displayEmpty
-                            name={field.placeholder}
-                            value={formData[field.placeholder] || ''}
-                            onChange={handleInputChange}
-                            sx={commonFieldSx}
-                            renderValue={(selected) => selected || field.placeholder}
-                          >
-                            <MenuItem value="" disabled>{field.placeholder}</MenuItem>
-                            {field.options && field.options.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      ) : (
-                        <TextField
-                          fullWidth
-                          required={field.required}
-                          variant="outlined"
-                          label={field.placeholder}
-                          type={field.type}
-                          size="medium"
-                          name={field.placeholder}
-                          value={formData[field.placeholder] || ''}
-                          onChange={handleInputChange}
-                          sx={commonFieldSx}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </motion.div>
-
-                {formFields.map((field, index) => (
+              <fieldset disabled={loading} style={{ border: 0, width: '100%', padding: 0, margin: 0, opacity: loading ? 0.6 : 1 }}>
+                <div className="space-y-2 xs:space-y-4">
+                  {/* Name Fields Column */}
                   <motion.div
-                    key={index}
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1, duration: 0.6 }}
-                    className="group"
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                    className="flex flex-col gap-2"
                   >
-                    {/* Wrap conditional in fragment to ensure single parent */}
-                    <>
-                      {field.type === 'select' ? (
-                        <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
-                          <Select
-                            displayEmpty
+                    {nameFields.map((field, idx) => (
+                      <div className="flex-1 min-w-0" key={field.placeholder}>
+                        {field.type === 'select' ? (
+                          <FormControl fullWidth required={field.required}>
+                            <Select
+                              displayEmpty
+                              name={field.placeholder}
+                              value={formData[field.placeholder] || ''}
+                              onChange={handleInputChange}
+                              sx={commonFieldSx}
+                              renderValue={(selected) => selected || field.placeholder}
+                            >
+                              <MenuItem value="" disabled>{field.placeholder}</MenuItem>
+                              {field.options && field.options.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            required={field.required}
+                            variant="outlined"
+                            label={field.placeholder}
+                            type={field.type}
+                            size="medium"
                             name={field.placeholder}
                             value={formData[field.placeholder] || ''}
                             onChange={handleInputChange}
                             sx={commonFieldSx}
-                            renderValue={(selected) => selected || field.placeholder}
-                          >
-                            <MenuItem value="" disabled>{field.placeholder}</MenuItem>
-                            {field.options && field.options.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      ) : (
-                        <TextField
-                          fullWidth
-                          required={field.required}
-                          variant="outlined"
-                          label={field.placeholder}
-                          // placeholder={field.placeholder}
-                          type={field.type}
-                          size="medium"
-                          name={field.placeholder}
-                          value={formData[field.placeholder] || ''}
-                          onChange={handleInputChange}
-                          sx={commonFieldSx}
-                        />
-                      )}
-                    </>
-                  </motion.div>
-                ))}
-
-                {/* College Details Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2, duration: 0.6 }}
-                  className="space-y-2 xs:space-y-4"
-                >
-                  <Typography variant="h6" className="font-medium text-[#311188]">
-                    College Details
-                  </Typography>
-                  {collegeFields.map((field, index) => (
-                    <div className="space-y-2 xs:space-y-4" key={index}>
-                      {field.placeholder === 'University Name' ? (
-                        <>
-                          <Autocomplete
-                            options={[...universityOptions.filter(u => u !== 'Others'), 'Others']}
-                            value={formData['University Name'] || ''}
-                            onChange={(_, newValue) => {
-                              if (newValue === 'Others') {
-                                setCustomUniversity('');
-                                handleInputChange({ target: { name: 'University Name', value: 'Others' } });
-                              } else {
-                                setCustomUniversity('');
-                                handleInputChange({ target: { name: 'University Name', value: newValue } });
-                              }
-                            }}
-                            filterOptions={(options, params) => {
-                              const filtered = filter(options, params);
-                              const filteredNoDup = filtered.filter((v, i, arr) => v !== 'Others' || arr.indexOf('Others') === i);
-                              if (
-                                params.inputValue !== '' &&
-                                !options.some(option => option.toLowerCase() === params.inputValue.toLowerCase())
-                                && !filteredNoDup.includes('Others')
-                              ) {
-                                filteredNoDup.push('Others');
-                              }
-                              return filteredNoDup;
-                            }}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="University Name"
-                                variant="outlined"
-                                required={field.required && formData['University Name'] !== 'Others'}
-                                sx={commonFieldSx}
-                              />
-                            )}
                           />
-                          {formData['University Name'] === 'Others' && (
-                            <div className="w-full mt-2">
-                              <TextField
-                                fullWidth
-                                required
-                                label="Enter your University Name"
-                                value={customUniversity}
-                                onChange={e => setCustomUniversity(e.target.value)}
-                                sx={commonFieldSx}
-                              />
-                            </div>
-                          )}
-                        </>
-                      ) : field.placeholder === 'Department' ? (
-                        <>
+                        )}
+                      </div>
+                    ))}
+                  </motion.div>
+
+                  {formFields.map((field, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1, duration: 0.6 }}
+                      className="group"
+                    >
+                      {/* Wrap conditional in fragment to ensure single parent */}
+                      <>
+                        {field.type === 'select' ? (
                           <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
                             <Select
                               displayEmpty
@@ -599,214 +509,312 @@ const Landing = () => {
                               {field.options && field.options.map((option) => (
                                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
                               ))}
-                              <MenuItem value="Others">Others</MenuItem>
                             </Select>
                           </FormControl>
-                          {formData['Department'] === 'Others' && (
-                            <div className="w-full mt-2">
-                              <TextField
-                                fullWidth
-                                required
-                                label="Enter your Department"
-                                value={customDepartment}
-                                onChange={e => setCustomDepartment(e.target.value)}
-                                sx={commonFieldSx}
-                              />
-                            </div>
-                          )}
-                        </>
-                      ) : field.placeholder === 'CGPA Score' ? (
-                        <div className="flex flex-col gap-2 w-full">
-                          <div className="flex items-center gap-4">
-                            <span className="font-medium text-[#311188]">Score Type:</span>
-                            <select
-                              value={cgpaType}
-                              onChange={e => setCgpaType(e.target.value)}
-                              className="rounded-lg border border-purple-200 px-3 py-1 text-[#311188] bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-spoof"
-                            >
-                              <option value="CGPA">CGPA</option>
-                              <option value="Percentage">Percentage</option>
-                            </select>
-                          </div>
+                        ) : (
                           <TextField
                             fullWidth
                             required={field.required}
                             variant="outlined"
-                            label={cgpaType === 'CGPA' ? 'CGPA Score' : 'Percentage'}
-                            type="number"
+                            label={field.placeholder}
+                            // placeholder={field.placeholder}
+                            type={field.type}
                             size="medium"
-                            name="CGPA Score"
-                            value={formData['CGPA Score'] || ''}
-                            onChange={handleInputChange}
-                            inputProps={{
-                              min: cgpaType === 'CGPA' ? 0 : 0,
-                              max: cgpaType === 'CGPA' ? 10 : 100,
-                              step: cgpaType === 'CGPA' ? 0.1 : 0.1,
-                            }}
-                            sx={commonFieldSx}
-                          />
-                        </div>
-                      ) : field.type === 'select' ? (
-                        <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
-                          <Select
-                            displayEmpty
                             name={field.placeholder}
                             value={formData[field.placeholder] || ''}
                             onChange={handleInputChange}
                             sx={commonFieldSx}
-                            renderValue={(selected) => selected || field.placeholder}
-                          >
-                            <MenuItem value="" disabled>{field.placeholder}</MenuItem>
-                            {field.options && field.options.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      ) : field.type === 'number' ? (
-                        <TextField
-                          fullWidth
-                          required={field.required}
-                          variant="outlined"
-                          label={field.placeholder}
-                          // placeholder={field.placeholder}
-                          type="number"
-                          size="medium"
-                          name={field.placeholder}
-                          value={formData[field.placeholder] || ''}
-                          onChange={handleInputChange}
-                          inputProps={{
-                            min: field.min,
-                            max: field.max,
-                            step: field.step || 0.1,
-                          }}
-                          sx={commonFieldSx}
-                        />
-                      ) : (
-                        <TextField
-                          fullWidth
-                          required={field.required}
-                          variant="outlined"
-                          label={field.placeholder}
-                          // placeholder={field.placeholder}
-                          type={field.type}
-                          size="medium"
-                          name={field.placeholder}
-                          value={formData[field.placeholder] || ''}
-                          onChange={handleInputChange}
-                          sx={commonFieldSx}
-                        />
-                      )}
-                    </div>
+                          />
+                        )}
+                      </>
+                    </motion.div>
                   ))}
-                </motion.div>
 
-                {/* Resume field */}
-                <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + formFields.length * 0.1 + collegeFields.length * 0.1, duration: 0.6 }}
-                  className="group"
-                >
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    label="Resume (URL)"
-                    // placeholder="Resume (URL)"
-                    type="url"
-                    size="medium"
-                    name="Resume"
-                    value={formData['Resume'] || ''}
-                    onChange={handleInputChange}
-                    sx={commonFieldSx}
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.5, duration: 0.6 }}
-                >
-                  <FormControl component="fieldset" className="w-full">
-                    <FormLabel component="legend" className="text-[#311188] font-semibold mb-2 text-base font-spoof mt-2 pb-2">
-                      Do you have professional experience?
-                    </FormLabel>
-                    <RadioGroup
-                      row
-                      value={hasExperience}
-                      onChange={(e) => setHasExperience(e.target.value)}
-                      className="justify-start space-x-4 xs:space-x-8 mt-2 pb-2"
-                    >
-                      <FormControlLabel
-                        value="yes"
-                        control={
-                          <Radio
-                            sx={{
-                              color: '#311188',
-                              '&.Mui-checked': {
-                                color: '#311188'
-                              }
-                            }}
-                          />
-                        }
-                        label="Yes"
-                        className="text-[#311188] text-base font-spoof"
-                      />
-                      <FormControlLabel
-                        value="no"
-                        control={
-                          <Radio
-                            sx={{
-                              color: '#311188',
-                              '&.Mui-checked': {
-                                color: '#311188'
-                              }
-                            }}
-                          />
-                        }
-                        label="No"
-                        className="text-[#311188] text-base font-spoof"
-                      />
-                    </RadioGroup>
-                    {hasExperience === 'yes' && (
-                      <div
-                        className="space-y-2 xs:space-y-4"
-                      >
-                        <Typography variant="h6" className="text-[#311188] font-semibold mt-2 xs:mt-4 mb-2 xs:mb-3 font-spoof text-base xs:text-lg mt-4 pb-2">
-                          Professional Experience
-                        </Typography>
-                        {experienceFields.map((field, index) => (
-                          <div className="space-y-2 xs:space-y-4" key={index}>
+                  {/* College Details Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2, duration: 0.6 }}
+                    className="space-y-2 xs:space-y-4"
+                  >
+                    <Typography variant="h6" className="font-medium text-[#311188]">
+                      College Details
+                    </Typography>
+                    {collegeFields.map((field, index) => (
+                      <div className="space-y-2 xs:space-y-4" key={index}>
+                        {field.placeholder === 'University Name' ? (
+                          <>
+                            <Autocomplete
+                              options={[...universityOptions.filter(u => u !== 'Others'), 'Others']}
+                              value={formData['University Name'] || ''}
+                              onChange={(_, newValue) => {
+                                if (newValue === 'Others') {
+                                  setCustomUniversity('');
+                                  handleInputChange({ target: { name: 'University Name', value: 'Others' } });
+                                } else {
+                                  setCustomUniversity('');
+                                  handleInputChange({ target: { name: 'University Name', value: newValue } });
+                                }
+                              }}
+                              filterOptions={(options, params) => {
+                                const filtered = filter(options, params);
+                                const filteredNoDup = filtered.filter((v, i, arr) => v !== 'Others' || arr.indexOf('Others') === i);
+                                if (
+                                  params.inputValue !== '' &&
+                                  !options.some(option => option.toLowerCase() === params.inputValue.toLowerCase())
+                                  && !filteredNoDup.includes('Others')
+                                ) {
+                                  filteredNoDup.push('Others');
+                                }
+                                return filteredNoDup;
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="University Name"
+                                  variant="outlined"
+                                  required={field.required && formData['University Name'] !== 'Others'}
+                                  sx={commonFieldSx}
+                                />
+                              )}
+                            />
+                            {formData['University Name'] === 'Others' && (
+                              <div className="w-full mt-2">
+                                <TextField
+                                  fullWidth
+                                  required
+                                  label="Enter your University Name"
+                                  value={customUniversity}
+                                  onChange={e => setCustomUniversity(e.target.value)}
+                                  sx={commonFieldSx}
+                                />
+                              </div>
+                            )}
+                          </>
+                        ) : field.placeholder === 'Department' ? (
+                          <>
+                            <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
+                              <Select
+                                displayEmpty
+                                name={field.placeholder}
+                                value={formData[field.placeholder] || ''}
+                                onChange={handleInputChange}
+                                sx={commonFieldSx}
+                                renderValue={(selected) => selected || field.placeholder}
+                              >
+                                <MenuItem value="" disabled>{field.placeholder}</MenuItem>
+                                {field.options && field.options.map((option) => (
+                                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                                ))}
+                                <MenuItem value="Others">Others</MenuItem>
+                              </Select>
+                            </FormControl>
+                            {formData['Department'] === 'Others' && (
+                              <div className="w-full mt-2">
+                                <TextField
+                                  fullWidth
+                                  required
+                                  label="Enter your Department"
+                                  value={customDepartment}
+                                  onChange={e => setCustomDepartment(e.target.value)}
+                                  sx={commonFieldSx}
+                                />
+                              </div>
+                            )}
+                          </>
+                        ) : field.placeholder === 'CGPA Score' ? (
+                          <div className="flex flex-col gap-2 w-full">
+                            <div className="flex items-center gap-4">
+                              <span className="font-medium text-[#311188]">Score Type:</span>
+                              <select
+                                value={cgpaType}
+                                onChange={e => setCgpaType(e.target.value)}
+                                className="rounded-lg border border-purple-200 px-3 py-1 text-[#311188] bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-spoof"
+                              >
+                                <option value="CGPA">CGPA</option>
+                                <option value="Percentage">Percentage</option>
+                              </select>
+                            </div>
                             <TextField
                               fullWidth
+                              required={field.required}
                               variant="outlined"
-                              // placeholder={field.placeholder}
-                              label={field.placeholder}
-                              type={field.type}
+                              label={cgpaType === 'CGPA' ? 'CGPA Score' : 'Percentage'}
+                              type="number"
                               size="medium"
-                              name={field.placeholder}
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <motion.div
-                                      className="text-[#311188] ml-2"
-                                      whileHover={{ rotate: 360, scale: 1.2 }}
-                                      transition={{ duration: 0.5 }}
-                                    >
-                                      {field.icon}
-                                    </motion.div>
-                                  </InputAdornment>
-                                ),
+                              name="CGPA Score"
+                              value={formData['CGPA Score'] || ''}
+                              onChange={handleInputChange}
+                              inputProps={{
+                                min: cgpaType === 'CGPA' ? 0 : 0,
+                                max: cgpaType === 'CGPA' ? 10 : 100,
+                                step: cgpaType === 'CGPA' ? 0.1 : 0.1,
                               }}
                               sx={commonFieldSx}
                             />
                           </div>
-                        ))}
+                        ) : field.type === 'select' ? (
+                          <FormControl fullWidth required={field.required} sx={{ mb: 0 }}>
+                            <Select
+                              displayEmpty
+                              name={field.placeholder}
+                              value={formData[field.placeholder] || ''}
+                              onChange={handleInputChange}
+                              sx={commonFieldSx}
+                              renderValue={(selected) => selected || field.placeholder}
+                            >
+                              <MenuItem value="" disabled>{field.placeholder}</MenuItem>
+                              {field.options && field.options.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : field.type === 'number' ? (
+                          <TextField
+                            fullWidth
+                            required={field.required}
+                            variant="outlined"
+                            label={field.placeholder}
+                            // placeholder={field.placeholder}
+                            type="number"
+                            size="medium"
+                            name={field.placeholder}
+                            value={formData[field.placeholder] || ''}
+                            onChange={handleInputChange}
+                            inputProps={{
+                              min: field.min,
+                              max: field.max,
+                              step: field.step || 0.1,
+                            }}
+                            sx={commonFieldSx}
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            required={field.required}
+                            variant="outlined"
+                            label={field.placeholder}
+                            // placeholder={field.placeholder}
+                            type={field.type}
+                            size="medium"
+                            name={field.placeholder}
+                            value={formData[field.placeholder] || ''}
+                            onChange={handleInputChange}
+                            sx={commonFieldSx}
+                          />
+                        )}
                       </div>
-                    )}
-                  </FormControl>
-                </motion.div>
+                    ))}
+                  </motion.div>
 
-              </div>
+                  {/* Resume field */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + formFields.length * 0.1 + collegeFields.length * 0.1, duration: 0.6 }}
+                    className="group"
+                  >
+                    <TextField
+                      fullWidth
+                      variant="outlined"
+                      label="Resume (URL)"
+                      // placeholder="Resume (URL)"
+                      type="url"
+                      size="medium"
+                      name="Resume"
+                      value={formData['Resume'] || ''}
+                      onChange={handleInputChange}
+                      sx={commonFieldSx}
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.5, duration: 0.6 }}
+                  >
+                    <FormControl component="fieldset" className="w-full">
+                      <FormLabel component="legend" className="text-[#311188] font-semibold mb-2 text-base font-spoof mt-2 pb-2">
+                        Do you have professional experience?
+                      </FormLabel>
+                      <RadioGroup
+                        row
+                        value={hasExperience}
+                        onChange={(e) => setHasExperience(e.target.value)}
+                        className="justify-start space-x-4 xs:space-x-8 mt-2 pb-2"
+                      >
+                        <FormControlLabel
+                          value="yes"
+                          control={
+                            <Radio
+                              sx={{
+                                color: '#311188',
+                                '&.Mui-checked': {
+                                  color: '#311188'
+                                }
+                              }}
+                            />
+                          }
+                          label="Yes"
+                          className="text-[#311188] text-base font-spoof"
+                        />
+                        <FormControlLabel
+                          value="no"
+                          control={
+                            <Radio
+                              sx={{
+                                color: '#311188',
+                                '&.Mui-checked': {
+                                  color: '#311188'
+                                }
+                              }}
+                            />
+                          }
+                          label="No"
+                          className="text-[#311188] text-base font-spoof"
+                        />
+                      </RadioGroup>
+                      {hasExperience === 'yes' && (
+                        <div
+                          className="space-y-2 xs:space-y-4"
+                        >
+                          <Typography variant="h6" className="text-[#311188] font-semibold mt-2 xs:mt-4 mb-2 xs:mb-3 font-spoof text-base xs:text-lg mt-4 pb-2">
+                            Professional Experience
+                          </Typography>
+                          {experienceFields.map((field, index) => (
+                            <div className="space-y-2 xs:space-y-4" key={index}>
+                              <TextField
+                                fullWidth
+                                variant="outlined"
+                                // placeholder={field.placeholder}
+                                label={field.placeholder}
+                                type={field.type}
+                                size="medium"
+                                name={field.placeholder}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <motion.div
+                                        className="text-[#311188] ml-2"
+                                        whileHover={{ rotate: 360, scale: 1.2 }}
+                                        transition={{ duration: 0.5 }}
+                                      >
+                                        {field.icon}
+                                      </motion.div>
+                                    </InputAdornment>
+                                  ),
+                                }}
+                                sx={commonFieldSx}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </FormControl>
+                  </motion.div>
+
+                </div>
+              </fieldset>
 
               {/* Spacer to push button to bottom */}
               {message && <div className="text-green-600 text-center font-bold mb-2">{message}<br /><span className="text-xs font-normal">Please wait for admin approval. You will receive your credentials by email.</span></div>}
