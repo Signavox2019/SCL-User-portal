@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SignavoxLogo from '../assets/snignavox_icon.png';
 import {
@@ -13,7 +14,8 @@ import {
   Group as UsersIcon,
   School as BatchIcon,
   Person as ProfessorsIcon,
-  Support as TicketsIcon
+  Support as TicketsIcon,
+  Assignment as SupportTicketsIcon
 } from '@mui/icons-material';
 
 import Layout from './Layout'; // adjust path as needed
@@ -22,10 +24,10 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import BaseUrl from '../Api';
 import NotificationBell from './NotificationBell';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import dashboardPreloader from '../services/DashboardPreloader';
-import { clearValidationCache } from './ProtectedRoute';
+import { Person as PersonIcon, Logout as LogoutIcon, Description as DescriptionIcon } from '@mui/icons-material';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -54,6 +56,27 @@ const DashboardLayout = ({ children }) => {
     });
   }, []);
 
+  // Ensure we have the latest user data from the API (for firstName and more)
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await axios.get(`${BaseUrl}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const me = res?.data?.user;
+        if (me) {
+          setUser(me);
+          try { localStorage.setItem('user', JSON.stringify(me)); } catch {}
+        }
+      } catch (e) {
+        // Silently ignore; fallback to localStorage value
+      }
+    };
+    fetchMe();
+  }, []);
+
   // Listen for profile updates from other components
   useEffect(() => {
     const handleUserProfileUpdate = (event) => {
@@ -73,7 +96,10 @@ const DashboardLayout = ({ children }) => {
     // Only show Progress if not support
     ...(user?.role !== 'support' ? [{ label: 'Progress', icon: <ProgressIcon fontSize="medium" />, path: '/progress' }] : []),
     { label: 'Events', icon: <EventsIcon fontSize="medium" />, path: '/events' },
-    { label: 'Tickets', icon: <TicketsIcon fontSize="medium" />, path: '/tickets' },
+    // Hide general Tickets for support; they should see only My Assigned Tickets
+    ...(user?.role !== 'support' ? [{ label: 'Tickets', icon: <TicketsIcon fontSize="medium" />, path: '/tickets' }] : []),
+    // Show Support Tickets only for support role users
+    ...(user?.role === 'support' ? [{ label: 'Tickets', icon: <SupportTicketsIcon fontSize="medium" />, path: '/support-tickets' }] : []),
   ];
   if (user?.role === 'admin') {
     navItems = [
@@ -117,11 +143,33 @@ const DashboardLayout = ({ children }) => {
   const handleLogout = () => {
     // Clear preloader cache before logout
     dashboardPreloader.clearCache();
-    // Clear validation cache
-    clearValidationCache();
     localStorage.clear();
     handleClose();
     navigate('/login', { replace: true });
+  };
+
+  const handleOpenOffer = async () => {
+    try {
+      if (!user?._id) {
+        toast.error('User not found');
+        return;
+      }
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${BaseUrl}/users/${user._id}/offer-letter`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const url = res?.data?.url;
+      if (url) {
+        window.open(url, '_blank');
+        toast.success('Opening offer letter...');
+      } else {
+        toast.info('No offer letter available');
+      }
+    } catch (e) {
+      toast.error('Failed to open offer letter');
+    } finally {
+      handleClose();
+    }
   };
 
   return (
@@ -141,19 +189,7 @@ const DashboardLayout = ({ children }) => {
       />
       <div className="min-h-screen w-full flex relative">
         {/* Animated, Large, Low-Opacity Logo Background for Dashboard */}
-        {/* <img
-          src={SignavoxLogo}
-          alt="Signavox Logo Watermark"
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 hidden md:block animate-dashboard-logo-float"
-          style={{
-            width: '55vw',
-            maxWidth: 600,
-            minWidth: 300,
-            opacity: 0.07,
-            filter: 'drop-shadow(0 0 80px #a78bfa) drop-shadow(0 0 32px #f472b6)',
-          }}
-          draggable={false}
-        /> */}
+        
         {/* Sidebar */}
         <aside
           className={`
@@ -249,9 +285,9 @@ const DashboardLayout = ({ children }) => {
             <div className="flex items-center gap-4 ml-auto relative">
               {/* NotificationBell Component */}
               <NotificationBell userId={user?._id} sidebarOpen={sidebarOpen} />
-              {/* Profile Dropdown */}
+              {/* Single clickable control: avatar + welcome */}
               <button
-                className="p-2 rounded-full bg-gradient-to-br from-purple-400/20 to-purple-900/10 hover:bg-purple-400/30 transition-all shadow-lg focus:outline-none"
+                className="flex items-center gap-3 px-3 py-2 rounded-full bg-gradient-to-br from-purple-400/20 to-purple-900/10 hover:bg-purple-400/30 transition-all shadow-lg focus:outline-none"
                 onClick={handleProfileMenu}
                 aria-controls={open ? 'profile-menu' : undefined}
                 aria-haspopup="true"
@@ -266,6 +302,11 @@ const DashboardLayout = ({ children }) => {
                 ) : (
                   <AccountCircleIcon className="text-cyan-200" style={{ fontSize: '2rem' }} />
                 )}
+                {user?.firstName && (
+                  <span className="hidden sm:block text-white font-semibold truncate max-w-[14rem]" title={`Welcome, ${user.firstName}`}>
+                    Welcome, {user.firstName}!
+                  </span>
+                )}
               </button>
               <Menu
                 id="profile-menu"
@@ -277,9 +318,35 @@ const DashboardLayout = ({ children }) => {
                 }}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                PaperProps={{
+                  style: {
+                    marginLeft: 18,
+                    marginTop: 5,
+                    minWidth: 190,
+                    background: 'rgba(255,255,255,0.08)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(168,85,247,0.3)',
+                    borderRadius: 12,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                    color: 'white',
+                    textAlign: 'center'
+                  },
+                }}
               >
-                <MenuItem onClick={() => { handleClose(); navigate('/profile'); }}>Profile</MenuItem>
-                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                <MenuItem onClick={() => { handleClose(); navigate('/profile'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 16px' }}>
+                  <PersonIcon fontSize="small" />
+                  <span>Profile</span>
+                </MenuItem>
+                <div style={{ height: 1, background: 'rgba(168,85,247,0.3)' }} />
+                <MenuItem onClick={handleOpenOffer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 16px' }}>
+                  <DescriptionIcon fontSize="small" />
+                  <span>Offer</span>
+                </MenuItem>
+                <div style={{ height: 1, background: 'rgba(168,85,247,0.3)' }} />
+                <MenuItem onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 16px' }}>
+                  <LogoutIcon fontSize="small" />
+                  <span>Logout</span>
+                </MenuItem>
               </Menu>
             </div>
           </header>

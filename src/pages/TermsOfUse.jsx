@@ -33,9 +33,26 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import SignavoxLogo from '../assets/snignavox_icon.png';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Card,
+  CardContent,
+  Grid,
+  Typography,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const TermsOfUse = () => {
   const navigate = useNavigate();
+
+  const [expanded, setExpanded] = React.useState(false);
+
+  const handleChange = (panel) => (event, isExpanded) => {
+    setExpanded(isExpanded ? panel : false);
+  };
 
   const termsContent = {
     title: "Terms of Use",
@@ -329,161 +346,904 @@ const TermsOfUse = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-2 relative z-10">
-        
-        {/* Main Terms Sections */}
-        <div className="mb-8 sm:mb-10">
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Terms & Conditions</h2>
-            <p className="text-purple-200 text-lg max-w-3xl mx-auto">
-              Essential terms that govern your use of our platform
-            </p>
-          </div>
+        {/* Accordion Container */}
+        <Box sx={{ 
+          '& .MuiAccordion-root': {
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            marginBottom: '16px',
+            '&:before': { display: 'none' },
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.1)',
+              transform: 'scale(1.01)',
+              transition: 'all 0.3s ease',
+            },
+          },
+          '& .MuiAccordionSummary-root': {
+            background: 'transparent',
+            borderRadius: '16px',
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.05)',
+            },
+          },
+          '& .MuiAccordionDetails-root': {
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '0 0 16px 16px',
+          },
+        }}>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {termsContent.mainSections.map((section, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 hover:shadow-2xl transition-all duration-300 group transform hover:scale-[1.01]"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {section.icon}
-                  </div>
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{section.title}</h3>
-                </div>
-                <ul className="space-y-3">
-                  {section.content.map((item, itemIndex) => (
-                    <li key={itemIndex} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0"></div>
-                      <span className="text-purple-200 leading-relaxed text-sm sm:text-base">{item}</span>
-                    </li>
+          {/* Acceptance of Terms */}
+          <Accordion expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CheckCircleIcon sx={{ color: '#34d399' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Acceptance of Terms
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[0].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#a78bfa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
                   ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-        {/* User Rights & Responsibilities */}
-        <div className="mb-8 sm:mb-10">
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Your Rights & Responsibilities</h2>
-            <p className="text-purple-200 text-lg max-w-3xl mx-auto">
-              Understanding what you can expect and what we expect from you
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {termsContent.userRights.map((section, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 hover:shadow-2xl transition-all duration-300 group transform hover:scale-[1.01]"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {section.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{section.title}</h3>
-                    <p className="text-purple-200 text-sm sm:text-base">{section.description}</p>
-                  </div>
-                </div>
-                <ul className="space-y-3">
-                  {(section.rights || section.responsibilities || []).map((item, itemIndex) => (
-                    <li key={itemIndex} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0"></div>
-                      <span className="text-purple-200 leading-relaxed text-sm sm:text-base">{item}</span>
-                    </li>
+          {/* Service Description */}
+          <Accordion expanded={expanded === 'panel2'} onChange={handleChange('panel2')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <SchoolIcon sx={{ color: '#60a5fa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Service Description
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[1].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#60a5fa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
                   ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-        {/* Detailed Information Sections */}
-        <div className="mb-8 sm:mb-10">
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Detailed Information</h2>
-            <p className="text-purple-200 text-lg max-w-3xl mx-auto">
-              Comprehensive details about our terms and policies
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {termsContent.detailedSections.map((section, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 hover:shadow-2xl transition-all duration-300 group transform hover:scale-[1.01]"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {section.icon}
-                  </div>
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{section.title}</h3>
-                </div>
-                <ul className="space-y-3">
-                  {section.content.map((item, itemIndex) => (
-                    <li key={itemIndex} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0"></div>
-                      <span className="text-purple-200 leading-relaxed text-sm sm:text-base">{item}</span>
-                    </li>
+          {/* User Registration & Accounts */}
+          <Accordion expanded={expanded === 'panel3'} onChange={handleChange('panel3')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <PersonIcon sx={{ color: '#a78bfa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  User Registration & Accounts
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[2].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#a78bfa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
                   ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* User Conduct & Responsibilities */}
+          <Accordion expanded={expanded === 'panel4'} onChange={handleChange('panel4')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <VerifiedUserIcon sx={{ color: '#fb923c' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  User Conduct & Responsibilities
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[3].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#fb923c',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Prohibited Activities */}
+          <Accordion expanded={expanded === 'panel5'} onChange={handleChange('panel5')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <BlockIcon sx={{ color: '#ef4444' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Prohibited Activities
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[4].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#ef4444',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Intellectual Property Rights */}
+          <Accordion expanded={expanded === 'panel6'} onChange={handleChange('panel6')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CopyrightIcon sx={{ color: '#ec4899' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Intellectual Property Rights
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.mainSections[5].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#ec4899',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Payment Terms & Refunds */}
+          <Accordion expanded={expanded === 'panel7'} onChange={handleChange('panel7')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <PaymentIcon sx={{ color: '#34d399' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Payment Terms & Refunds
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[0].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#34d399',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Privacy & Data Protection */}
+          <Accordion expanded={expanded === 'panel8'} onChange={handleChange('panel8')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <LockIcon sx={{ color: '#60a5fa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Privacy & Data Protection
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[1].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#60a5fa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Service Availability & Limitations */}
+          <Accordion expanded={expanded === 'panel9'} onChange={handleChange('panel9')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <SpeedIcon sx={{ color: '#a78bfa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Service Availability & Limitations
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[2].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#a78bfa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* User-Generated Content */}
+          <Accordion expanded={expanded === 'panel10'} onChange={handleChange('panel10')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <AssignmentIcon sx={{ color: '#fb923c' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  User-Generated Content
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[3].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#fb923c',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Third-Party Services & Links */}
+          <Accordion expanded={expanded === 'panel11'} onChange={handleChange('panel11')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <PublicIcon sx={{ color: '#ec4899' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Third-Party Services & Links
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[4].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#ec4899',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Termination & Account Suspension */}
+          <Accordion expanded={expanded === 'panel12'} onChange={handleChange('panel12')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CancelIcon sx={{ color: '#ef4444' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Termination & Account Suspension
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[5].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#ef4444',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Disclaimers & Limitations of Liability */}
+          <Accordion expanded={expanded === 'panel13'} onChange={handleChange('panel13')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <WarningIcon sx={{ color: '#eab308' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Disclaimers & Limitations of Liability
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[6].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#eab308',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Governing Law & Dispute Resolution */}
+          <Accordion expanded={expanded === 'panel14'} onChange={handleChange('panel14')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <GavelIcon sx={{ color: '#6366f1' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Governing Law & Dispute Resolution
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[7].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#6366f1',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Changes to Terms */}
+          <Accordion expanded={expanded === 'panel15'} onChange={handleChange('panel15')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <UpdateIcon sx={{ color: '#14b8a6' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Changes to Terms
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {termsContent.detailedSections[8].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#14b8a6',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
 
         {/* Contact Information */}
-        <div className="mt-8 sm:mt-10">
-          <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl p-6 sm:p-8 border border-green-400/30 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01]">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center">
-                <ContactSupportIcon className="text-green-400 text-2xl" />
-              </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{termsContent.contactInfo.title}</h2>
-                <p className="text-purple-200 text-sm sm:text-base">{termsContent.contactInfo.description}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <InfoIcon className="text-blue-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Email</span>
-                </div>
-                <a href={`mailto:${termsContent.contactInfo.email}`} className="text-blue-300 hover:text-blue-400 transition-colors text-sm block font-medium">
+        <Box sx={{ mt: 4 }}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '16px',
+            backdropFilter: 'blur(10px)',
+            '&:hover': {
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              transform: 'scale(1.01)',
+              transition: 'all 0.3s ease',
+            }
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Box sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <ContactSupportIcon sx={{ color: '#22c55e', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
+                    {termsContent.contactInfo.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#e9d5ff' }}>
+                    {termsContent.contactInfo.description}
+                  </Typography>
+                </Box>
+              </Box>
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: '16px',
+                    minHeight: '120px',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 197, 253, 0.15) 100%)',
+                      transform: 'scale(1.02)',
+                      boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
+                      transition: 'all 0.3s ease',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <Box sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 197, 253, 0.3) 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        }}>
+                          <InfoIcon sx={{ color: '#3b82f6', fontSize: 24 }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          Email
+                        </Typography>
+                      </Box>
+                      <Typography 
+                        component="a" 
+                        href={`mailto:${termsContent.contactInfo.email}`}
+                        sx={{ 
+                          color: '#93c5fd', 
+                          textDecoration: 'none',
+                          fontSize: '16px',
+                          fontWeight: 'medium',
+                          display: 'block',
+                          '&:hover': {
+                            color: '#60a5fa',
+                            transition: 'color 0.3s ease',
+                          }
+                        }}
+                      >
                   {termsContent.contactInfo.email}
-                </a>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <ContactSupportIcon className="text-green-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Phone</span>
-                </div>
-                <a href={`tel:${termsContent.contactInfo.phone}`} className="text-green-300 hover:text-green-400 transition-colors text-sm block font-medium">
-                  {termsContent.contactInfo.phone}
-                </a>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <PolicyIcon className="text-purple-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Company</span>
-                </div>
-                <span className="text-purple-200 text-sm block font-medium">
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(196, 181, 253, 0.1) 100%)',
+                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                    borderRadius: '16px',
+                    minHeight: '120px',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(196, 181, 253, 0.15) 100%)',
+                      transform: 'scale(1.02)',
+                      boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.3)',
+                      transition: 'all 0.3s ease',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <Box sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(196, 181, 253, 0.3) 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
+                        }}>
+                          <PolicyIcon sx={{ color: '#a855f7', fontSize: 24 }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          Company
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ 
+                        color: '#e9d5ff', 
+                        fontSize: '16px',
+                        fontWeight: 'medium',
+                        display: 'block'
+                      }}>
                   {termsContent.contactInfo.address}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
       </div>
 
       {/* Custom Animations */}

@@ -44,6 +44,7 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showInstallmentsModal, setShowInstallmentsModal] = useState(false);
   const [offerLetterUrl, setOfferLetterUrl] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -95,6 +96,14 @@ const Profile = () => {
         position: relative !important;
         top: auto !important;
         bottom: auto !important;
+      }
+      /* Hide scrollbar for installments modal */
+      .scrollbar-hide {
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;  /* Firefox */
+      }
+      .scrollbar-hide::-webkit-scrollbar { 
+        display: none;  /* Safari and Chrome */
       }
     `;
     document.head.appendChild(style);
@@ -234,6 +243,10 @@ const Profile = () => {
     if (offerLetterUrl) {
       window.open(offerLetterUrl, '_blank');
     }
+  };
+
+  const handleViewInstallments = () => {
+    setShowInstallmentsModal(true);
   };
 
   const getFieldDisplayName = (fieldName) => {
@@ -737,9 +750,26 @@ const Profile = () => {
               </div>
             </div>
             <div className="space-y-4">
-              {renderFormField('Course Amount', 'amount.finalAmount', 'text', '', true, <PaymentIcon />)}
-              {renderFormField('Paid Amount', 'amount.paidAmount', 'text', '', true, <PaymentIcon />)}
+              {renderFormField('Course Amount', 'amount.courseAmount', 'text', '', true, <PaymentIcon />)}
+              {renderFormField('Discount', 'amount.discount', 'text', '', true, <PaymentIcon />)}
+              {renderFormField('Final Amount', 'amount.finalAmount', 'text', '', true, <PaymentIcon />)}
+              {renderFormField('Total Paid', 'amount.totalPaid', 'text', '', true, <PaymentIcon />)}
               {renderFormField('Balance Amount', 'amount.balanceAmount', 'text', '', true, <PaymentIcon />)}
+              
+              {/* Installments Button */}
+              {formData.amount && formData.amount.installments && formData.amount.installments.length > 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={handleViewInstallments}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all duration-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <span>View Installments ({formData.amount.installments.length})</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -914,6 +944,150 @@ const Profile = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Installments Modal */}
+      {showInstallmentsModal && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-[3px] transition-opacity duration-300 animate-fadeIn" style={{ zIndex: 999999 }}>
+          <div className="relative w-full max-w-4xl mx-auto min-w-[320px] bg-gradient-to-br from-[#1e1b4b]/95 to-[#0f0a1a]/98 rounded-3xl shadow-2xl border border-indigo-400/30 flex flex-col max-h-[90vh] overflow-y-auto scrollbar-hide animate-modalPop" style={{ zIndex: 999999 }}>
+            {/* Accent Header Bar */}
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-t-3xl mb-2" />
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setShowInstallmentsModal(false)}
+              className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-2 shadow-lg backdrop-blur-md hover:bg-white/20"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="flex-1 px-6 pb-6 pt-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Payment Installments</h3>
+                    <p className="text-purple-200 text-sm">Your payment history and installment details</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Payment Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 border border-blue-400/30 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-blue-200 text-sm font-medium">Final Amount</p>
+                      <p className="text-white text-lg font-bold">₹{formData.amount?.finalAmount?.toLocaleString() || '0'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-400/30 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-green-200 text-sm font-medium">Total Paid</p>
+                      <p className="text-white text-lg font-bold">₹{formData.amount?.totalPaid?.toLocaleString() || '0'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-orange-500/20 to-red-600/20 border border-orange-400/30 rounded-xl p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-orange-200 text-sm font-medium">Balance</p>
+                      <p className="text-white text-lg font-bold">₹{formData.amount?.balanceAmount?.toLocaleString() || '0'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Installments List */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-white mb-4">Installment History</h4>
+                <div className="space-y-3">
+                  {formData.amount?.installments?.map((installment, index) => (
+                    <div key={installment._id} className="bg-white/5 border border-purple-300/20 rounded-xl p-4 backdrop-blur-sm hover:bg-white/10 transition-all duration-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h5 className="text-white font-semibold">{installment.description}</h5>
+                              <p className="text-purple-200 text-sm">Reference: {installment.referenceId}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div>
+                              <p className="text-purple-300 text-sm">Amount Paid</p>
+                              <p className="text-green-400 font-bold text-lg">₹{installment.amountPaid?.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-purple-300 text-sm">Payment Date</p>
+                              <p className="text-white font-medium">
+                                {new Date(installment.dateOfPayment).toLocaleDateString('en-IN', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {installment.paymentSnapshot && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => window.open(installment.paymentSnapshot, '_blank')}
+                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg text-sm font-medium hover:scale-105 transition-all duration-200"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Payment Proof
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="ml-4">
+                          <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

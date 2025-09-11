@@ -20,6 +20,8 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   ExpandMore as ExpandMoreIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import {
   PieChart,
@@ -60,6 +62,9 @@ const Professors = () => {
   const [search, setSearch] = useState('');
   // Accordion state for modules (multiple open allowed)
   const [openModuleIndexes, setOpenModuleIndexes] = useState({});
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -233,6 +238,10 @@ const Professors = () => {
       (prof.currentOrganization && prof.currentOrganization.toLowerCase().includes(s))
     );
   });
+
+  // Pagination helpers
+  const totalPages = Math.ceil(filteredProfessors.length / rowsPerPage) || 1;
+  const paginatedProfessors = filteredProfessors.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   // Custom XAxis tick for bar chart
   const CustomBarTick = (props) => {
@@ -435,7 +444,7 @@ const Professors = () => {
                   <p className="text-purple-200/80">No faculty data available.</p>
                 </td></tr>
               ) : (
-                filteredProfessors.map((prof, idx) => (
+                paginatedProfessors.map((prof, idx) => (
                   <tr key={prof._id + idx} className="hover:bg-purple-500/30 transition-all duration-200 border-b border-white/10 last:border-b-0">
                     <td className="px-4 py-3 font-semibold text-white tracking-wide truncate" title={prof.name}>{prof.name}</td>
                     <td className="px-4 py-3 text-blue-100 truncate" title={prof.email}>{prof.email}</td>
@@ -472,6 +481,50 @@ const Professors = () => {
             </tbody>
           </table>
         </div>
+        {/* Pagination below table */}
+        {filteredProfessors.length > 0 && (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-2 py-4 bg-transparent relative z-0 mt-4">
+            <div className="flex-1" />
+            <div className="flex flex-wrap items-center gap-6 justify-end w-full">
+              {/* Rows per page dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-purple-200/80 text-sm">Rows per page:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                  className="py-1 px-2 rounded bg-[#181a20] text-white border border-purple-700 text-sm"
+                >
+                  {[5, 10, 25, 50, 100].map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Showing text */}
+              <span className="text-purple-200/80 text-sm">
+                Showing {filteredProfessors.length === 0 ? 0 : ((page - 1) * rowsPerPage + 1)}-
+                {Math.min(page * rowsPerPage, filteredProfessors.length)} of {filteredProfessors.length} professors
+              </span>
+              {/* Pagination */}
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeftIcon />
+                </button>
+                <span className="text-purple-200/80 text-sm">{page} / {totalPages}</span>
+                <button
+                  className="p-0.5 rounded-full hover:bg-purple-300 text-white shadow-md transition-transform hover:scale-110 disabled:opacity-40"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRightIcon />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal for professor details */}

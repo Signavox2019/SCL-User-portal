@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BaseUrl from '../Api';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -23,13 +23,6 @@ const CourseDetails = () => {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
-  const [enrollForm, setEnrollForm] = useState({
-    amountPaid: course?.price?.amount || '',
-    paymentMethod: 'Razorpay',
-    transactionId: '',
-    paymentStatus: 'Success',
-    receiptUrl: ''
-  });
   const [profModalOpen, setProfModalOpen] = useState(false);
   const [professors, setProfessors] = useState([]);
   const [profLoading, setProfLoading] = useState(false);
@@ -38,8 +31,7 @@ const CourseDetails = () => {
   const [assigning, setAssigning] = useState(false);
   const [unassigning, setUnassigning] = useState(false);
 
-  const paymentMethods = ['Razorpay', 'Stripe', 'PayPal', 'Other'];
-  const paymentStatuses = ['Success', 'Pending', 'Failed'];
+  
 
   // Add a function to refetch course details
   const refetchCourse = async () => {
@@ -111,9 +103,7 @@ const CourseDetails = () => {
     fetchCourse();
   }, [courseId]);
 
-  useEffect(() => {
-    setEnrollForm(f => ({ ...f, amountPaid: course?.price?.amount || '' }));
-  }, [course]);
+  
 
   // Fetch professors for admin assignment
   useEffect(() => {
@@ -129,26 +119,23 @@ const CourseDetails = () => {
     }
   }, [profModalOpen]);
 
-  const handleEnrollFieldChange = (e) => {
-    const { name, value } = e.target;
-    setEnrollForm(f => ({ ...f, [name]: value }));
-  };
+  
 
-  const handleEnrollSubmit = async (e) => {
-    e.preventDefault();
+  // Simple confirmation-based enrollment (no fields)
+  const handleEnrollConfirm = async () => {
     setEnrolling(true);
     try {
       const user = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
       const payload = {
         userId: user?._id,
         courseId: course._id,
-        amountPaid: Number(enrollForm.amountPaid),
-        paymentMethod: enrollForm.paymentMethod,
-        transactionId: enrollForm.transactionId,
-        paymentStatus: enrollForm.paymentStatus,
-        receiptUrl: enrollForm.receiptUrl
+        amountPaid: 0,
+        paymentMethod: 'Razorpay',
+        transactionId: `CONF-${Date.now()}`,
+        paymentStatus: 'Success',
+        receiptUrl: ''
       };
-      const token = localStorage.getItem('token');
       const res = await fetch(`${BaseUrl}/enrollments`, {
         method: 'POST',
         headers: {
@@ -162,7 +149,6 @@ const CourseDetails = () => {
       toast.success('Enrolled successfully!');
       setEnrollModalOpen(false);
       setIsEnrolled(true);
-      // Optionally refresh details
       try { await refetchCourse(); } catch {}
     } catch (err) {
       toast.error(err.message);
@@ -219,7 +205,11 @@ const CourseDetails = () => {
     }
   };
 
-  if (loading) return <div className="flex justify-center items-center h-96"><CircularProgress /></div>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-96">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500"></div>
+    </div>
+  );
   if (!course) return <div className="text-center text-red-400 font-bold py-10 w-full">Course not found.</div>;
 
   const user = getUser();
@@ -256,12 +246,7 @@ const CourseDetails = () => {
                   <span key={idx} className="bg-purple-700/40 text-purple-200 px-2 py-0.5 rounded-full text-base font-semibold">#{tag}</span>
                 ))}
               </div>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-pink-300 font-bold text-2xl">{course.isFree ? 'Free' : `₹${course.price?.amount}`}</span>
-                {course.price?.discountPercent > 0 && !course.isFree && (
-                  <span className="ml-2 px-2 py-0.5 bg-purple-900/40 text-purple-200 rounded-full border border-white/10 font-semibold text-xs">{course.price.discountPercent}% OFF</span>
-                )}
-              </div>
+              <div className="flex items-center gap-3 mb-4" />
             </div>
             {!isAdmin ? (
               isEnrolled ? (
@@ -385,7 +370,13 @@ const CourseDetails = () => {
         </div>
       </div>
       {/* Enroll Modal */}
-      <Dialog open={enrollModalOpen} onClose={() => setEnrollModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{
+      <Dialog open={enrollModalOpen} onClose={() => setEnrollModalOpen(false)} maxWidth="xs" fullWidth BackdropProps={{
+        sx: {
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0,0,0,0.2)'
+        }
+      }} PaperProps={{
         sx: {
           borderRadius: 4,
           background: 'linear-gradient(135deg, #2d225a 80%, #a78bfa 100%)',
@@ -397,78 +388,25 @@ const CourseDetails = () => {
         <div className="h-2 w-full bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-t-2xl mb-2" />
         <DialogTitle sx={{ color: '#fff', fontWeight: 700, fontSize: 22, pb: 1 }}>Enroll in Course</DialogTitle>
         <DialogContent sx={{ pb: 0 }}>
-          <form onSubmit={handleEnrollSubmit} className="flex flex-col gap-4 mt-2">
-            <TextField
-              label="Amount Paid"
-              name="amountPaid"
-              value={enrollForm.amountPaid}
-              onChange={handleEnrollFieldChange}
-              type="number"
-              fullWidth
-              required
-              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
-              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
-              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
-            />
-            <TextField
-              select
-              label="Payment Method"
-              name="paymentMethod"
-              value={enrollForm.paymentMethod}
-              onChange={handleEnrollFieldChange}
-              fullWidth
-              required
-              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
-              sx={{ background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2, label: { color: '#d1b3ff' } }}
-              SelectProps={{ MenuProps: { PaperProps: { sx: { background: '#2d225a', color: '#fff' } } } }}
-            >
-              {paymentMethods.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-            </TextField>
-            <TextField
-              label="Transaction ID"
-              name="transactionId"
-              value={enrollForm.transactionId}
-              onChange={handleEnrollFieldChange}
-              fullWidth
-              required
-              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
-              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
-              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
-            />
-            <TextField
-              select
-              label="Payment Status"
-              name="paymentStatus"
-              value={enrollForm.paymentStatus}
-              onChange={handleEnrollFieldChange}
-              fullWidth
-              required
-              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
-              sx={{ background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2, label: { color: '#d1b3ff' } }}
-              SelectProps={{ MenuProps: { PaperProps: { sx: { background: '#2d225a', color: '#fff' } } } }}
-            >
-              {paymentStatuses.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
-            </TextField>
-            <TextField
-              label="Receipt URL"
-              name="receiptUrl"
-              value={enrollForm.receiptUrl}
-              onChange={handleEnrollFieldChange}
-              fullWidth
-              required
-              InputLabelProps={{ style: { color: '#d1b3ff', fontWeight: 600 } }}
-              inputProps={{ style: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 8 } }}
-              sx={{ input: { background: 'rgba(88,28,135,0.25)', color: '#fff', borderRadius: 2 }, label: { color: '#d1b3ff' } }}
-            />
-            <DialogActions sx={{ justifyContent: 'flex-end', gap: 2, mt: 1 }}>
-              <Button onClick={() => setEnrollModalOpen(false)} sx={{ background: 'linear-gradient(to right, #a78bfa, #f472b6)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #f472b6, #a78bfa)' } }}>Cancel</Button>
-              <Button type="submit" variant="contained" disabled={enrolling} sx={{ background: 'linear-gradient(to right, #f472b6, #a78bfa)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' } }}>{enrolling ? 'Enrolling...' : 'Enroll'}</Button>
-            </DialogActions>
-          </form>
+          <Box sx={{ mt: 1, mb: 1 }}>
+            <Typography sx={{ color: '#d1b3ff', lineHeight: 1.8 }}>
+              Are you sure you want to enroll in <strong>{course.title}</strong>?
+            </Typography>
+          </Box>
+          <DialogActions sx={{ justifyContent: 'flex-end', gap: 2, mt: 1 }}>
+            <Button onClick={() => setEnrollModalOpen(false)} sx={{ background: 'linear-gradient(to right, #a78bfa, #f472b6)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #f472b6, #a78bfa)' } }}>Cancel</Button>
+            <Button onClick={handleEnrollConfirm} variant="contained" disabled={enrolling} sx={{ background: 'linear-gradient(to right, #f472b6, #a78bfa)', color: '#fff', fontWeight: 700, borderRadius: 2, px: 3, py: 1, '&:hover': { background: 'linear-gradient(to right, #a78bfa, #f472b6)' } }}>{enrolling ? 'Enrolling...' : 'Confirm Enroll'}</Button>
+          </DialogActions>
         </DialogContent>
       </Dialog>
       {/* Professor Assignment Modal */}
-      <Dialog open={profModalOpen} onClose={() => setProfModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{
+      <Dialog open={profModalOpen} onClose={() => setProfModalOpen(false)} maxWidth="xs" fullWidth BackdropProps={{
+        sx: {
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0,0,0,0.2)'
+        }
+      }} PaperProps={{
         sx: {
           borderRadius: 4,
           background: 'linear-gradient(135deg, #2d225a 80%, #a78bfa 100%)',

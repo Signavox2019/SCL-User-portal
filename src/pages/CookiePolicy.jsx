@@ -23,12 +23,29 @@ import {
   TrackChanges as TrackChangesIcon,
   Public as PublicIcon,
   Update as UpdateIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import SignavoxLogo from '../assets/snignavox_icon.png';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Card,
+  CardContent,
+  Grid,
+  Typography,
+} from '@mui/material';
 
 const CookiePolicy = () => {
   const navigate = useNavigate();
+
+  const [expanded, setExpanded] = React.useState(false);
+
+  const handleChange = (panel) => (event, isExpanded) => {
+    setExpanded(isExpanded ? panel : false);
+  };
 
   // Cookie Policy Content - Exact content from Cookie Policy.docx
   const cookiePolicyContent = {
@@ -145,7 +162,6 @@ const CookiePolicy = () => {
       title: "Contact Us",
       description: "If you have any questions about our use of cookies or other technologies, then please email us.",
       email: "support.scl@signavoxtechnologies.com",
-      phone: "+1 (555) 123-4567",
       address: "SIGNAVOX TECHNOLOGIES PVT LTD"
     }
   };
@@ -203,119 +219,634 @@ const CookiePolicy = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-2 relative z-10">
+        {/* Accordion Container */}
+        <Box sx={{ 
+          '& .MuiAccordion-root': {
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            marginBottom: '16px',
+            '&:before': { display: 'none' },
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.1)',
+              transform: 'scale(1.01)',
+              transition: 'all 0.3s ease',
+            },
+          },
+          '& .MuiAccordionSummary-root': {
+            background: 'transparent',
+            borderRadius: '16px',
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.05)',
+            },
+          },
+          '& .MuiAccordionDetails-root': {
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '0 0 16px 16px',
+          },
+        }}>
 
         {/* Cookie Types Section */}
-        <div className="mb-8 sm:mb-10">
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Types of Cookies We Use</h2>
-            <p className="text-purple-200 text-lg max-w-3xl mx-auto">
-              We use different types of cookies to enhance your experience and provide essential functionality
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {cookiePolicyContent.cookieTypes.map((type, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 hover:shadow-2xl transition-all duration-300 group transform hover:scale-[1.01]"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {type.icon}
-                  </div>
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{type.title}</h3>
-                </div>
-                <p className="text-purple-200 text-sm sm:text-base mb-4 leading-relaxed">
-                  {type.description}
-                </p>
-                <p className="text-purple-300 text-sm sm:text-base leading-relaxed">
-                  {type.details}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Policy Sections */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Detailed Information</h2>
-            <p className="text-purple-200 text-lg max-w-3xl mx-auto">
-              Learn more about our cookie practices and your rights
-            </p>
-          </div>
-          
-          {cookiePolicyContent.sections.map((section, index) => (
-            <div
-              key={index}
-              className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 hover:shadow-2xl transition-all duration-300 group transform hover:scale-[1.01]"
+          <Accordion expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
             >
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  {section.icon}
-                </div>
-                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{section.title}</h3>
-              </div>
-              <div className="space-y-4">
-                {section.content.map((paragraph, paragraphIndex) => (
-                  <p key={paragraphIndex} className="text-purple-200 leading-relaxed text-sm sm:text-base">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CookieIcon sx={{ color: '#ef4444' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Types of Cookies We Use
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Typography variant="body2" sx={{ mb: 3, color: '#e9d5ff' }}>
+              We use different types of cookies to enhance your experience and provide essential functionality
+                </Typography>
+                <Grid container spacing={3}>
+            {cookiePolicyContent.cookieTypes.map((type, index) => (
+                    <Grid item xs={12} md={6} key={index}>
+                      <Card sx={{ 
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '12px',
+                        '&:hover': {
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          transform: 'scale(1.02)',
+                          transition: 'all 0.3s ease',
+                        }
+                      }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                            <Box sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: '50%',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                    {type.icon}
+                            </Box>
+                            <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                              {type.title}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" sx={{ color: '#e9d5ff', mb: 2, fontSize: '0.875rem' }}>
+                  {type.description}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#c4b5fd', fontSize: '0.8rem' }}>
+                  {type.details}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Policy Summary */}
+          <Accordion expanded={expanded === 'panel2'} onChange={handleChange('panel2')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <PolicyIcon sx={{ color: '#60a5fa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Policy Summary
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[0].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#60a5fa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* What are cookies? */}
+          <Accordion expanded={expanded === 'panel3'} onChange={handleChange('panel3')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CookieIcon sx={{ color: '#34d399' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  What are cookies?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[1].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#34d399',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Why does Signavox technologies use cookies? */}
+          <Accordion expanded={expanded === 'panel4'} onChange={handleChange('panel4')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <AnalyticsIcon sx={{ color: '#a78bfa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Why does Signavox technologies use cookies?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[2].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#a78bfa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* What about other tracking technologies, like web beacons? */}
+          <Accordion expanded={expanded === 'panel5'} onChange={handleChange('panel5')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <WebIcon sx={{ color: '#fb923c' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  What about other tracking technologies, like web beacons?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[3].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#fb923c',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Does Signavox allow targeted advertising? */}
+          <Accordion expanded={expanded === 'panel6'} onChange={handleChange('panel6')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CampaignIcon sx={{ color: '#ef4444' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Does Signavox allow targeted advertising?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[4].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#ef4444',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* How often will Signavox update this cookie policy? */}
+          <Accordion expanded={expanded === 'panel7'} onChange={handleChange('panel7')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <UpdateIcon sx={{ color: '#eab308' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  How often will Signavox update this cookie policy?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[5].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#eab308',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Where can I get further information? */}
+          <Accordion expanded={expanded === 'panel8'} onChange={handleChange('panel8')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <InfoIcon sx={{ color: '#60a5fa' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  Where can I get further information?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[6].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#60a5fa',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* How can I control cookies? */}
+          <Accordion expanded={expanded === 'panel9'} onChange={handleChange('panel9')}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+              sx={{ color: 'white' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CheckCircleIcon sx={{ color: '#34d399' }} />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  How can I control cookies?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ color: '#e9d5ff', lineHeight: 1.7 }}>
+                <Box component="ul" sx={{ pl: 3, spaceY: 2 }}>
+                  {cookiePolicyContent.sections[7].content.map((item, itemIndex) => (
+                    <Typography component="li" key={itemIndex} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: 2,
+                      '&::before': {
+                        content: '"•"',
+                        color: '#34d399',
+                        fontWeight: 'bold',
+                        fontSize: '1.2em',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                        marginTop: '2px'
+                      }
+                    }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
 
         {/* Contact Information */}
-        <div className="mt-8 sm:mt-10">
-          <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-2xl p-6 sm:p-8 border border-green-400/30 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01]">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center">
-                <ContactSupportIcon className="text-green-400 text-2xl" />
-              </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{cookiePolicyContent.contactInfo.title}</h2>
-                <p className="text-purple-200 text-sm sm:text-base">{cookiePolicyContent.contactInfo.description}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <InfoIcon className="text-blue-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Email</span>
-                </div>
-                <a href={`mailto:${cookiePolicyContent.contactInfo.email}`} className="text-blue-300 hover:text-blue-400 transition-colors text-sm block font-medium">
+        <Box sx={{ mt: 4 }}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '16px',
+            backdropFilter: 'blur(10px)',
+            '&:hover': {
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              transform: 'scale(1.01)',
+              transition: 'all 0.3s ease',
+            }
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Box sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <ContactSupportIcon sx={{ color: '#22c55e', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold', mb: 1 }}>
+                    {cookiePolicyContent.contactInfo.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#e9d5ff' }}>
+                    {cookiePolicyContent.contactInfo.description}
+                  </Typography>
+                </Box>
+              </Box>
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: '16px',
+                    minHeight: '120px',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 197, 253, 0.15) 100%)',
+                      transform: 'scale(1.02)',
+                      boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
+                      transition: 'all 0.3s ease',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <Box sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(147, 197, 253, 0.3) 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        }}>
+                          <InfoIcon sx={{ color: '#3b82f6', fontSize: 24 }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          Email
+                        </Typography>
+                      </Box>
+                      <Typography 
+                        component="a" 
+                        href={`mailto:${cookiePolicyContent.contactInfo.email}`}
+                        sx={{ 
+                          color: '#93c5fd', 
+                          textDecoration: 'none',
+                          fontSize: '16px',
+                          fontWeight: 'medium',
+                          display: 'block',
+                          '&:hover': {
+                            color: '#60a5fa',
+                            transition: 'color 0.3s ease',
+                          }
+                        }}
+                      >
                   {cookiePolicyContent.contactInfo.email}
-                </a>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <ContactSupportIcon className="text-green-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Phone</span>
-                </div>
-                <a href={`tel:${cookiePolicyContent.contactInfo.phone}`} className="text-green-300 hover:text-green-400 transition-colors text-sm block font-medium">
-                  {cookiePolicyContent.contactInfo.phone}
-                </a>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <PolicyIcon className="text-purple-400 text-sm" />
-                  </div>
-                  <span className="text-purple-300 font-medium text-sm">Company</span>
-                </div>
-                <span className="text-purple-200 text-sm block font-medium">
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(196, 181, 253, 0.1) 100%)',
+                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                    borderRadius: '16px',
+                    minHeight: '120px',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(196, 181, 253, 0.15) 100%)',
+                      transform: 'scale(1.02)',
+                      boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.3)',
+                      transition: 'all 0.3s ease',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <Box sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(196, 181, 253, 0.3) 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
+                        }}>
+                          <PolicyIcon sx={{ color: '#a855f7', fontSize: 24 }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          Company
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ 
+                        color: '#e9d5ff', 
+                        fontSize: '16px',
+                        fontWeight: 'medium',
+                        display: 'block'
+                      }}>
                   {cookiePolicyContent.contactInfo.address}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
       </div>
 
       {/* Custom Animations */}

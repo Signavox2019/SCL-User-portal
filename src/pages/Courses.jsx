@@ -329,23 +329,16 @@ const Courses = ({ user: userProp }) => {
                   </>
                 )}
               </div>
-              <div className="flex flex-col items-end mt-2 w-full">
-                <div className="flex items-center text-xl font-bold text-purple-200 leading-7">
-                  {course.isFree ? 'Free' : `₹${course.price.amount}`}
-                  {course.price.discountPercent > 0 && !course.isFree && (
-                    <span className="ml-2 px-2 py-0.5 bg-purple-900/40 text-purple-200 rounded-full border border-white/10 font-semibold text-base">{course.price.discountPercent}% OFF</span>
-                  )}
-                </div>
-                {/* Learn More link moved here */}
-                <a
-                  href={"/courses/" + course._id}
-                  className="inline-flex items-center gap-1 text-purple-200 font-bold hover:text-pink-400 transition-colors text-base leading-7 mt-3 justify-end w-full"
-                  style={{ fontSize: '1.15rem', lineHeight: '2rem' }}
-                  onClick={e => { e.preventDefault(); navigate(`/courses/${course._id}`); }}
-                >
-                  Learn More <ArrowForwardIosIcon style={{ fontSize: 20 }} />
-                </a>
-              </div>
+              <div className="flex flex-col items-end mt-2 w-full" />
+              {/* Learn More anchored to bottom-right of the card */}
+              <a
+                href={"/courses/" + course._id}
+                className="inline-flex items-center gap-1 text-purple-200 font-bold hover:text-pink-400 transition-colors text-base leading-7 absolute bottom-3 right-4"
+                style={{ fontSize: '1.15rem', lineHeight: '2rem' }}
+                onClick={e => { e.preventDefault(); navigate(`/courses/${course._id}`); }}
+              >
+                Learn More <ArrowForwardIosIcon style={{ fontSize: 20 }} />
+              </a>
             </div>
           </div>
         ))}
