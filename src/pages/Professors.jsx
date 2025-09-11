@@ -271,7 +271,7 @@ const Professors = () => {
   }
 
   return (
-    <div className="space-y-10 pb-10">
+    <div className="space-y-10 pb-10 no-scrollbar overflow-x-hidden">
       {/* Header Section */}
       <div className="bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-2xl p-8 shadow-2xl backdrop-blur-xl border border-white/10 flex items-center gap-6">
         <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 shadow-lg">
@@ -421,8 +421,8 @@ const Professors = () => {
             />
           </div>
         </div>
-        <div className="overflow-x-auto rounded-2xl">
-          <table className="w-full min-w-[700px] text-sm text-left text-purple-100 table-auto bg-[#32296a]">
+        <div className="rounded-2xl no-scrollbar overflow-x-hidden">
+          <table className="w-full text-sm text-left text-purple-100 table-fixed bg-[#32296a] responsive-table">
             <thead className="sticky top-0 z-10 bg-[#32296a]">
               <tr>
                 <th className="px-4 py-3 font-bold uppercase tracking-wider text-purple-200">Name</th>
@@ -537,7 +537,7 @@ const Professors = () => {
             <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={handleCloseModal}>
               <CloseIcon fontSize="large" />
             </button>
-            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar font-sans">
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 custom-scrollbar no-scrollbar font-sans">
               {modalLoading || selectedProfessorLoading ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-pink-500"></div>
@@ -767,7 +767,7 @@ const Professors = () => {
             <button className="absolute top-5 right-5 text-purple-200 hover:text-pink-400 transition-colors z-10 bg-white/10 rounded-full p-1.5 shadow-lg backdrop-blur-md" onClick={() => { setAddModalOpen(false); setEditModalOpen(false); setForm({ name: '', email: '', phone: '', linkedIn: '', profileImage: '', bio: '', expertise: '', yearsOfExperience: '', designation: '', currentOrganization: '' }); }}>
               <CloseIcon fontSize="large" />
             </button>
-            <form className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar" onSubmit={addModalOpen ? handleAddProfessor : handleEditProfessor}>
+            <form className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar no-scrollbar" onSubmit={addModalOpen ? handleAddProfessor : handleEditProfessor}>
               <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-glow">{addModalOpen ? 'Add Professor' : 'Edit Professor'}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -875,6 +875,24 @@ const Professors = () => {
           pauseOnHover
         />, document.body
       )}
+      {/* Global utility to hide scrollbars where applied */}
+      <style>{`
+        .no-scrollbar {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+        /* Prevent horizontal overflow by wrapping long content in table */
+        .responsive-table {
+          table-layout: fixed;
+        }
+        .responsive-table th, .responsive-table td {
+          word-break: break-word;
+          white-space: normal;
+        }
+      `}</style>
     </div>
   );
 };

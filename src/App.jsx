@@ -23,6 +23,7 @@ import Professors from './pages/Professors.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import SupportDashboardPage from './pages/SupportDashboardPage.jsx';
 import Tickets from './pages/Tickets';
+import SupportTickets from './pages/SupportTickets';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
 import TermsOfUse from './pages/TermsOfUse';
@@ -221,6 +222,16 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, showSplash, setShowSplash }) {
             <ProtectedRoute>
               <DashboardLayout>
                 <Tickets />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/support-tickets"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <SupportTickets />
               </DashboardLayout>
             </ProtectedRoute>
           }
